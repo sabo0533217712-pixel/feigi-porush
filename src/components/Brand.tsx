@@ -16,19 +16,13 @@ export default function Brand({ size = 'md', linkTo, className }: BrandProps) {
     xl: 'h-40 md:h-56',
   };
 
-  const roundedClasses = {
-    sm: 'rounded-lg',
-    md: 'rounded-xl',
-    lg: 'rounded-2xl',
-    xl: 'rounded-3xl',
-  };
 
   const content = (
     <div className={cn('flex items-center justify-center', className)}>
       <img
         src={logo}
         alt="Feigi Porush - יופי בנגיעה אישית"
-        className={cn('object-contain shadow-card', sizeClasses[size], roundedClasses[size])}
+        className={cn('object-contain shadow-card', sizeClasses[size])}
       />
     </div>
   );
