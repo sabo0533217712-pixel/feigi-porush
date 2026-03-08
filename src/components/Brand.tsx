@@ -16,12 +16,6 @@ export default function Brand({ size = 'md', linkTo, className }: BrandProps) {
     xl: 'h-40 md:h-56',
   };
 
-  const roundedClasses = {
-    sm: 'rounded-lg',
-    md: 'rounded-xl',
-    lg: 'rounded-2xl',
-    xl: 'rounded-3xl',
-  };
 
   const content = (
     <div className={cn('flex items-center justify-center', className)}>
