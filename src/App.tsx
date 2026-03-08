@@ -2,11 +2,46 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import AppLayout from "@/components/AppLayout";
+import Auth from "@/pages/Auth";
+import ClientBooking from "@/pages/ClientBooking";
+import MyAppointments from "@/pages/MyAppointments";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminTreatments from "@/pages/admin/AdminTreatments";
+import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminCalendar from "@/pages/admin/AdminCalendar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
+  const { user, loading, isAdmin } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">טוען...</div>;
+  if (!user) return <Navigate to="/auth" />;
+  if (adminOnly && !isAdmin) return <Navigate to="/" />;
+  return <AppLayout>{children}</AppLayout>;
+}
+
+function AppRoutes() {
+  const { user, loading, isAdmin } = useAuth();
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">טוען...</div>;
+
+  return (
+    <Routes>
+      <Route path="/auth" element={user ? <Navigate to={isAdmin ? "/admin" : "/"} /> : <Auth />} />
+      <Route path="/" element={<ProtectedRoute>{isAdmin ? <Navigate to="/admin" /> : <ClientBooking />}</ProtectedRoute>} />
+      <Route path="/my-appointments" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/treatments" element={<ProtectedRoute adminOnly><AdminTreatments /></ProtectedRoute>} />
+      <Route path="/admin/settings" element={<ProtectedRoute adminOnly><AdminSettings /></ProtectedRoute>} />
+      <Route path="/admin/calendar" element={<ProtectedRoute adminOnly><AdminCalendar /></ProtectedRoute>} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -14,11 +49,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
