@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Sparkles } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -57,11 +57,10 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-3">
-            <Sparkles className="h-8 w-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-display font-bold text-foreground">ביוטי בוק</h1>
-          <p className="text-muted-foreground mt-2">מערכת ניהול תורים לקוסמטיקאית</p>
+          <Link to="/">
+            <img src={logo} alt="Feigi Porush" className="h-20 mx-auto mb-4" />
+          </Link>
+          <p className="text-muted-foreground">מערכת קביעת תורים</p>
         </div>
 
         <Card className="shadow-card border-border/50">

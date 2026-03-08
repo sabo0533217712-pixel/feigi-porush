@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
+import LandingPage from "@/pages/LandingPage";
 import Auth from "@/pages/Auth";
 import ClientBooking from "@/pages/ClientBooking";
 import MyAppointments from "@/pages/MyAppointments";
@@ -20,7 +21,7 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
   const { user, loading, isAdmin } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">טוען...</div>;
   if (!user) return <Navigate to="/auth" />;
-  if (adminOnly && !isAdmin) return <Navigate to="/" />;
+  if (adminOnly && !isAdmin) return <Navigate to="/booking" />;
   return <AppLayout>{children}</AppLayout>;
 }
 
@@ -31,8 +32,9 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/auth" element={user ? <Navigate to={isAdmin ? "/admin" : "/"} /> : <Auth />} />
-      <Route path="/" element={<ProtectedRoute>{isAdmin ? <Navigate to="/admin" /> : <ClientBooking />}</ProtectedRoute>} />
+      <Route path="/" element={user ? <Navigate to={isAdmin ? "/admin" : "/booking"} /> : <LandingPage />} />
+      <Route path="/auth" element={user ? <Navigate to={isAdmin ? "/admin" : "/booking"} /> : <Auth />} />
+      <Route path="/booking" element={<ProtectedRoute><ClientBooking /></ProtectedRoute>} />
       <Route path="/my-appointments" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/treatments" element={<ProtectedRoute adminOnly><AdminTreatments /></ProtectedRoute>} />

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Calendar, Settings, User, LogOut, Sparkles, LayoutDashboard } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, isAdmin, signOut } = useAuth();
@@ -22,7 +23,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         { to: '/admin/calendar', label: 'יומן', icon: Calendar },
       ]
     : [
-        { to: '/', label: 'קביעת תור', icon: Calendar },
+        { to: '/booking', label: 'קביעת תור', icon: Calendar },
         { to: '/my-appointments', label: 'התורים שלי', icon: User },
       ];
 
@@ -31,10 +32,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-card/80 backdrop-blur-sm">
         <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
-            <span className="text-lg font-display font-bold text-foreground">ביוטי בוק</span>
-          </div>
+          <Link to={isAdmin ? '/admin' : '/booking'} className="flex items-center gap-2">
+            <img src={logo} alt="Feigi Porush" className="h-10" />
+          </Link>
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map(item => (
               <Link key={item.to} to={item.to}>

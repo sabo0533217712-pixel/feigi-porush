@@ -15,7 +15,7 @@ export default {
     extend: {
       fontFamily: {
         heebo: ["Heebo", "sans-serif"],
-        display: ["Playfair Display", "serif"],
+        display: ["Cormorant Garamond", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -55,6 +55,8 @@ export default {
         "rose-gold-light": "hsl(var(--rose-gold-light))",
         cream: "hsl(var(--cream))",
         "warm-beige": "hsl(var(--warm-beige))",
+        "dusty-rose": "hsl(var(--dusty-rose))",
+        "dusty-rose-dark": "hsl(var(--dusty-rose-dark))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
