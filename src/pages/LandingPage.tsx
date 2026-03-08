@@ -18,7 +18,7 @@ export default function LandingPage() {
       <section className="relative min-h-[85vh] flex items-center justify-center gradient-hero overflow-hidden">
         <div className="absolute inset-0 bg-black/5" />
         <div className="relative z-10 text-center px-6 max-w-2xl mx-auto animate-fade-in">
-          <Brand size="xl" className="mb-10 drop-shadow-lg" />
+          <Brand size="xl" variant="light" className="mb-10 drop-shadow-lg" />
           <p className="text-primary-foreground/85 text-lg md:text-xl font-light leading-relaxed mb-10 font-heebo">
             חוויית טיפוח אישית ומפנקת בסביבה מקצועית ואינטימית.
             <br />
