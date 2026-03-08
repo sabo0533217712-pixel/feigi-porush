@@ -57,7 +57,7 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <Brand size="lg" linkTo="/" showSubtitle />
+          <Brand size="lg" linkTo="/" />
           <p className="text-muted-foreground mt-3">מערכת קביעת תורים</p>
         </div>
 
