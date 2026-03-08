@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Star, Phone, LayoutDashboard } from 'lucide-react';
-import logo from '@/assets/logo.png';
+import Brand from '@/components/Brand';
 
 export default function LandingPage() {
   const { user, isAdmin } = useAuth();
@@ -18,11 +18,7 @@ export default function LandingPage() {
       <section className="relative min-h-[85vh] flex items-center justify-center gradient-hero overflow-hidden">
         <div className="absolute inset-0 bg-black/5" />
         <div className="relative z-10 text-center px-6 max-w-2xl mx-auto animate-fade-in">
-          <img
-            src={logo}
-            alt="Feigi Porush - יופי בנגיעה אישית"
-            className="w-72 md:w-96 mx-auto mb-10 drop-shadow-lg"
-          />
+          <Brand size="xl" showSubtitle className="mb-10 text-primary-foreground [&_span]:text-primary-foreground [&_span]:opacity-85 [&_svg]:text-primary-foreground/50" />
           <p className="text-primary-foreground/85 text-lg md:text-xl font-light leading-relaxed mb-10 font-heebo">
             חוויית טיפוח אישית ומפנקת בסביבה מקצועית ואינטימית.
             <br />
@@ -112,9 +108,10 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8 px-6 text-center">
+      <footer className="border-t border-border py-8 px-6 text-center space-y-3">
+        <Brand size="sm" showSubtitle />
         <p className="text-muted-foreground text-sm font-heebo">
-          © {new Date().getFullYear()} Feigi Porush • יופי בנגיעה אישית
+          © {new Date().getFullYear()} Feigi Porush • כל הזכויות שמורות
         </p>
       </footer>
     </div>
