@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Star, Phone, LayoutDashboard } from 'lucide-react';
-import logo from '@/assets/logo.png';
+import Brand from '@/components/Brand';
 
 export default function LandingPage() {
   const { user, isAdmin } = useAuth();
