@@ -32,7 +32,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={user && isAdmin ? <Navigate to="/admin" /> : <LandingPage />} />
       <Route path="/auth" element={user ? <Navigate to={isAdmin ? "/admin" : "/booking"} /> : <Auth />} />
       <Route path="/booking" element={<ProtectedRoute><ClientBooking /></ProtectedRoute>} />
       <Route path="/my-appointments" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
