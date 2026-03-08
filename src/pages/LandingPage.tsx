@@ -1,9 +1,17 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Star, Phone } from 'lucide-react';
+import { Calendar, Clock, Star, Phone, LayoutDashboard } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 export default function LandingPage() {
+  const { user, isAdmin } = useAuth();
+
+  const ctaLink = user ? (isAdmin ? '/admin' : '/booking') : '/auth';
+  const ctaLabel = user ? (isAdmin ? 'לוח בקרה' : 'קביעת תור') : 'קביעת תור';
+  const ctaIcon = user && isAdmin ? LayoutDashboard : Calendar;
+  const CtaIcon = ctaIcon;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -21,13 +29,13 @@ export default function LandingPage() {
             קבעי תור בקלות ותגיעי מוכנה ליום שלך.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/auth">
+            <Link to={ctaLink}>
               <Button
                 size="lg"
                 className="bg-white/95 text-dusty-rose-dark hover:bg-white font-semibold px-10 py-6 text-base shadow-elegant rounded-full"
               >
-                <Calendar className="h-5 w-5 ml-2" />
-                קביעת תור
+                <CtaIcon className="h-5 w-5 ml-2" />
+                {ctaLabel}
               </Button>
             </Link>
             <a href="tel:+972501234567">
@@ -65,21 +73,9 @@ export default function LandingPage() {
 
         <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8">
           {[
-            {
-              icon: Calendar,
-              title: 'קביעת תור מהירה',
-              desc: 'בחרי טיפול, תאריך ושעה - הכל אונליין בכמה קליקים פשוטים',
-            },
-            {
-              icon: Clock,
-              title: 'זמינות בזמן אמת',
-              desc: 'ראי מיידית אילו שעות פנויות ובחרי את הזמן שנוח לך',
-            },
-            {
-              icon: Star,
-              title: 'טיפולים מקצועיים',
-              desc: 'מגוון טיפולי יופי וטיפוח ברמה הגבוהה ביותר',
-            },
+            { icon: Calendar, title: 'קביעת תור מהירה', desc: 'בחרי טיפול, תאריך ושעה - הכל אונליין בכמה קליקים פשוטים' },
+            { icon: Clock, title: 'זמינות בזמן אמת', desc: 'ראי מיידית אילו שעות פנויות ובחרי את הזמן שנוח לך' },
+            { icon: Star, title: 'טיפולים מקצועיים', desc: 'מגוון טיפולי יופי וטיפוח ברמה הגבוהה ביותר' },
           ].map((feature) => (
             <div
               key={feature.title}
@@ -88,12 +84,8 @@ export default function LandingPage() {
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-5">
                 <feature.icon className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-xl font-display font-bold text-foreground mb-3">
-                {feature.title}
-              </h3>
-              <p className="text-muted-foreground font-heebo leading-relaxed">
-                {feature.desc}
-              </p>
+              <h3 className="text-xl font-display font-bold text-foreground mb-3">{feature.title}</h3>
+              <p className="text-muted-foreground font-heebo leading-relaxed">{feature.desc}</p>
             </div>
           ))}
         </div>
@@ -108,12 +100,12 @@ export default function LandingPage() {
           <p className="text-primary-foreground/80 mb-8 text-lg font-heebo">
             קבעי תור עכשיו ותני לנו לדאוג ליופי שלך
           </p>
-          <Link to="/auth">
+          <Link to={ctaLink}>
             <Button
               size="lg"
               className="bg-white/95 text-dusty-rose-dark hover:bg-white font-semibold px-10 py-6 text-base rounded-full"
             >
-              הרשמי וקבעי תור
+              {user ? ctaLabel : 'הרשמי וקבעי תור'}
             </Button>
           </Link>
         </div>
