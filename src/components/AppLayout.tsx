@@ -32,9 +32,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-card/80 backdrop-blur-sm">
         <div className="container flex items-center justify-between h-16 px-4">
-          <Link to={isAdmin ? '/admin' : '/booking'} className="flex items-center gap-2">
-            <img src={logo} alt="Feigi Porush" className="h-10" />
-          </Link>
+          <Brand size="sm" linkTo={isAdmin ? '/admin' : '/booking'} showSubtitle />
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map(item => (
               <Link key={item.to} to={item.to}>

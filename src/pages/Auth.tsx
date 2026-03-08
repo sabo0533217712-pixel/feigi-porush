@@ -57,10 +57,8 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <Link to="/">
-            <img src={logo} alt="Feigi Porush" className="h-20 mx-auto mb-4" />
-          </Link>
-          <p className="text-muted-foreground">מערכת קביעת תורים</p>
+          <Brand size="lg" linkTo="/" showSubtitle />
+          <p className="text-muted-foreground mt-3">מערכת קביעת תורים</p>
         </div>
 
         <Card className="shadow-card border-border/50">
