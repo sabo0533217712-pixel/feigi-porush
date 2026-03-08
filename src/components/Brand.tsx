@@ -22,7 +22,7 @@ export default function Brand({ size = 'md', linkTo, className }: BrandProps) {
       <img
         src={logo}
         alt="Feigi Porush - יופי בנגיעה אישית"
-        className={cn('object-contain shadow-card', sizeClasses[size], roundedClasses[size])}
+        className={cn('object-contain shadow-card', sizeClasses[size])}
       />
     </div>
   );
