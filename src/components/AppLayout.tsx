@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Calendar, Settings, User, LogOut, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Calendar, Settings, User, LogOut, Sparkles, LayoutDashboard, Home } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
