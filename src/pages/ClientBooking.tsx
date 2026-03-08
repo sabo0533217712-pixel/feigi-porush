@@ -254,11 +254,31 @@ export default function ClientBooking() {
               }
               locale={he}
               className="p-3 pointer-events-auto"
+              classNames={{
+                months: "flex flex-col",
+                month: "space-y-6",
+                caption: "flex justify-center pt-2 relative items-center",
+                caption_label: "text-base font-semibold",
+                nav_button: cn("h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input"),
+                nav_button_previous: "absolute left-2",
+                nav_button_next: "absolute right-2",
+                table: "w-full border-collapse",
+                head_row: "flex",
+                head_cell: "text-muted-foreground rounded-md w-10 md:w-14 h-8 md:h-10 font-medium text-xs md:text-sm flex items-center justify-center",
+                row: "flex w-full mt-1",
+                cell: "h-10 w-10 md:h-14 md:w-14 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                day: "h-10 w-10 md:h-14 md:w-14 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center rounded-md text-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                day_today: "bg-accent text-accent-foreground",
+                day_outside: "text-muted-foreground opacity-50",
+                day_disabled: "text-muted-foreground opacity-50",
+                day_hidden: "invisible",
+              }}
               components={{
                 DayContent: ({ date }) => (
-                  <div className="flex flex-col items-center">
-                    <span>{date.getDate()}</span>
-                    <HebrewDateLabel date={date} />
+                  <div className="flex flex-col items-center leading-tight">
+                    <span className="text-sm font-medium">{date.getDate()}</span>
+                    <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
                   </div>
                 ),
               }}
