@@ -34,9 +34,26 @@ export default function AdminCalendar() {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     const { data } = await supabase
       .from('appointments')
-      .select('*, profiles!appointments_client_id_fkey(full_name, phone), treatments(name)')
+      .select('*, treatments(name)')
       .eq('appointment_date', dateStr)
       .order('start_time');
+    
+    // Fetch client profiles separately
+    if (data && data.length > 0) {
+      const clientIds = [...new Set(data.map(a => a.client_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, phone')
+        .in('user_id', clientIds);
+      
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      const enriched = data.map(a => ({
+        ...a,
+        profiles: profileMap.get(a.client_id) || null,
+      }));
+      setAppointments(enriched as unknown as Appointment[]);
+      return;
+    }
     if (data) setAppointments(data as unknown as Appointment[]);
   };
 
