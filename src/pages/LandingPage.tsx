@@ -108,9 +108,10 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8 px-6 text-center">
+      <footer className="border-t border-border py-8 px-6 text-center space-y-3">
+        <Brand size="sm" showSubtitle />
         <p className="text-muted-foreground text-sm font-heebo">
-          © {new Date().getFullYear()} Feigi Porush • יופי בנגיעה אישית
+          © {new Date().getFullYear()} Feigi Porush • כל הזכויות שמורות
         </p>
       </footer>
     </div>
