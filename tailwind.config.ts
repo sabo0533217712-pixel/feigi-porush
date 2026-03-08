@@ -15,7 +15,7 @@ export default {
     extend: {
       fontFamily: {
         heebo: ["Heebo", "sans-serif"],
-        display: ["Playfair Display", "serif"],
+        display: ["Cormorant Garamond", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
