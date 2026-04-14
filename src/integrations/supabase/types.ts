@@ -14,9 +14,52 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointment_treatments: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          duration_minutes: number
+          id: string
+          price: number
+          treatment_id: string
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          duration_minutes: number
+          id?: string
+          price?: number
+          treatment_id: string
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          price?: number
+          treatment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_treatments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_treatments_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           appointment_date: string
+          booked_by_admin: boolean
           client_id: string
           created_at: string
           end_time: string
@@ -29,6 +72,7 @@ export type Database = {
         }
         Insert: {
           appointment_date: string
+          booked_by_admin?: boolean
           client_id: string
           created_at?: string
           end_time: string
@@ -41,6 +85,7 @@ export type Database = {
         }
         Update: {
           appointment_date?: string
+          booked_by_admin?: boolean
           client_id?: string
           created_at?: string
           end_time?: string
@@ -63,46 +108,141 @@ export type Database = {
       }
       business_settings: {
         Row: {
+          admin_email: string | null
+          admin_phone: string | null
           advance_booking_days: number
           break_end: string | null
           break_start: string | null
           business_name: string
           cancellation_hours: number
           created_at: string
+          custom_texts: Json | null
           end_time: string
+          font_family: string | null
           id: string
+          primary_color: string | null
+          secondary_color: string | null
           slot_duration_minutes: number
           start_time: string
           updated_at: string
           working_days: number[]
         }
         Insert: {
+          admin_email?: string | null
+          admin_phone?: string | null
           advance_booking_days?: number
           break_end?: string | null
           break_start?: string | null
           business_name?: string
           cancellation_hours?: number
           created_at?: string
+          custom_texts?: Json | null
           end_time?: string
+          font_family?: string | null
           id?: string
+          primary_color?: string | null
+          secondary_color?: string | null
           slot_duration_minutes?: number
           start_time?: string
           updated_at?: string
           working_days?: number[]
         }
         Update: {
+          admin_email?: string | null
+          admin_phone?: string | null
           advance_booking_days?: number
           break_end?: string | null
           break_start?: string | null
           business_name?: string
           cancellation_hours?: number
           created_at?: string
+          custom_texts?: Json | null
           end_time?: string
+          font_family?: string | null
           id?: string
+          primary_color?: string | null
+          secondary_color?: string | null
           slot_duration_minutes?: number
           start_time?: string
           updated_at?: string
           working_days?: number[]
+        }
+        Relationships: []
+      }
+      notification_log: {
+        Row: {
+          appointment_id: string | null
+          channel: string
+          created_at: string
+          id: string
+          payload: Json | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_log_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_enabled: boolean
+          id: string
+          sms_enabled: boolean
+          updated_at: string
+          user_id: string
+          whatsapp_enabled: boolean
+        }
+        Insert: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          sms_enabled?: boolean
+          updated_at?: string
+          user_id: string
+          whatsapp_enabled?: boolean
+        }
+        Update: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          sms_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+          whatsapp_enabled?: boolean
         }
         Relationships: []
       }
@@ -112,6 +252,7 @@ export type Database = {
           full_name: string
           id: string
           phone: string | null
+          reminder_preference: string
           updated_at: string
           user_id: string
         }
@@ -120,6 +261,7 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string | null
+          reminder_preference?: string
           updated_at?: string
           user_id: string
         }
@@ -128,6 +270,7 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string | null
+          reminder_preference?: string
           updated_at?: string
           user_id?: string
         }
@@ -136,33 +279,39 @@ export type Database = {
       treatments: {
         Row: {
           category: string | null
+          color: string | null
           created_at: string
           description: string | null
           duration_minutes: number
           id: string
           is_active: boolean
+          is_variable_duration: boolean
           name: string
           price: number
           updated_at: string
         }
         Insert: {
           category?: string | null
+          color?: string | null
           created_at?: string
           description?: string | null
           duration_minutes?: number
           id?: string
           is_active?: boolean
+          is_variable_duration?: boolean
           name: string
           price?: number
           updated_at?: string
         }
         Update: {
           category?: string | null
+          color?: string | null
           created_at?: string
           description?: string | null
           duration_minutes?: number
           id?: string
           is_active?: boolean
+          is_variable_duration?: boolean
           name?: string
           price?: number
           updated_at?: string
@@ -186,6 +335,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      waitlist: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          preferred_date: string | null
+          preferred_time_end: string | null
+          preferred_time_start: string | null
+          status: string
+          treatment_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          preferred_date?: string | null
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          status?: string
+          treatment_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          preferred_date?: string | null
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          status?: string
+          treatment_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
