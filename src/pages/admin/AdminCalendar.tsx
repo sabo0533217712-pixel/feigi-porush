@@ -326,7 +326,7 @@ export default function AdminCalendar() {
             )}
 
             {/* Timeline grid */}
-            <div className="relative overflow-y-auto max-h-[500px] border border-border rounded-lg" dir="ltr">
+            <div className="relative overflow-y-auto flex-1 border border-border rounded-lg" dir="ltr">
               <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
                 {/* Hour lines */}
                 {timelineHours.map((hour, i) => (
