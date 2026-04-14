@@ -418,7 +418,6 @@ export default function AdminCalendar() {
                 })}
               </div>
             </div>
-          </div>
         </DialogContent>
       </Dialog>
 
