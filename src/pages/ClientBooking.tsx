@@ -47,6 +47,7 @@ export default function ClientBooking() {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [selectedTreatments, setSelectedTreatments] = useState<Treatment[]>([]);
+  const [variableDurations, setVariableDurations] = useState<Record<string, number>>({});
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [bookedSlots, setBookedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,9 +58,11 @@ export default function ClientBooking() {
   const [showMoreDays, setShowMoreDays] = useState(false);
   const [moreDaySuggestions, setMoreDaySuggestions] = useState<{ date: Date; slots: string[] }[]>([]);
 
-  const totalDuration = selectedTreatments.reduce((sum, t) => sum + t.duration_minutes, 0);
+  const getDuration = (t: Treatment) => t.is_variable_duration ? (variableDurations[t.id] || 15) : t.duration_minutes;
+  const totalDuration = selectedTreatments.reduce((sum, t) => sum + getDuration(t), 0);
   const totalPrice = selectedTreatments.reduce((sum, t) => sum + t.price, 0);
   const hasVariableDuration = selectedTreatments.some(t => t.is_variable_duration);
+  const allDurationsSet = selectedTreatments.every(t => !t.is_variable_duration || variableDurations[t.id]);
 
   useEffect(() => {
     fetchTreatments();
@@ -349,8 +352,10 @@ export default function ClientBooking() {
                       <div>
                         <h3 className="font-medium text-foreground">{t.name}</h3>
                         <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
-                          {t.is_variable_duration && <span className="text-xs bg-accent px-2 py-0.5 rounded">משך גמיש</span>}
+                          {t.is_variable_duration
+                            ? <span className="text-xs bg-accent px-2 py-0.5 rounded">משך גמיש</span>
+                            : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
+                          }
                           {t.category && <Badge variant="secondary" className="text-xs">{t.category}</Badge>}
                         </div>
                       </div>
