@@ -419,6 +419,12 @@ export default function AdminCalendar() {
                           <span className="text-xs font-mono text-muted-foreground flex-shrink-0">
                             {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
                           </span>
+                          {(() => {
+                            const [sh, sm] = apt.start_time.substring(0, 5).split(':').map(Number);
+                            const [eh, em] = apt.end_time.substring(0, 5).split(':').map(Number);
+                            const dur = (eh * 60 + em) - (sh * 60 + sm);
+                            return <span className="text-[10px] text-muted-foreground flex-shrink-0">({dur} דק׳)</span>;
+                          })()}
                           <span className="text-sm font-medium text-foreground truncate">
                             {apt.treatments?.name}
                           </span>
@@ -476,13 +482,21 @@ export default function AdminCalendar() {
               day_hidden: "invisible",
             }}
             components={{
-              DayContent: ({ date }) => (
-                <div className="flex flex-col items-center leading-tight">
-                  <span className="text-sm font-medium">{date.getDate()}</span>
-                  <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
-                </div>
-              ),
+              DayContent: ({ date }) => {
+                const dateStr = format(date, 'yyyy-MM-dd');
+                const count = monthCounts[dateStr] || 0;
+                return (
+                  <div className="flex flex-col items-center leading-tight">
+                    <span className="text-sm font-medium">{date.getDate()}</span>
+                    <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
+                    {count > 0 && (
+                      <span className="text-[9px] font-semibold text-primary bg-primary/10 rounded-full px-1.5 mt-0.5">{count}</span>
+                    )}
+                  </div>
+                );
+              },
             }}
+            onMonthChange={setCurrentMonth}
           />
         </CardContent>
       </Card>
