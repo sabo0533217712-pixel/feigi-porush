@@ -645,39 +645,73 @@ export default function AdminCalendar() {
       <Dialog open={!!showClientInfo} onOpenChange={() => setShowClientInfo(null)}>
         <DialogContent dir="rtl" className="sm:max-w-sm">
           <DialogHeader><DialogTitle>פרטי לקוחה</DialogTitle></DialogHeader>
-          {showClientInfo?.profiles && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{showClientInfo.profiles.full_name}</span>
-              </div>
-              {showClientInfo.profiles.phone && (
+          {showClientInfo?.profiles && (() => {
+            const rawPhone = showClientInfo.profiles.phone?.trim() || '';
+            const normalizedPhone = rawPhone.replace(/[^0-9]/g, '');
+            const hasPhone = normalizedPhone.length > 0;
+
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{showClientInfo.profiles.full_name}</span>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <a href={`tel:${showClientInfo.profiles.phone}`} className="text-primary hover:underline">{showClientInfo.profiles.phone}</a>
+                  {rawPhone ? (
+                    <a href={`tel:${rawPhone}`} className="text-primary hover:underline">{rawPhone}</a>
+                  ) : (
+                    <span className="text-muted-foreground">לא הוזן מספר טלפון</span>
+                  )}
                 </div>
-              )}
-              {/* Contact buttons */}
-              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border">
-                {showClientInfo.profiles.phone && (
-                  <>
-                    <a href={`tel:${showClientInfo.profiles.phone}`}>
-                      <Button size="sm" className="gap-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 border-0"><Phone className="h-3.5 w-3.5" /> התקשרי</Button>
+
+                <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border">
+                  {hasPhone ? (
+                    <Button asChild size="sm" className="gap-1.5 bg-[hsl(210_85%_94%)] text-[hsl(210_70%_38%)] hover:bg-[hsl(210_85%_90%)] border-0">
+                      <a href={`tel:${rawPhone}`}>
+                        <Phone className="h-3.5 w-3.5" /> התקשרי
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button size="sm" disabled className="gap-1.5 bg-[hsl(210_35%_94%)] text-[hsl(210_20%_55%)] border-0">
+                      <Phone className="h-3.5 w-3.5" /> התקשרי
+                    </Button>
+                  )}
+
+                  {hasPhone ? (
+                    <Button asChild size="sm" className="gap-1.5 bg-[hsl(202_90%_94%)] text-[hsl(202_68%_40%)] hover:bg-[hsl(202_90%_90%)] border-0">
+                      <a href={`sms:${rawPhone}`}>
+                        <MessageSquare className="h-3.5 w-3.5" /> SMS
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button size="sm" disabled className="gap-1.5 bg-[hsl(202_35%_94%)] text-[hsl(202_20%_55%)] border-0">
+                      <MessageSquare className="h-3.5 w-3.5" /> SMS
+                    </Button>
+                  )}
+
+                  {hasPhone ? (
+                    <Button asChild size="sm" className="gap-1.5 bg-[hsl(142_65%_93%)] text-[hsl(142_60%_32%)] hover:bg-[hsl(142_65%_88%)] border-0">
+                      <a href={`https://wa.me/${normalizedPhone}`} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button size="sm" disabled className="gap-1.5 bg-[hsl(142_25%_94%)] text-[hsl(142_14%_55%)] border-0">
+                      <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                    </Button>
+                  )}
+
+                  <Button asChild size="sm" className="gap-1.5 bg-[hsl(0_85%_95%)] text-[hsl(0_70%_45%)] hover:bg-[hsl(0_85%_91%)] border-0">
+                    <a href="mailto:">
+                      <Mail className="h-3.5 w-3.5" /> מייל
                     </a>
-                    <a href={`sms:${showClientInfo.profiles.phone}`}>
-                      <Button size="sm" className="gap-1.5 bg-sky-100 text-sky-700 hover:bg-sky-200 border-0"><MessageSquare className="h-3.5 w-3.5" /> SMS</Button>
-                    </a>
-                    <a href={`https://wa.me/${showClientInfo.profiles.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" className="gap-1.5 bg-green-100 text-green-700 hover:bg-green-200 border-0"><MessageCircle className="h-3.5 w-3.5" /> WhatsApp</Button>
-                    </a>
-                  </>
-                )}
-                <a href={`mailto:`}>
-                  <Button size="sm" className="gap-1.5 bg-red-100 text-red-700 hover:bg-red-200 border-0"><Mail className="h-3.5 w-3.5" /> מייל</Button>
-                </a>
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
