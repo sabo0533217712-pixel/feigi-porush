@@ -5,10 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { format, parseISO, isBefore, startOfDay } from 'date-fns';
+import { format, parseISO, isBefore, startOfDay, differenceInHours } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getHebrewDateShort } from '@/lib/hebrew-date';
-import { Calendar, Clock, X } from 'lucide-react';
+import { Calendar, Clock, X, AlertCircle } from 'lucide-react';
 
 interface Appointment {
   id: string;
@@ -17,7 +17,7 @@ interface Appointment {
   end_time: string;
   status: string;
   notes: string | null;
-  treatments: { name: string; duration_minutes: number; price: number } | null;
+  treatments: { name: string; duration_minutes: number; price: number; color: string } | null;
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -39,11 +39,28 @@ export default function MyAppointments() {
   const fetchAppointments = async () => {
     const { data } = await supabase
       .from('appointments')
-      .select('*, treatments(name, duration_minutes, price)')
+      .select('*, treatments(name, duration_minutes, price, color)')
       .eq('client_id', user!.id)
       .order('appointment_date', { ascending: false });
     if (data) setAppointments(data as unknown as Appointment[]);
     setLoading(false);
+  };
+
+  const canCancel = (apt: Appointment): { allowed: boolean; reason?: string } => {
+    if (apt.status !== 'confirmed') return { allowed: false };
+    const aptDate = parseISO(apt.appointment_date);
+    if (isBefore(aptDate, startOfDay(new Date()))) return { allowed: false };
+
+    // Parse appointment datetime
+    const [h, m] = apt.start_time.split(':').map(Number);
+    const aptDateTime = new Date(aptDate);
+    aptDateTime.setHours(h, m, 0, 0);
+
+    const hoursUntil = differenceInHours(aptDateTime, new Date());
+    if (hoursUntil < 24) {
+      return { allowed: false, reason: 'ניתן לבטל עד 24 שעות לפני התור' };
+    }
+    return { allowed: true };
   };
 
   const handleCancel = async (id: string) => {
@@ -76,9 +93,17 @@ export default function MyAppointments() {
               <p className="text-muted-foreground text-center py-4">אין תורים קרובים</p>
             ) : (
               <div className="space-y-3">
-                {upcoming.map(apt => (
-                  <AppointmentCard key={apt.id} appointment={apt} onCancel={handleCancel} canCancel />
-                ))}
+                {upcoming.map(apt => {
+                  const cancelStatus = canCancel(apt);
+                  return (
+                    <AppointmentCard
+                      key={apt.id}
+                      appointment={apt}
+                      onCancel={handleCancel}
+                      cancelStatus={cancelStatus}
+                    />
+                  );
+                })}
               </div>
             )}
           </section>
@@ -88,7 +113,12 @@ export default function MyAppointments() {
               <h2 className="text-lg font-semibold text-foreground mb-3">היסטוריה</h2>
               <div className="space-y-3">
                 {past.map(apt => (
-                  <AppointmentCard key={apt.id} appointment={apt} onCancel={handleCancel} canCancel={false} />
+                  <AppointmentCard
+                    key={apt.id}
+                    appointment={apt}
+                    onCancel={handleCancel}
+                    cancelStatus={{ allowed: false }}
+                  />
                 ))}
               </div>
             </section>
@@ -99,38 +129,52 @@ export default function MyAppointments() {
   );
 }
 
-function AppointmentCard({ appointment: apt, onCancel, canCancel }: {
+function AppointmentCard({ appointment: apt, onCancel, cancelStatus }: {
   appointment: Appointment;
   onCancel: (id: string) => void;
-  canCancel: boolean;
+  cancelStatus: { allowed: boolean; reason?: string };
 }) {
   const date = parseISO(apt.appointment_date);
   const status = STATUS_MAP[apt.status] || STATUS_MAP.confirmed;
 
   return (
-    <Card className="shadow-card">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <h3 className="font-medium text-foreground">{apt.treatments?.name}</h3>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>{format(date, 'd/M/yyyy')} • {getHebrewDateShort(date)}</span>
+    <Card className="shadow-card overflow-hidden">
+      <div className="flex">
+        <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: apt.treatments?.color || '#6366f1' }} />
+        <CardContent className="p-4 flex-1">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <h3 className="font-medium text-foreground">{apt.treatments?.name}</h3>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5" />
+                <span>{format(date, 'd/M/yyyy')} • {getHebrewDateShort(date)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{apt.start_time.substring(0, 5)} - {apt.end_time.substring(0, 5)}</span>
+              </div>
+              {apt.treatments?.price && (
+                <span className="text-sm text-primary font-medium">₪{apt.treatments.price}</span>
+              )}
+              <Badge variant={status.variant} className="mt-1">{status.label}</Badge>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
-              <span>{apt.start_time.substring(0, 5)} - {apt.end_time.substring(0, 5)}</span>
+            <div className="flex flex-col items-end gap-1">
+              {cancelStatus.allowed && (
+                <Button variant="ghost" size="sm" onClick={() => onCancel(apt.id)} className="text-destructive hover:text-destructive">
+                  <X className="h-4 w-4 mr-1" />
+                  ביטול
+                </Button>
+              )}
+              {cancelStatus.reason && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground max-w-[140px] text-left">
+                  <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                  <span>{cancelStatus.reason}</span>
+                </div>
+              )}
             </div>
-            <Badge variant={status.variant} className="mt-1">{status.label}</Badge>
           </div>
-          {canCancel && apt.status === 'confirmed' && (
-            <Button variant="ghost" size="sm" onClick={() => onCancel(apt.id)} className="text-destructive hover:text-destructive">
-              <X className="h-4 w-4 mr-1" />
-              ביטול
-            </Button>
-          )}
-        </div>
-      </CardContent>
+        </CardContent>
+      </div>
     </Card>
   );
 }

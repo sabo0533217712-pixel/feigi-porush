@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Star, Phone, LayoutDashboard } from 'lucide-react';
+import { Calendar, Clock, Star, Phone, LayoutDashboard, Image, Info } from 'lucide-react';
 import Brand from '@/components/Brand';
 
 export default function LandingPage() {
@@ -87,6 +87,22 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Quick links */}
+      <section className="py-10 px-6">
+        <div className="max-w-2xl mx-auto flex items-center justify-center gap-4">
+          <Link to="/gallery">
+            <Button variant="outline" size="lg" className="gap-2 rounded-full">
+              <Image className="h-5 w-5" /> גלריה
+            </Button>
+          </Link>
+          <Link to="/about">
+            <Button variant="outline" size="lg" className="gap-2 rounded-full">
+              <Info className="h-5 w-5" /> אודות
+            </Button>
+          </Link>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-16 px-6">
         <div className="max-w-2xl mx-auto gradient-primary rounded-3xl p-10 md:p-14 text-center shadow-elegant">
@@ -110,6 +126,10 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border py-8 px-6 text-center space-y-3">
         <Brand size="sm" />
+        <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+          <Link to="/gallery" className="hover:text-foreground transition-colors">גלריה</Link>
+          <Link to="/about" className="hover:text-foreground transition-colors">אודות</Link>
+        </div>
         <p className="text-muted-foreground text-sm font-heebo">
           © {new Date().getFullYear()} Feigi Porush • כל הזכויות שמורות
         </p>
