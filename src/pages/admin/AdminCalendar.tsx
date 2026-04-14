@@ -551,19 +551,19 @@ export default function AdminCalendar() {
                             </span>
                             <span className="text-xs text-muted-foreground truncate">{apt.treatments?.name}</span>
                           </div>
-                        <div
-                          className="flex items-center gap-0.5 flex-shrink-0"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowClientInfo(apt)}>
-                            <User className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(apt)}>
-                            <Edit className="h-3 w-3" />
-                          </Button>
+                          <div
+                            className="flex items-center gap-0.5 flex-shrink-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowClientInfo(apt)}>
+                              <User className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(apt)}>
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
                   );
                 });
               })()}
