@@ -514,11 +514,8 @@ export default function AdminCalendar() {
                       style={{
                         top: getTopOffset(apt.start_time),
                         height: getHeight(apt.start_time, apt.end_time),
-                        left: `calc(64px + ${leftPercent}% * (100% - 64px - 16px) / 100)`,
-                        width: `calc(${widthPercent}% * (100% - 64px - 16px) / 100)`,
-                        right: totalCols === 1 ? '16px' : undefined,
-                        ...(totalCols === 1 ? { left: '64px' } : {
-                          left: `calc(64px + (100% - 64px - 16px) * ${leftPercent / 100})`,
+                        ...(totalCols === 1 ? { right: '64px', left: '16px' } : {
+                          right: `calc(64px + (100% - 64px - 16px) * ${leftPercent / 100})`,
                           width: `calc((100% - 64px - 16px) * ${widthPercent / 100})`,
                         }),
                       }}
