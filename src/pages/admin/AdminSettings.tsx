@@ -27,51 +27,8 @@ type DaySchedules = Record<string, DaySchedule>;
 
 const DEFAULT_SCHEDULE: DaySchedule = { start: '09:00', end: '18:00', breaks: [{ start: '13:00', end: '14:00' }] };
 
-function hexToHSL(hex: string): { h: number; s: number; l: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return null;
-  let r = parseInt(result[1], 16) / 255;
-  let g = parseInt(result[2], 16) / 255;
-  let b = parseInt(result[3], 16) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0;
-  const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
-    }
-  }
-  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
-}
 
-function extractDominantColor(imgElement: HTMLImageElement): string | null {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
-  const size = 50;
-  canvas.width = size;
-  canvas.height = size;
-  ctx.drawImage(imgElement, 0, 0, size, size);
-  const data = ctx.getImageData(0, 0, size, size).data;
-  let rSum = 0, gSum = 0, bSum = 0, count = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
-    // Skip transparent/near-white/near-black pixels
-    if (a < 128) continue;
-    if (r > 240 && g > 240 && b > 240) continue;
-    if (r < 15 && g < 15 && b < 15) continue;
-    rSum += r; gSum += g; bSum += b; count++;
-  }
-  if (count === 0) return null;
-  const rAvg = Math.round(rSum / count);
-  const gAvg = Math.round(gSum / count);
-  const bAvg = Math.round(bSum / count);
-  return `#${rAvg.toString(16).padStart(2, '0')}${gAvg.toString(16).padStart(2, '0')}${bAvg.toString(16).padStart(2, '0')}`;
-}
+
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState({
