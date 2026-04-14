@@ -84,6 +84,7 @@ export default function AdminCalendar() {
   const [editForm, setEditForm] = useState<{
     id: string; start_time: string; end_time: string; status: string; notes: string;
   } | null>(null);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
   useEffect(() => {
     fetchTreatments();
@@ -260,6 +261,7 @@ export default function AdminCalendar() {
   };
 
   const openEditDialog = (apt: Appointment) => {
+    setEditingAppointment(apt);
     setEditForm({
       id: apt.id,
       start_time: apt.start_time.substring(0, 5),
@@ -283,23 +285,7 @@ export default function AdminCalendar() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-display font-bold text-foreground">יומן תורים</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => {
-            setBlockForm({ start_time: '09:00', end_time: '10:00', notes: '' });
-            setShowBlockDialog(true);
-          }}>
-            <Ban className="h-4 w-4" /> חסימת זמן
-          </Button>
-          <Button className="gradient-primary text-primary-foreground gap-2" onClick={() => {
-            setBookForm({ client_id: '', treatment_id: '', start_time: '09:00', end_time: '09:30', notes: '' });
-            setShowBookDialog(true);
-          }}>
-            <Plus className="h-4 w-4" /> תור חדש
-          </Button>
-        </div>
-      </div>
+      <h1 className="text-2xl font-display font-bold text-foreground">יומן תורים</h1>
 
       {/* Timeline (above calendar) */}
       {showTimeline && (
@@ -312,9 +298,23 @@ export default function AdminCalendar() {
                 </h2>
                 <p className="text-sm text-muted-foreground">{getHebrewDate(selectedDate)}</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setShowTimeline(false)}>
-                <ChevronUp className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
+                  setBlockForm({ start_time: '09:00', end_time: '10:00', notes: '' });
+                  setShowBlockDialog(true);
+                }}>
+                  <Ban className="h-3.5 w-3.5" /> חסימת זמן
+                </Button>
+                <Button size="sm" className="gradient-primary text-primary-foreground gap-1.5" onClick={() => {
+                  setBookForm({ client_id: '', treatment_id: '', start_time: '09:00', end_time: '09:30', notes: '' });
+                  setShowBookDialog(true);
+                }}>
+                  <Plus className="h-3.5 w-3.5" /> תור חדש
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setShowTimeline(false)}>
+                  <ChevronUp className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
 
             {/* Legend */}
@@ -409,19 +409,6 @@ export default function AdminCalendar() {
                           {apt.booked_by_admin && <Badge variant="outline" className="text-[10px] h-4">אדמין</Badge>}
                         </div>
                         <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                          {apt.profiles?.phone && (
-                            <>
-                              <a href={`tel:${apt.profiles.phone}`}>
-                                <Button variant="ghost" size="icon" className="h-6 w-6"><Phone className="h-3 w-3" /></Button>
-                              </a>
-                              <a href={`sms:${apt.profiles.phone}`}>
-                                <Button variant="ghost" size="icon" className="h-6 w-6"><MessageSquare className="h-3 w-3" /></Button>
-                              </a>
-                              <a href={`https://wa.me/${apt.profiles.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
-                                <Button variant="ghost" size="icon" className="h-6 w-6"><MessageCircle className="h-3 w-3" /></Button>
-                              </a>
-                            </>
-                          )}
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowClientInfo(apt)}>
                             <User className="h-3 w-3" />
                           </Button>
@@ -440,7 +427,7 @@ export default function AdminCalendar() {
       )}
 
       {/* Calendar */}
-      <Card className="shadow-card">
+      <Card className="shadow-card max-w-2xl mx-auto">
         <CardContent className="p-4">
           <Calendar
             mode="single"
@@ -460,8 +447,8 @@ export default function AdminCalendar() {
               head_row: "flex w-full",
               head_cell: "text-muted-foreground rounded-md flex-1 h-10 font-medium text-sm flex items-center justify-center",
               row: "flex w-full mt-1",
-              cell: "flex-1 h-16 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-              day: "h-16 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center rounded-md text-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              cell: "flex-1 h-14 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+              day: "h-14 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center rounded-md text-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
               day_today: "bg-accent text-accent-foreground",
               day_outside: "text-muted-foreground opacity-50",
@@ -562,11 +549,29 @@ export default function AdminCalendar() {
       </Dialog>
 
       {/* Edit Appointment Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+      <Dialog open={showEditDialog} onOpenChange={(open) => { setShowEditDialog(open); if (!open) setEditingAppointment(null); }}>
         <DialogContent dir="rtl" className="sm:max-w-md">
           <DialogHeader><DialogTitle>עריכת תור</DialogTitle></DialogHeader>
-          {editForm && (
+          {editForm && editingAppointment && (
             <div className="space-y-4">
+              {/* Appointment & client details */}
+              <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-sm">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{editingAppointment.profiles?.full_name || 'לקוחה'}</span>
+                  {editingAppointment.profiles?.phone && (
+                    <span className="text-muted-foreground">({editingAppointment.profiles.phone})</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: editingAppointment.treatments?.color || 'hsl(var(--primary))' }} />
+                  <span>{editingAppointment.treatments?.name}</span>
+                </div>
+                <div className="text-muted-foreground">
+                  {format(selectedDate, 'EEEE, d בMMMM yyyy', { locale: he })} • {editingAppointment.start_time.substring(0, 5)}-{editingAppointment.end_time.substring(0, 5)}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>שעת התחלה</Label>
@@ -615,15 +620,24 @@ export default function AdminCalendar() {
                   <a href={`tel:${showClientInfo.profiles.phone}`} className="text-primary hover:underline">{showClientInfo.profiles.phone}</a>
                 </div>
               )}
-              <div className="flex items-center gap-2 pt-2">
+              {/* Contact buttons */}
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
                 {showClientInfo.profiles.phone && (
                   <>
-                    <a href={`tel:${showClientInfo.profiles.phone}`}><Button size="sm" variant="outline" className="gap-1"><Phone className="h-3.5 w-3.5" /> התקשרי</Button></a>
+                    <a href={`tel:${showClientInfo.profiles.phone}`}>
+                      <Button size="sm" variant="outline" className="gap-1.5"><Phone className="h-3.5 w-3.5" /> התקשרי</Button>
+                    </a>
+                    <a href={`sms:${showClientInfo.profiles.phone}`}>
+                      <Button size="sm" variant="outline" className="gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> SMS</Button>
+                    </a>
                     <a href={`https://wa.me/${showClientInfo.profiles.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" variant="outline" className="gap-1"><MessageCircle className="h-3.5 w-3.5" /> WhatsApp</Button>
+                      <Button size="sm" variant="outline" className="gap-1.5"><MessageCircle className="h-3.5 w-3.5" /> WhatsApp</Button>
                     </a>
                   </>
                 )}
+                <a href={`mailto:${''}`}>
+                  <Button size="sm" variant="outline" className="gap-1.5"><Mail className="h-3.5 w-3.5" /> מייל</Button>
+                </a>
               </div>
             </div>
           )}
