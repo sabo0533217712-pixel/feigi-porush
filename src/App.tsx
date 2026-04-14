@@ -13,6 +13,8 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminTreatments from "@/pages/admin/AdminTreatments";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminCalendar from "@/pages/admin/AdminCalendar";
+import Gallery from "@/pages/Gallery";
+import About from "@/pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={user && isAdmin ? <Navigate to="/admin" /> : <LandingPage />} />
       <Route path="/auth" element={user ? <Navigate to={isAdmin ? "/admin" : "/booking"} /> : <Auth />} />
+      <Route path="/gallery" element={<Gallery />} />
+      <Route path="/about" element={<About />} />
       <Route path="/booking" element={<ProtectedRoute><ClientBooking /></ProtectedRoute>} />
       <Route path="/my-appointments" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
