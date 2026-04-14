@@ -423,7 +423,10 @@ export default function AdminCalendar() {
                   style={{ top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }}
                   onClick={() => handleTimelineClick(hour)}
                 >
-                  <div className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-l border-border/50 font-mono" dir="ltr">
+                  <div
+                    className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-l border-border/50 font-mono"
+                    dir="ltr"
+                  >
                     {hour}
                   </div>
                   <div className="flex-1" />
@@ -472,15 +475,21 @@ export default function AdminCalendar() {
               {/* Appointments */}
               {(() => {
                 // Detect overlaps and assign columns
-                const toMin = (t: string) => { const [h, m] = t.substring(0, 5).split(":").map(Number); return h * 60 + m; };
+                const toMin = (t: string) => {
+                  const [h, m] = t.substring(0, 5).split(":").map(Number);
+                  return h * 60 + m;
+                };
                 const sorted = [...appointments].sort((a, b) => toMin(a.start_time) - toMin(b.start_time));
                 const cols: number[] = new Array(sorted.length).fill(0);
                 const maxCol: number[] = new Array(sorted.length).fill(0);
-                
+
                 for (let i = 0; i < sorted.length; i++) {
                   const usedCols = new Set<number>();
                   for (let j = 0; j < i; j++) {
-                    if (toMin(sorted[j].end_time) > toMin(sorted[i].start_time) && toMin(sorted[j].start_time) < toMin(sorted[i].end_time)) {
+                    if (
+                      toMin(sorted[j].end_time) > toMin(sorted[i].start_time) &&
+                      toMin(sorted[j].start_time) < toMin(sorted[i].end_time)
+                    ) {
                       usedCols.add(cols[j]);
                     }
                   }
@@ -488,12 +497,16 @@ export default function AdminCalendar() {
                   while (usedCols.has(col)) col++;
                   cols[i] = col;
                 }
-                
+
                 // Calculate max concurrent for each appointment
                 for (let i = 0; i < sorted.length; i++) {
                   let max = cols[i];
                   for (let j = 0; j < sorted.length; j++) {
-                    if (i !== j && toMin(sorted[j].end_time) > toMin(sorted[i].start_time) && toMin(sorted[j].start_time) < toMin(sorted[i].end_time)) {
+                    if (
+                      i !== j &&
+                      toMin(sorted[j].end_time) > toMin(sorted[i].start_time) &&
+                      toMin(sorted[j].start_time) < toMin(sorted[i].end_time)
+                    ) {
                       max = Math.max(max, cols[j]);
                     }
                   }
@@ -506,7 +519,7 @@ export default function AdminCalendar() {
                   const col = cols[idx];
                   const widthPercent = 100 / totalCols;
                   const leftPercent = col * widthPercent;
-                  
+
                   return (
                     <div
                       key={apt.id}
@@ -514,10 +527,12 @@ export default function AdminCalendar() {
                       style={{
                         top: getTopOffset(apt.start_time),
                         height: getHeight(apt.start_time, apt.end_time),
-                        ...(totalCols === 1 ? { right: '64px', left: '16px' } : {
-                          right: `calc(64px + (100% - 64px - 16px) * ${leftPercent / 100})`,
-                          width: `calc((100% - 64px - 16px) * ${widthPercent / 100})`,
-                        }),
+                        ...(totalCols === 1
+                          ? { right: "64px", left: "16px" }
+                          : {
+                              right: `calc(64px + (100% - 64px - 16px) * ${leftPercent / 100})`,
+                              width: `calc((100% - 64px - 16px) * ${widthPercent / 100})`,
+                            }),
                       }}
                       onClick={() => openEditDialog(apt)}
                     >
@@ -536,8 +551,11 @@ export default function AdminCalendar() {
                               <div className="flex flex-col gap-0 min-w-0 flex-1">
                                 <span className="text-[11px] font-semibold text-foreground truncate flex items-center gap-1">
                                   {apt.profiles?.full_name || "לקוחה"} - {apt.treatments?.name}
-                                  {apt.status === "cancelled" && <Badge variant="destructive" className="text-[9px] h-3.5">בוטל</Badge>}
-                                  {apt.booked_by_admin && <Badge variant="outline" className="text-[9px] h-3.5">אדמין</Badge>}
+                                  {apt.status === "cancelled" && (
+                                    <Badge variant="destructive" className="text-[9px] h-3.5">
+                                      בוטל
+                                    </Badge>
+                                  )}
                                 </span>
                                 <span className="text-[10px] font-mono text-muted-foreground">
                                   {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)} ({dur} דק׳)
@@ -668,7 +686,8 @@ export default function AdminCalendar() {
                     <SelectContent>
                       {options.map((d) => (
                         <SelectItem key={d} value={String(d)}>
-                          {d} דקות ({Math.floor(d / 60) > 0 ? `${Math.floor(d / 60)} שעה ` : ""}{d % 60 > 0 ? `${d % 60} דק׳` : ""})
+                          {d} דקות ({Math.floor(d / 60) > 0 ? `${Math.floor(d / 60)} שעה ` : ""}
+                          {d % 60 > 0 ? `${d % 60} דק׳` : ""})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -685,7 +704,7 @@ export default function AdminCalendar() {
                   onChange={(e) => {
                     const val = e.target.value;
                     const t = treatments.find((tr) => tr.id === bookForm.treatment_id);
-                    const dur = t?.is_variable_duration ? bookDuration : (t?.duration_minutes || 30);
+                    const dur = t?.is_variable_duration ? bookDuration : t?.duration_minutes || 30;
                     const [h, m] = val.split(":").map(Number);
                     const endMin = h * 60 + m + dur;
                     setBookForm((prev) => ({
@@ -805,7 +824,12 @@ export default function AdminCalendar() {
                   {format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })} •{" "}
                   {editingAppointment.start_time.substring(0, 5)}-{editingAppointment.end_time.substring(0, 5)}
                 </div>
-                <Button variant="outline" size="sm" className="w-full mt-1" onClick={() => setShowClientInfo(editingAppointment)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-1"
+                  onClick={() => setShowClientInfo(editingAppointment)}
+                >
                   <User className="h-4 w-4" /> יצירת קשר
                 </Button>
               </div>
