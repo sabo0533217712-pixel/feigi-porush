@@ -170,7 +170,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
-    "@hebcal/hdate": ["@hebcal/hdate@0.21.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@hebcal/hdate/-/hdate-0.21.1.tgz", {}, "sha512-YeDYuo29OUmAug1B3Jnnkn/s6AZ28V0mCChsi8HdcZKlTVi8VrKQ2Iryo6CKW4d+NkdNuAmnOzOI/bH2DxYckA=="],
+    "@hebcal/hdate": ["@hebcal/hdate@0.21.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@hebcal/hdate/-/hdate-0.21.1.tgz", {}, "sha512-YeDYuo29OUmAug1B3Jnnkn/s6AZ28V0mCChsi8HdcZKlTVi8VrKQ2Iryo6CKW4d+NkdNuAmnOzOI/bH2DxYckA=="],
 
     "@hookform/resolvers": ["@hookform/resolvers@3.10.0", "", { "peerDependencies": { "react-hook-form": "^7.0.0" } }, "sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag=="],
 
@@ -716,7 +716,7 @@
 
     "function-bind": ["function-bind@1.1.2", "", {}, "sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA=="],
 
-    "gematriya": ["gematriya@1.0.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/gematriya/-/gematriya-1.0.1.tgz", {}, "sha512-AG8DVjbv1Ap9b9xbnvVYXjI9LwN8c7KH4KIsIpZXzArjzvTpPRzhQ7Y4L+s0PpThUF+VTX3ThjRCjbL/Ia4y1A=="],
+    "gematriya": ["gematriya@1.0.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/gematriya/-/gematriya-1.0.1.tgz", {}, "sha512-AG8DVjbv1Ap9b9xbnvVYXjI9LwN8c7KH4KIsIpZXzArjzvTpPRzhQ7Y4L+s0PpThUF+VTX3ThjRCjbL/Ia4y1A=="],
 
     "get-intrinsic": ["get-intrinsic@1.3.0", "", { "dependencies": { "call-bind-apply-helpers": "^1.0.2", "es-define-property": "^1.0.1", "es-errors": "^1.3.0", "es-object-atoms": "^1.1.1", "function-bind": "^1.1.2", "get-proto": "^1.0.1", "gopd": "^1.2.0", "has-symbols": "^1.1.0", "hasown": "^2.0.2", "math-intrinsics": "^1.1.0" } }, "sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ=="],
 
@@ -742,7 +742,7 @@
 
     "hasown": ["hasown@2.0.2", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ=="],
 
-    "hebcal": ["hebcal@2.3.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/hebcal/-/hebcal-2.3.2.tgz", { "dependencies": { "gematriya": "^1.0.1", "suncalc": "^1.8.0" }, "bin": { "hebcaljs": "bin/hebcal.js" } }, "sha512-Lgp6eDaRUygazUzjR4D8/3zwMFs/18f/VejdCLgdfRa6HSMqb9BS+0u8XAN9GxHP77hooA/mB/R+K4Y4lQNaIw=="],
+    "hebcal": ["hebcal@2.3.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/hebcal/-/hebcal-2.3.2.tgz", { "dependencies": { "gematriya": "^1.0.1", "suncalc": "^1.8.0" }, "bin": { "hebcaljs": "bin/hebcal.js" } }, "sha512-Lgp6eDaRUygazUzjR4D8/3zwMFs/18f/VejdCLgdfRa6HSMqb9BS+0u8XAN9GxHP77hooA/mB/R+K4Y4lQNaIw=="],
 
     "html-encoding-sniffer": ["html-encoding-sniffer@3.0.0", "", { "dependencies": { "whatwg-encoding": "^2.0.0" } }, "sha512-oWv4T4yJ52iKrufjnyZPkrN0CH3QnrUqdB6In1g5Fe1mia8GmF36gnfNySxoZtxD5+NmYw1EElVXiBk93UeskA=="],
 
@@ -1018,7 +1018,7 @@
 
     "sucrase": ["sucrase@3.35.0", "", { "dependencies": { "@jridgewell/gen-mapping": "^0.3.2", "commander": "^4.0.0", "glob": "^10.3.10", "lines-and-columns": "^1.1.6", "mz": "^2.7.0", "pirates": "^4.0.1", "ts-interface-checker": "^0.1.9" }, "bin": { "sucrase": "bin/sucrase", "sucrase-node": "bin/sucrase-node" } }, "sha512-8EbVDiu9iN/nESwxeSxDKe0dunta1GOlHufmSSXxMD2z2/tMZpDMpvXQGsc+ajGo8y2uYUmixaSRUc/QPoQ0GA=="],
 
-    "suncalc": ["suncalc@1.9.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/suncalc/-/suncalc-1.9.0.tgz", {}, "sha512-vMJ8Byp1uIPoj+wb9c1AdK4jpkSKVAywgHX0lqY7zt6+EWRRC3Z+0Ucfjy/0yxTVO1hwwchZe4uoFNqrIC24+A=="],
+    "suncalc": ["suncalc@1.9.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/suncalc/-/suncalc-1.9.0.tgz", {}, "sha512-vMJ8Byp1uIPoj+wb9c1AdK4jpkSKVAywgHX0lqY7zt6+EWRRC3Z+0Ucfjy/0yxTVO1hwwchZe4uoFNqrIC24+A=="],
 
     "supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
 
