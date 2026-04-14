@@ -564,6 +564,7 @@ export default function AdminCalendar() {
                           </div>
                         </div>
                       </div>
+                    </div>
                   );
                 });
               })()}
