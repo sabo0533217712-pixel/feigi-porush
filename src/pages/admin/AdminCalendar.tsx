@@ -423,7 +423,7 @@ export default function AdminCalendar() {
                   style={{ top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }}
                   onClick={() => handleTimelineClick(hour)}
                 >
-                  <div className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-r border-border/50 font-mono">
+                  <div className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-l border-border/50 font-mono" dir="ltr">
                     {hour}
                   </div>
                   <div className="flex-1" />
