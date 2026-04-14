@@ -24,6 +24,12 @@ interface Treatment {
   is_variable_duration: boolean;
 }
 
+interface PriceTier {
+  min_minutes: number;
+  max_minutes: number;
+  price_per_minute: number;
+}
+
 interface BusinessSettings {
   working_days: number[];
   start_time: string;
