@@ -435,6 +435,7 @@ export default function ClientBooking() {
                         value={variableDurations[t.id] || ''}
                         onChange={e => setVariableDurations(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
                         className="border border-input rounded-md px-3 py-2 text-sm bg-background w-full"
+                        onClick={e => e.stopPropagation()}
                       >
                         <option value="" disabled>בחרי משך זמן</option>
                         {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map(min => (
@@ -442,6 +443,11 @@ export default function ClientBooking() {
                         ))}
                       </select>
                     </div>
+                    {variableDurations[t.id] && (
+                      <p className="text-sm font-medium text-primary">
+                        מחיר: ₪{calculateTierPrice(t.id, variableDurations[t.id])}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               ))}
