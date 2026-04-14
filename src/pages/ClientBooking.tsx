@@ -206,7 +206,7 @@ export default function ClientBooking() {
   const availableSlots = useMemo(() => {
     if (!settings || !selectedDate || selectedTreatments.length === 0) return [];
     return getAvailableSlots(selectedDate, bookedSlots, totalDuration);
-  }, [settings, selectedDate, selectedTreatments, bookedSlots, totalDuration]);
+  }, [settings, selectedDate, selectedTreatments, bookedSlots, blockedSlots, totalDuration]);
 
   // Smart suggestions: 3 closest to preferred time + gap fillers
   const smartSuggestions = useMemo((): SlotSuggestion[] => {
