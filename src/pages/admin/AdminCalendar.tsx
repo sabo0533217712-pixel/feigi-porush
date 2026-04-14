@@ -301,8 +301,9 @@ export default function AdminCalendar() {
   const handleDaySelect = (d: Date | undefined) => {
     if (d) {
       setSelectedDate(d);
-      setShowTimeline(true);
     }
+    // Always open timeline (even if clicking the already-selected day)
+    setShowTimeline(true);
   };
 
   // Legend
