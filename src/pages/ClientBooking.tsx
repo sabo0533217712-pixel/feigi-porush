@@ -626,7 +626,7 @@ export default function ClientBooking() {
                 {selectedTreatments.map(t => (
                   <div key={t.id} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
-                    <span>{t.name} • {t.duration_minutes} דק׳ • ₪{t.price}</span>
+                    <span>{t.name} • {getDuration(t)} דק׳ • ₪{t.price}</span>
                   </div>
                 ))}
                 <p className="text-sm text-muted-foreground">
