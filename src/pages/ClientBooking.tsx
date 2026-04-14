@@ -54,6 +54,7 @@ export default function ClientBooking() {
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [selectedTreatments, setSelectedTreatments] = useState<Treatment[]>([]);
   const [variableDurations, setVariableDurations] = useState<Record<string, number>>({});
+  const [priceTiers, setPriceTiers] = useState<Record<string, PriceTier[]>>({});
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [bookedSlots, setBookedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -66,7 +67,28 @@ export default function ClientBooking() {
 
   const getDuration = (t: Treatment) => t.is_variable_duration ? (variableDurations[t.id] || 15) : t.duration_minutes;
   const totalDuration = selectedTreatments.reduce((sum, t) => sum + getDuration(t), 0);
-  const totalPrice = selectedTreatments.reduce((sum, t) => sum + t.price, 0);
+
+  const calculateTierPrice = (treatmentId: string, minutes: number): number => {
+    const tiers = priceTiers[treatmentId];
+    if (!tiers || tiers.length === 0) return 0;
+    // Find the matching tier
+    const tier = tiers.find(t => minutes >= t.min_minutes && minutes <= t.max_minutes);
+    if (tier) return Math.round(tier.price_per_minute * minutes);
+    // If no exact match, use the last tier
+    const lastTier = tiers[tiers.length - 1];
+    return Math.round(lastTier.price_per_minute * minutes);
+  };
+
+  const getPrice = (t: Treatment): number => {
+    if (t.is_variable_duration) {
+      const dur = variableDurations[t.id];
+      if (!dur) return 0;
+      return calculateTierPrice(t.id, dur);
+    }
+    return t.price;
+  };
+
+  const totalPrice = selectedTreatments.reduce((sum, t) => sum + getPrice(t), 0);
   const hasVariableDuration = selectedTreatments.some(t => t.is_variable_duration);
   const allDurationsSet = selectedTreatments.every(t => !t.is_variable_duration || variableDurations[t.id]);
 
