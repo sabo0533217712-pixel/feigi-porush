@@ -530,7 +530,7 @@ export default function AdminCalendar() {
                           <>
                             <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
                             <div
-                              className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-0.5 flex items-center min-w-0 overflow-hidden"
+                              className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-0.5 flex items-center min-w-0 overflow-hidden cursor-pointer"
                               style={{ borderLeftColor: color }}
                             >
                               <div className="flex flex-col gap-0 min-w-0 flex-1">
@@ -542,17 +542,6 @@ export default function AdminCalendar() {
                                 <span className="text-[10px] font-mono text-muted-foreground">
                                   {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)} ({dur} דק׳)
                                 </span>
-                              </div>
-                              <div
-                                className="flex items-center gap-0.5 flex-shrink-0"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowClientInfo(apt)}>
-                                  <User className="h-3 w-3" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(apt)}>
-                                  <Edit className="h-3 w-3" />
-                                </Button>
                               </div>
                             </div>
                           </>
@@ -816,6 +805,9 @@ export default function AdminCalendar() {
                   {format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })} •{" "}
                   {editingAppointment.start_time.substring(0, 5)}-{editingAppointment.end_time.substring(0, 5)}
                 </div>
+                <Button variant="outline" size="sm" className="w-full mt-1" onClick={() => setShowClientInfo(editingAppointment)}>
+                  <User className="h-4 w-4" /> יצירת קשר
+                </Button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
