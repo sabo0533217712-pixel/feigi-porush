@@ -62,6 +62,7 @@ export default function ClientBooking() {
   const [priceTiers, setPriceTiers] = useState<Record<string, PriceTier[]>>({});
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [bookedSlots, setBookedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
+  const [blockedSlots, setBlockedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'treatment' | 'date' | 'time'>('treatment');
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -137,12 +138,12 @@ export default function ClientBooking() {
 
   const fetchBookedSlots = async (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    const { data } = await supabase
-      .from('appointments')
-      .select('start_time, end_time')
-      .eq('appointment_date', dateStr)
-      .eq('status', 'confirmed');
-    if (data) setBookedSlots(data);
+    const [aptsRes, blocksRes] = await Promise.all([
+      supabase.from('appointments').select('start_time, end_time').eq('appointment_date', dateStr).eq('status', 'confirmed'),
+      supabase.from('time_blocks').select('start_time, end_time').eq('block_date', dateStr),
+    ]);
+    if (aptsRes.data) setBookedSlots(aptsRes.data);
+    if (blocksRes.data) setBlockedSlots(blocksRes.data);
   };
 
   const getAvailableSlots = (date: Date, booked: { start_time: string; end_time: string }[], duration: number) => {
@@ -186,7 +187,13 @@ export default function ClientBooking() {
         return slotStart < bEnd && slotEnd > bStart;
       });
 
-      if (!inBreak && !isBooked) {
+      const isBlocked = blockedSlots.some(b => {
+        const bStart = b.start_time.substring(0, 5);
+        const bEnd = b.end_time.substring(0, 5);
+        return slotStart < bEnd && slotEnd > bStart;
+      });
+
+      if (!inBreak && !isBooked && !isBlocked) {
         slots.push(slotStart);
       }
 
