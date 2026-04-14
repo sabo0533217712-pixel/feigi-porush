@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import logo from '@/assets/logo.png';
+import { getLogoUrl } from '@/hooks/useBusinessTheme';
+import fallbackLogo from '@/assets/logo.png';
 
 interface BrandProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -16,12 +17,14 @@ export default function Brand({ size = 'md', linkTo, className }: BrandProps) {
     xl: 'h-40 md:h-56',
   };
 
+  const dynamicLogo = getLogoUrl();
+  const src = dynamicLogo || fallbackLogo;
 
   const content = (
     <div className={cn('flex items-center justify-center', className)}>
       <img
-        src={logo}
-        alt="Feigi Porush - יופי בנגיעה אישית"
+        src={src}
+        alt="יופי בנגיעה אישית"
         className={cn('object-contain shadow-card', sizeClasses[size])}
       />
     </div>
