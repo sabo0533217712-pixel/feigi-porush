@@ -172,7 +172,7 @@ export default function AdminCalendar() {
       const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
       const { data: profs } = await supabase
         .from("profiles")
-        .select("user_id, full_name, phone")
+        .select("user_id, full_name, phone, email")
         .in("user_id", clientIds);
       const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
       setAppointments(
