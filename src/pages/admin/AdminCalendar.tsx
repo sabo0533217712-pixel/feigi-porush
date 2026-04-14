@@ -721,17 +721,17 @@ export default function AdminCalendar() {
               <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-sm">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                   <span className="font-medium">{editingAppointment.profiles?.full_name || "לקוחה"}</span>
-                   {editingAppointment.profiles?.phone && (
-                     <span className="text-muted-foreground">({editingAppointment.profiles.phone})</span>
-                   )}
-                 </div>
-                 {editingAppointment.profiles?.email && (
-                   <div className="flex items-center gap-2 text-muted-foreground">
-                     <Mail className="h-4 w-4" />
-                     <span>{editingAppointment.profiles.email}</span>
-                   </div>
-                 )}
+                  <span className="font-medium">{editingAppointment.profiles?.full_name || "לקוחה"}</span>
+                  {editingAppointment.profiles?.phone && (
+                    <span className="text-muted-foreground">({editingAppointment.profiles.phone})</span>
+                  )}
+                </div>
+                {editingAppointment.profiles?.email && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Mail className="h-4 w-4" />
+                    <span>{editingAppointment.profiles.email}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0"
@@ -879,26 +879,6 @@ export default function AdminCalendar() {
                       </Button>
                     )}
 
-                    {hasPhone ? (
-                      <Button
-                        asChild
-                        size="sm"
-                        className="gap-1.5 bg-[hsl(142_70%_92%)] text-[hsl(142_60%_32%)] hover:bg-[hsl(142_70%_87%)] border-0"
-                      >
-                        <a href={`https://wa.me/${normalizedPhone.startsWith("0") ? "972" + normalizedPhone.slice(1) : normalizedPhone}`} target="_blank" rel="noopener noreferrer">
-                          <MessageCircle className="h-3.5 w-3.5" /> וואטסאפ
-                        </a>
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        disabled
-                        className="gap-1.5 bg-[hsl(142_25%_92%)] text-[hsl(142_15%_55%)] border-0"
-                      >
-                        <MessageCircle className="h-3.5 w-3.5" /> וואטסאפ
-                      </Button>
-                    )}
-
                     {hasEmail ? (
                       <Button
                         asChild
@@ -910,11 +890,7 @@ export default function AdminCalendar() {
                         </a>
                       </Button>
                     ) : (
-                      <Button
-                        size="sm"
-                        disabled
-                        className="gap-1.5 bg-[hsl(0_25%_94%)] text-[hsl(0_15%_55%)] border-0"
-                      >
+                      <Button size="sm" disabled className="gap-1.5 bg-[hsl(0_25%_94%)] text-[hsl(0_15%_55%)] border-0">
                         <Mail className="h-3.5 w-3.5" /> מייל
                       </Button>
                     )}
