@@ -34,7 +34,7 @@ interface Appointment {
   booked_by_admin: boolean;
   treatment_id: string;
   client_id: string;
-  profiles: { full_name: string; phone: string; user_id: string } | null;
+  profiles: { full_name: string; phone: string; email: string; user_id: string } | null;
   treatments: { name: string; color: string } | null;
 }
 
@@ -42,6 +42,7 @@ interface Profile {
   user_id: string;
   full_name: string;
   phone: string;
+  email: string;
 }
 
 interface TimeBlock {
@@ -152,7 +153,7 @@ export default function AdminCalendar() {
   };
 
   const fetchProfiles = async () => {
-    const { data } = await supabase.from("profiles").select("user_id, full_name, phone");
+    const { data } = await supabase.from("profiles").select("user_id, full_name, phone, email");
     if (data) setProfiles(data);
   };
 
@@ -171,7 +172,7 @@ export default function AdminCalendar() {
       const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
       const { data: profs } = await supabase
         .from("profiles")
-        .select("user_id, full_name, phone")
+        .select("user_id, full_name, phone, email")
         .in("user_id", clientIds);
       const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
       setAppointments(
@@ -720,11 +721,17 @@ export default function AdminCalendar() {
               <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-sm">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{editingAppointment.profiles?.full_name || "לקוחה"}</span>
-                  {editingAppointment.profiles?.phone && (
-                    <span className="text-muted-foreground">({editingAppointment.profiles.phone})</span>
-                  )}
-                </div>
+                   <span className="font-medium">{editingAppointment.profiles?.full_name || "לקוחה"}</span>
+                   {editingAppointment.profiles?.phone && (
+                     <span className="text-muted-foreground">({editingAppointment.profiles.phone})</span>
+                   )}
+                 </div>
+                 {editingAppointment.profiles?.email && (
+                   <div className="flex items-center gap-2 text-muted-foreground">
+                     <Mail className="h-4 w-4" />
+                     <span>{editingAppointment.profiles.email}</span>
+                   </div>
+                 )}
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0"
@@ -801,6 +808,8 @@ export default function AdminCalendar() {
               const rawPhone = showClientInfo.profiles.phone?.trim() || "";
               const normalizedPhone = rawPhone.replace(/[^0-9]/g, "");
               const hasPhone = normalizedPhone.length > 0;
+              const clientEmail = showClientInfo.profiles.email?.trim() || "";
+              const hasEmail = clientEmail.length > 0;
 
               return (
                 <div className="space-y-3">
@@ -819,6 +828,15 @@ export default function AdminCalendar() {
                       <span className="text-muted-foreground">לא הוזן מספר טלפון</span>
                     )}
                   </div>
+
+                  {hasEmail && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <a href={`mailto:${clientEmail}`} className="text-primary hover:underline">
+                        {clientEmail}
+                      </a>
+                    </div>
+                  )}
 
                   <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border">
                     {hasPhone ? (
@@ -861,15 +879,45 @@ export default function AdminCalendar() {
                       </Button>
                     )}
 
-                    <Button
-                      asChild
-                      size="sm"
-                      className="gap-1.5 bg-[hsl(0_85%_95%)] text-[hsl(0_70%_45%)] hover:bg-[hsl(0_85%_91%)] border-0"
-                    >
-                      <a href="mailto:">
+                    {hasPhone ? (
+                      <Button
+                        asChild
+                        size="sm"
+                        className="gap-1.5 bg-[hsl(142_70%_92%)] text-[hsl(142_60%_32%)] hover:bg-[hsl(142_70%_87%)] border-0"
+                      >
+                        <a href={`https://wa.me/${normalizedPhone.startsWith("0") ? "972" + normalizedPhone.slice(1) : normalizedPhone}`} target="_blank" rel="noopener noreferrer">
+                          <MessageCircle className="h-3.5 w-3.5" /> וואטסאפ
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        disabled
+                        className="gap-1.5 bg-[hsl(142_25%_92%)] text-[hsl(142_15%_55%)] border-0"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" /> וואטסאפ
+                      </Button>
+                    )}
+
+                    {hasEmail ? (
+                      <Button
+                        asChild
+                        size="sm"
+                        className="gap-1.5 bg-[hsl(0_85%_95%)] text-[hsl(0_70%_45%)] hover:bg-[hsl(0_85%_91%)] border-0"
+                      >
+                        <a href={`mailto:${clientEmail}`}>
+                          <Mail className="h-3.5 w-3.5" /> מייל
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        disabled
+                        className="gap-1.5 bg-[hsl(0_25%_94%)] text-[hsl(0_15%_55%)] border-0"
+                      >
                         <Mail className="h-3.5 w-3.5" /> מייל
-                      </a>
-                    </Button>
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
