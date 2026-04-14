@@ -24,6 +24,12 @@ interface Treatment {
   is_variable_duration: boolean;
 }
 
+interface PriceTier {
+  min_minutes: number;
+  max_minutes: number;
+  price_per_minute: number;
+}
+
 interface BusinessSettings {
   working_days: number[];
   start_time: string;
@@ -48,6 +54,7 @@ export default function ClientBooking() {
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [selectedTreatments, setSelectedTreatments] = useState<Treatment[]>([]);
   const [variableDurations, setVariableDurations] = useState<Record<string, number>>({});
+  const [priceTiers, setPriceTiers] = useState<Record<string, PriceTier[]>>({});
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [bookedSlots, setBookedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -60,7 +67,28 @@ export default function ClientBooking() {
 
   const getDuration = (t: Treatment) => t.is_variable_duration ? (variableDurations[t.id] || 15) : t.duration_minutes;
   const totalDuration = selectedTreatments.reduce((sum, t) => sum + getDuration(t), 0);
-  const totalPrice = selectedTreatments.reduce((sum, t) => sum + t.price, 0);
+
+  const calculateTierPrice = (treatmentId: string, minutes: number): number => {
+    const tiers = priceTiers[treatmentId];
+    if (!tiers || tiers.length === 0) return 0;
+    // Find the matching tier
+    const tier = tiers.find(t => minutes >= t.min_minutes && minutes <= t.max_minutes);
+    if (tier) return Math.round(tier.price_per_minute * minutes);
+    // If no exact match, use the last tier
+    const lastTier = tiers[tiers.length - 1];
+    return Math.round(lastTier.price_per_minute * minutes);
+  };
+
+  const getPrice = (t: Treatment): number => {
+    if (t.is_variable_duration) {
+      const dur = variableDurations[t.id];
+      if (!dur) return 0;
+      return calculateTierPrice(t.id, dur);
+    }
+    return t.price;
+  };
+
+  const totalPrice = selectedTreatments.reduce((sum, t) => sum + getPrice(t), 0);
   const hasVariableDuration = selectedTreatments.some(t => t.is_variable_duration);
   const allDurationsSet = selectedTreatments.every(t => !t.is_variable_duration || variableDurations[t.id]);
 
@@ -75,7 +103,26 @@ export default function ClientBooking() {
 
   const fetchTreatments = async () => {
     const { data } = await supabase.from('treatments').select('*').eq('is_active', true);
-    if (data) setTreatments(data as Treatment[]);
+    if (data) {
+      setTreatments(data as Treatment[]);
+      // Fetch price tiers for all variable duration treatments
+      const variableTreatments = (data as Treatment[]).filter(t => t.is_variable_duration);
+      if (variableTreatments.length > 0) {
+        const { data: tiersData } = await supabase
+          .from('treatment_price_tiers')
+          .select('*')
+          .in('treatment_id', variableTreatments.map(t => t.id))
+          .order('min_minutes');
+        if (tiersData) {
+          const tiersMap: Record<string, PriceTier[]> = {};
+          (tiersData as any[]).forEach(tier => {
+            if (!tiersMap[tier.treatment_id]) tiersMap[tier.treatment_id] = [];
+            tiersMap[tier.treatment_id].push(tier);
+          });
+          setPriceTiers(tiersMap);
+        }
+      }
+    }
   };
 
   const fetchSettings = async () => {
@@ -362,7 +409,10 @@ export default function ClientBooking() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color || '#6366f1' }} />
-                      <span className="text-lg font-semibold text-primary">₪{t.price}</span>
+                      {t.is_variable_duration
+                        ? <span className="text-sm text-muted-foreground">תמחור לפי דקות</span>
+                        : <span className="text-lg font-semibold text-primary">₪{t.price}</span>
+                      }
                     </div>
                   </CardContent>
                 </Card>
@@ -385,6 +435,7 @@ export default function ClientBooking() {
                         value={variableDurations[t.id] || ''}
                         onChange={e => setVariableDurations(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
                         className="border border-input rounded-md px-3 py-2 text-sm bg-background w-full"
+                        onClick={e => e.stopPropagation()}
                       >
                         <option value="" disabled>בחרי משך זמן</option>
                         {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map(min => (
@@ -392,6 +443,11 @@ export default function ClientBooking() {
                         ))}
                       </select>
                     </div>
+                    {variableDurations[t.id] && (
+                      <p className="text-sm font-medium text-primary">
+                        מחיר: ₪{calculateTierPrice(t.id, variableDurations[t.id])}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               ))}

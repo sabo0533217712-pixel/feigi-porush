@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, Pencil, Clock, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Clock, Trash2, X } from 'lucide-react';
 
 interface Treatment {
   id: string;
@@ -21,6 +21,13 @@ interface Treatment {
   is_variable_duration: boolean;
 }
 
+interface PriceTier {
+  id?: string;
+  min_minutes: number;
+  max_minutes: number;
+  price_per_minute: number;
+}
+
 const DEFAULT_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#14b8a6'];
 
 export default function AdminTreatments() {
@@ -31,6 +38,7 @@ export default function AdminTreatments() {
     name: '', description: '', duration_minutes: 30, price: 0, category: '',
     color: '#6366f1', is_variable_duration: false,
   });
+  const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
 
   useEffect(() => {
     fetchTreatments();
@@ -41,21 +49,57 @@ export default function AdminTreatments() {
     if (data) setTreatments(data as Treatment[]);
   };
 
+  const fetchPriceTiers = async (treatmentId: string) => {
+    const { data } = await supabase
+      .from('treatment_price_tiers')
+      .select('*')
+      .eq('treatment_id', treatmentId)
+      .order('min_minutes');
+    if (data) setPriceTiers(data as PriceTier[]);
+  };
+
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error('נא להזין שם טיפול'); return; }
 
+    if (form.is_variable_duration && priceTiers.length === 0) {
+      toast.error('נא להגדיר לפחות טווח תמחור אחד');
+      return;
+    }
+
+    let treatmentId: string | null = null;
+
     if (editing) {
       const { error } = await supabase.from('treatments').update(form).eq('id', editing.id);
-      if (error) toast.error('שגיאה בעדכון');
-      else toast.success('הטיפול עודכן');
+      if (error) { toast.error('שגיאה בעדכון'); return; }
+      treatmentId = editing.id;
+      toast.success('הטיפול עודכן');
     } else {
-      const { error } = await supabase.from('treatments').insert(form);
-      if (error) toast.error('שגיאה ביצירת טיפול');
-      else toast.success('הטיפול נוצר');
+      const { data, error } = await supabase.from('treatments').insert(form).select('id').single();
+      if (error) { toast.error('שגיאה ביצירת טיפול'); return; }
+      treatmentId = data.id;
+      toast.success('הטיפול נוצר');
     }
+
+    // Save price tiers for variable duration treatments
+    if (treatmentId && form.is_variable_duration) {
+      // Delete existing tiers
+      await supabase.from('treatment_price_tiers').delete().eq('treatment_id', treatmentId);
+      // Insert new tiers
+      if (priceTiers.length > 0) {
+        const rows = priceTiers.map(t => ({
+          treatment_id: treatmentId!,
+          min_minutes: t.min_minutes,
+          max_minutes: t.max_minutes,
+          price_per_minute: t.price_per_minute,
+        }));
+        await supabase.from('treatment_price_tiers').insert(rows);
+      }
+    }
+
     setOpen(false);
     setEditing(null);
     setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false });
+    setPriceTiers([]);
     fetchTreatments();
   };
 
@@ -70,20 +114,39 @@ export default function AdminTreatments() {
     else { toast.success('הטיפול נמחק'); fetchTreatments(); }
   };
 
-  const openEdit = (t: Treatment) => {
+  const openEdit = async (t: Treatment) => {
     setEditing(t);
     setForm({
       name: t.name, description: t.description, duration_minutes: t.duration_minutes,
       price: t.price, category: t.category, color: t.color || '#6366f1',
       is_variable_duration: t.is_variable_duration || false,
     });
+    if (t.is_variable_duration) {
+      await fetchPriceTiers(t.id);
+    } else {
+      setPriceTiers([]);
+    }
     setOpen(true);
   };
 
   const openNew = () => {
     setEditing(null);
     setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false });
+    setPriceTiers([]);
     setOpen(true);
+  };
+
+  const addTier = () => {
+    const lastMax = priceTiers.length > 0 ? priceTiers[priceTiers.length - 1].max_minutes : 0;
+    setPriceTiers([...priceTiers, { min_minutes: lastMax, max_minutes: lastMax + 10, price_per_minute: 0 }]);
+  };
+
+  const updateTier = (index: number, field: keyof PriceTier, value: number) => {
+    setPriceTiers(prev => prev.map((t, i) => i === index ? { ...t, [field]: value } : t));
+  };
+
+  const removeTier = (index: number) => {
+    setPriceTiers(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -97,7 +160,7 @@ export default function AdminTreatments() {
               טיפול חדש
             </Button>
           </DialogTrigger>
-          <DialogContent dir="rtl" className="sm:max-w-md">
+          <DialogContent dir="rtl" className="sm:max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editing ? 'עריכת טיפול' : 'טיפול חדש'}</DialogTitle>
             </DialogHeader>
@@ -117,10 +180,12 @@ export default function AdminTreatments() {
                     <Input type="number" value={form.duration_minutes} onChange={e => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label>מחיר (₪)</Label>
-                  <Input type="number" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} />
-                </div>
+                {!form.is_variable_duration && (
+                  <div className="space-y-2">
+                    <Label>מחיר (₪)</Label>
+                    <Input type="number" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} />
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>קטגוריה</Label>
@@ -161,6 +226,61 @@ export default function AdminTreatments() {
                 />
               </div>
 
+              {/* Price Tiers for variable duration */}
+              {form.is_variable_duration && (
+                <div className="space-y-3 border border-border rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">טווחי תמחור</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addTier} className="gap-1">
+                      <Plus className="h-3 w-3" />
+                      טווח חדש
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">הגדירי טווחי דקות ומחיר לדקה עבור כל טווח</p>
+                  {priceTiers.map((tier, i) => (
+                    <div key={i} className="flex items-end gap-2 bg-accent/30 rounded-md p-2">
+                      <div className="flex-1 space-y-1">
+                        <Label className="text-xs">מ- (דקות)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={tier.min_minutes}
+                          onChange={e => updateTier(i, 'min_minutes', Number(e.target.value))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <Label className="text-xs">עד (דקות)</Label>
+                        <Input
+                          type="number"
+                          min={tier.min_minutes + 1}
+                          value={tier.max_minutes}
+                          onChange={e => updateTier(i, 'max_minutes', Number(e.target.value))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <Label className="text-xs">₪ לדקה</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={tier.price_per_minute}
+                          onChange={e => updateTier(i, 'price_per_minute', Number(e.target.value))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeTier(i)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {priceTiers.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-2">לחצי "טווח חדש" להוספת טווח תמחור</p>
+                  )}
+                </div>
+              )}
+
               <Button className="w-full gradient-primary text-primary-foreground" onClick={handleSave}>שמירה</Button>
             </div>
           </DialogContent>
@@ -177,10 +297,10 @@ export default function AdminTreatments() {
                   <h3 className="font-medium text-foreground">{t.name}</h3>
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                     {t.is_variable_duration
-                      ? <span className="text-xs bg-accent px-2 py-0.5 rounded flex items-center gap-1"><Clock className="h-3 w-3" />משך גמיש</span>
+                      ? <span className="text-xs bg-accent px-2 py-0.5 rounded flex items-center gap-1"><Clock className="h-3 w-3" />משך גמיש • תמחור לפי דקות</span>
                       : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
                     }
-                    <span>₪{t.price}</span>
+                    {!t.is_variable_duration && <span>₪{t.price}</span>}
                     {t.category && <span>{t.category}</span>}
                   </div>
                 </div>
