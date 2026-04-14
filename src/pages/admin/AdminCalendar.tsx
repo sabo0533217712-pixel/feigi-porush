@@ -413,7 +413,7 @@ export default function AdminCalendar() {
           )}
 
           {/* Timeline grid */}
-          <div className="relative overflow-y-auto flex-1 border border-border rounded-lg" dir="ltr">
+          <div className="relative overflow-y-auto flex-1 border border-border rounded-lg" dir="rtl">
             <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
               {/* Hour lines */}
               {timelineHours.map((hour, i) => (
@@ -423,7 +423,7 @@ export default function AdminCalendar() {
                   style={{ top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }}
                   onClick={() => handleTimelineClick(hour)}
                 >
-                  <div className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-r border-border/50 font-mono">
+                  <div className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-l border-border/50 font-mono" dir="ltr">
                     {hour}
                   </div>
                   <div className="flex-1" />
@@ -434,7 +434,7 @@ export default function AdminCalendar() {
               {daySchedule.breaks.map((brk, i) => (
                 <div
                   key={`brk-${i}`}
-                  className="absolute right-0 left-16 bg-muted/40 border-y border-dashed border-border/60 pointer-events-none z-[1]"
+                  className="absolute left-0 right-16 bg-muted/40 border-y border-dashed border-border/60 pointer-events-none z-[1]"
                   style={{ top: getTopOffset(brk.start), height: getHeight(brk.start, brk.end) }}
                 >
                   <span className="text-[10px] text-muted-foreground px-2">הפסקה</span>
@@ -445,7 +445,7 @@ export default function AdminCalendar() {
               {timeBlocks.map((block) => (
                 <div
                   key={block.id}
-                  className="absolute left-16 right-4 rounded-md z-[2] flex items-center justify-between px-2 group"
+                  className="absolute right-16 left-4 rounded-md z-[2] flex items-center justify-between px-2 group"
                   style={{
                     top: getTopOffset(block.start_time),
                     height: getHeight(block.start_time, block.end_time),
@@ -514,11 +514,8 @@ export default function AdminCalendar() {
                       style={{
                         top: getTopOffset(apt.start_time),
                         height: getHeight(apt.start_time, apt.end_time),
-                        left: `calc(64px + ${leftPercent}% * (100% - 64px - 16px) / 100)`,
-                        width: `calc(${widthPercent}% * (100% - 64px - 16px) / 100)`,
-                        right: totalCols === 1 ? '16px' : undefined,
-                        ...(totalCols === 1 ? { left: '64px' } : {
-                          left: `calc(64px + (100% - 64px - 16px) * ${leftPercent / 100})`,
+                        ...(totalCols === 1 ? { right: '64px', left: '16px' } : {
+                          right: `calc(64px + (100% - 64px - 16px) * ${leftPercent / 100})`,
                           width: `calc((100% - 64px - 16px) * ${widthPercent / 100})`,
                         }),
                       }}
