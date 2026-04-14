@@ -111,10 +111,12 @@ export default function AdminTreatments() {
                 <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="תיאור קצר" />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>משך (דקות)</Label>
-                  <Input type="number" value={form.duration_minutes} onChange={e => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
-                </div>
+                {!form.is_variable_duration && (
+                  <div className="space-y-2">
+                    <Label>משך (דקות)</Label>
+                    <Input type="number" value={form.duration_minutes} onChange={e => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>מחיר (₪)</Label>
                   <Input type="number" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} />
@@ -150,8 +152,8 @@ export default function AdminTreatments() {
               {/* Variable Duration Toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>משך משתנה</Label>
-                  <p className="text-xs text-muted-foreground">הלקוחה יכולה לקבל זמן קצר יותר</p>
+                  <Label>משך גמיש</Label>
+                  <p className="text-xs text-muted-foreground">הלקוחה בוחרת את משך הזמן בעצמה</p>
                 </div>
                 <Switch
                   checked={form.is_variable_duration}
@@ -173,11 +175,13 @@ export default function AdminTreatments() {
                 <div className="w-3 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: t.color || '#6366f1' }} />
                 <div>
                   <h3 className="font-medium text-foreground">{t.name}</h3>
-                  <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
+                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                    {t.is_variable_duration
+                      ? <span className="text-xs bg-accent px-2 py-0.5 rounded flex items-center gap-1"><Clock className="h-3 w-3" />משך גמיש</span>
+                      : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
+                    }
                     <span>₪{t.price}</span>
                     {t.category && <span>{t.category}</span>}
-                    {t.is_variable_duration && <span className="text-xs bg-accent px-2 py-0.5 rounded">משך משתנה</span>}
                   </div>
                 </div>
               </div>
