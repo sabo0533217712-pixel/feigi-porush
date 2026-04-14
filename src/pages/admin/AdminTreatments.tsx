@@ -28,7 +28,7 @@ interface PriceTier {
   price_per_minute: number;
 }
 
-const DEFAULT_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#14b8a6'];
+const DEFAULT_COLORS = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF', '#E1BAFF', '#FFBAE1', '#D4BAFF'];
 
 export default function AdminTreatments() {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
@@ -187,10 +187,6 @@ export default function AdminTreatments() {
                   </div>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label>קטגוריה</Label>
-                <Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="למשל: פנים, גוף" />
-              </div>
 
               {/* Color Picker */}
               <div className="space-y-2">
@@ -301,7 +297,6 @@ export default function AdminTreatments() {
                       : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
                     }
                     {!t.is_variable_duration && <span>₪{t.price}</span>}
-                    {t.category && <span>{t.category}</span>}
                   </div>
                 </div>
               </div>
