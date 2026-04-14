@@ -409,7 +409,10 @@ export default function ClientBooking() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color || '#6366f1' }} />
-                      <span className="text-lg font-semibold text-primary">₪{t.price}</span>
+                      {t.is_variable_duration
+                        ? <span className="text-sm text-muted-foreground">תמחור לפי דקות</span>
+                        : <span className="text-lg font-semibold text-primary">₪{t.price}</span>
+                      }
                     </div>
                   </CardContent>
                 </Card>
