@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { Plus, X, Trash2 } from 'lucide-react';
-import { applyThemeFromImage } from '@/hooks/useBusinessTheme';
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { Plus, X, Trash2 } from "lucide-react";
+import { applyThemeFromImage } from "@/hooks/useBusinessTheme";
 
-const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+const DAY_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
 interface DayBreak {
   start: string;
@@ -25,21 +25,18 @@ interface DaySchedule {
 
 type DaySchedules = Record<string, DaySchedule>;
 
-const DEFAULT_SCHEDULE: DaySchedule = { start: '09:00', end: '18:00', breaks: [{ start: '13:00', end: '14:00' }] };
-
-
-
+const DEFAULT_SCHEDULE: DaySchedule = { start: "09:00", end: "18:00", breaks: [{ start: "13:00", end: "14:00" }] };
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState({
-    id: '',
-    business_name: '',
+    id: "",
+    business_name: "",
     working_days: [0, 1, 2, 3, 4] as number[],
     slot_duration_minutes: 30,
     advance_booking_days: 30,
     cancellation_hours: 24,
-    admin_phone: '',
-    admin_email: '',
+    admin_phone: "",
+    admin_email: "",
     custom_texts: {} as Record<string, string>,
     day_schedules: {} as DaySchedules,
   });
@@ -55,7 +52,7 @@ export default function AdminSettings() {
   }, []);
 
   const fetchSettings = async () => {
-    const { data } = await supabase.from('business_settings').select('*').limit(1).single();
+    const { data } = await supabase.from("business_settings").select("*").limit(1).single();
     if (data) {
       const ds = ((data as any).day_schedules as DaySchedules) || {};
       setSettings({
@@ -65,8 +62,8 @@ export default function AdminSettings() {
         slot_duration_minutes: data.slot_duration_minutes,
         advance_booking_days: data.advance_booking_days,
         cancellation_hours: data.cancellation_hours,
-        admin_phone: (data as any).admin_phone || '',
-        admin_email: (data as any).admin_email || '',
+        admin_phone: (data as any).admin_phone || "",
+        admin_email: (data as any).admin_email || "",
         custom_texts: ((data as any).custom_texts as Record<string, string>) || {},
         day_schedules: ds,
       });
@@ -74,24 +71,24 @@ export default function AdminSettings() {
   };
 
   const fetchLogo = async () => {
-    const { data } = await supabase.storage.from('gallery').list('', { search: 'logo' });
+    const { data } = await supabase.storage.from("gallery").list("", { search: "logo" });
     if (data && data.length > 0) {
-      const logoFile = data.find(f => f.name.startsWith('logo'));
+      const logoFile = data.find((f) => f.name.startsWith("logo"));
       if (logoFile) {
-        const { data: urlData } = supabase.storage.from('gallery').getPublicUrl(logoFile.name);
-        setLogoUrl(urlData.publicUrl + '?t=' + Date.now());
+        const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(logoFile.name);
+        setLogoUrl(urlData.publicUrl + "?t=" + Date.now());
       }
     }
   };
 
   const fetchGalleryImages = async () => {
-    const { data } = await supabase.storage.from('gallery').list('', { limit: 100 });
+    const { data } = await supabase.storage.from("gallery").list("", { limit: 100 });
     if (data) {
       const images = data
-        .filter(f => f.name.startsWith('gallery-'))
-        .map(f => ({
+        .filter((f) => f.name.startsWith("gallery-"))
+        .map((f) => ({
           name: f.name,
-          url: supabase.storage.from('gallery').getPublicUrl(f.name).data.publicUrl,
+          url: supabase.storage.from("gallery").getPublicUrl(f.name).data.publicUrl,
         }));
       setGalleryImages(images);
     }
@@ -100,7 +97,7 @@ export default function AdminSettings() {
   const handleSave = async () => {
     setLoading(true);
     const { error } = await supabase
-      .from('business_settings')
+      .from("business_settings")
       .update({
         business_name: settings.business_name,
         working_days: settings.working_days,
@@ -112,24 +109,22 @@ export default function AdminSettings() {
         custom_texts: settings.custom_texts,
         day_schedules: settings.day_schedules,
         // Keep legacy fields synced from first working day as fallback
-        start_time: Object.values(settings.day_schedules)[0]?.start || '09:00',
-        end_time: Object.values(settings.day_schedules)[0]?.end || '18:00',
+        start_time: Object.values(settings.day_schedules)[0]?.start || "09:00",
+        end_time: Object.values(settings.day_schedules)[0]?.end || "18:00",
         break_start: Object.values(settings.day_schedules)[0]?.breaks?.[0]?.start || null,
         break_end: Object.values(settings.day_schedules)[0]?.breaks?.[0]?.end || null,
       } as any)
-      .eq('id', settings.id);
+      .eq("id", settings.id);
 
-    if (error) toast.error('שגיאה בשמירה');
-    else toast.success('ההגדרות נשמרו בהצלחה');
+    if (error) toast.error("שגיאה בשמירה");
+    else toast.success("ההגדרות נשמרו בהצלחה");
     setLoading(false);
   };
 
   const toggleDay = (day: number) => {
-    setSettings(prev => {
+    setSettings((prev) => {
       const isActive = prev.working_days.includes(day);
-      const newDays = isActive
-        ? prev.working_days.filter(d => d !== day)
-        : [...prev.working_days, day].sort();
+      const newDays = isActive ? prev.working_days.filter((d) => d !== day) : [...prev.working_days, day].sort();
       const newSchedules = { ...prev.day_schedules };
       if (!isActive && !newSchedules[String(day)]) {
         newSchedules[String(day)] = { ...DEFAULT_SCHEDULE, breaks: [...DEFAULT_SCHEDULE.breaks] };
@@ -141,8 +136,8 @@ export default function AdminSettings() {
     });
   };
 
-  const updateDaySchedule = (day: number, field: 'start' | 'end', value: string) => {
-    setSettings(prev => ({
+  const updateDaySchedule = (day: number, field: "start" | "end", value: string) => {
+    setSettings((prev) => ({
       ...prev,
       day_schedules: {
         ...prev.day_schedules,
@@ -155,20 +150,20 @@ export default function AdminSettings() {
   };
 
   const addBreak = (day: number) => {
-    setSettings(prev => {
+    setSettings((prev) => {
       const sch = prev.day_schedules[String(day)] || { ...DEFAULT_SCHEDULE };
       return {
         ...prev,
         day_schedules: {
           ...prev.day_schedules,
-          [String(day)]: { ...sch, breaks: [...sch.breaks, { start: '13:00', end: '14:00' }] },
+          [String(day)]: { ...sch, breaks: [...sch.breaks, { start: "13:00", end: "14:00" }] },
         },
       };
     });
   };
 
   const removeBreak = (day: number, index: number) => {
-    setSettings(prev => {
+    setSettings((prev) => {
       const sch = prev.day_schedules[String(day)];
       if (!sch) return prev;
       return {
@@ -181,8 +176,8 @@ export default function AdminSettings() {
     });
   };
 
-  const updateBreak = (day: number, index: number, field: 'start' | 'end', value: string) => {
-    setSettings(prev => {
+  const updateBreak = (day: number, index: number, field: "start" | "end", value: string) => {
+    setSettings((prev) => {
       const sch = prev.day_schedules[String(day)];
       if (!sch) return prev;
       const newBreaks = [...sch.breaks];
@@ -198,7 +193,7 @@ export default function AdminSettings() {
   };
 
   const updateCustomText = (key: string, value: string) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       custom_texts: { ...prev.custom_texts, [key]: value },
     }));
@@ -208,9 +203,12 @@ export default function AdminSettings() {
     const hex = await applyThemeFromImage(imageUrl);
     if (hex) {
       // Save extracted color to DB
-      await supabase.from('business_settings').update({
-        primary_color: hex,
-      } as any).eq('id', settings.id);
+      await supabase
+        .from("business_settings")
+        .update({
+          primary_color: hex,
+        } as any)
+        .eq("id", settings.id);
     }
   };
 
@@ -218,13 +216,13 @@ export default function AdminSettings() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const { error } = await supabase.storage.from('gallery').upload('logo.png', file, { upsert: true });
+    const { error } = await supabase.storage.from("gallery").upload("logo.png", file, { upsert: true });
     if (error) {
-      toast.error('שגיאה בהעלאת הלוגו');
+      toast.error("שגיאה בהעלאת הלוגו");
     } else {
-      toast.success('הלוגו הועלה בהצלחה');
-      const { data: urlData } = supabase.storage.from('gallery').getPublicUrl('logo.png');
-      const newUrl = urlData.publicUrl + '?t=' + Date.now();
+      toast.success("הלוגו הועלה בהצלחה");
+      const { data: urlData } = supabase.storage.from("gallery").getPublicUrl("logo.png");
+      const newUrl = urlData.publicUrl + "?t=" + Date.now();
       setLogoUrl(newUrl);
       applyLogoColors(newUrl);
     }
@@ -232,9 +230,12 @@ export default function AdminSettings() {
   };
 
   const handleDeleteLogo = async () => {
-    const { error } = await supabase.storage.from('gallery').remove(['logo.png']);
-    if (error) toast.error('שגיאה במחיקת הלוגו');
-    else { toast.success('הלוגו נמחק'); setLogoUrl(null); }
+    const { error } = await supabase.storage.from("gallery").remove(["logo.png"]);
+    if (error) toast.error("שגיאה במחיקת הלוגו");
+    else {
+      toast.success("הלוגו נמחק");
+      setLogoUrl(null);
+    }
   };
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,19 +244,19 @@ export default function AdminSettings() {
     setUploading(true);
     for (const file of Array.from(files)) {
       const fileName = `gallery-${Date.now()}-${file.name}`;
-      await supabase.storage.from('gallery').upload(fileName, file);
+      await supabase.storage.from("gallery").upload(fileName, file);
     }
-    toast.success('התמונות הועלו בהצלחה');
+    toast.success("התמונות הועלו בהצלחה");
     await fetchGalleryImages();
     setUploading(false);
   };
 
   const handleDeleteGalleryImage = async (name: string) => {
-    const { error } = await supabase.storage.from('gallery').remove([name]);
-    if (error) toast.error('שגיאה במחיקת התמונה');
+    const { error } = await supabase.storage.from("gallery").remove([name]);
+    if (error) toast.error("שגיאה במחיקת התמונה");
     else {
-      toast.success('התמונה נמחקה');
-      setGalleryImages(prev => prev.filter(img => img.name !== name));
+      toast.success("התמונה נמחקה");
+      setGalleryImages((prev) => prev.filter((img) => img.name !== name));
     }
   };
 
@@ -265,20 +266,35 @@ export default function AdminSettings() {
 
       {/* Business Details */}
       <Card className="shadow-card">
-        <CardHeader><CardTitle className="text-lg">פרטי העסק</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-lg">פרטי העסק</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>שם העסק</Label>
-            <Input value={settings.business_name} onChange={e => setSettings({ ...settings, business_name: e.target.value })} />
+            <Input
+              value={settings.business_name}
+              onChange={(e) => setSettings({ ...settings, business_name: e.target.value })}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>טלפון אדמין</Label>
-              <Input value={settings.admin_phone} onChange={e => setSettings({ ...settings, admin_phone: e.target.value })} placeholder="050-1234567" dir="ltr" />
+              <Label>טלפון </Label>
+              <Input
+                value={settings.admin_phone}
+                onChange={(e) => setSettings({ ...settings, admin_phone: e.target.value })}
+                placeholder="050-1234567"
+                dir="ltr"
+              />
             </div>
             <div className="space-y-2">
-              <Label>אימייל אדמין</Label>
-              <Input value={settings.admin_email} onChange={e => setSettings({ ...settings, admin_email: e.target.value })} placeholder="admin@email.com" dir="ltr" />
+              <Label>אימייל </Label>
+              <Input
+                value={settings.admin_email}
+                onChange={(e) => setSettings({ ...settings, admin_email: e.target.value })}
+                placeholder="admin@email.com"
+                dir="ltr"
+              />
             </div>
           </div>
         </CardContent>
@@ -286,7 +302,9 @@ export default function AdminSettings() {
 
       {/* Working Days + Per-Day Schedules */}
       <Card className="shadow-card">
-        <CardHeader><CardTitle className="text-lg">ימי ושעות עבודה</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-lg">ימי ושעות עבודה</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           {DAY_NAMES.map((name, i) => {
             const isActive = settings.working_days.includes(i);
@@ -302,11 +320,23 @@ export default function AdminSettings() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs">פתיחה</Label>
-                        <Input type="time" value={schedule.start} onChange={e => updateDaySchedule(i, 'start', e.target.value)} dir="ltr" className="h-8 text-sm" />
+                        <Input
+                          type="time"
+                          value={schedule.start}
+                          onChange={(e) => updateDaySchedule(i, "start", e.target.value)}
+                          dir="ltr"
+                          className="h-8 text-sm"
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">סגירה</Label>
-                        <Input type="time" value={schedule.end} onChange={e => updateDaySchedule(i, 'end', e.target.value)} dir="ltr" className="h-8 text-sm" />
+                        <Input
+                          type="time"
+                          value={schedule.end}
+                          onChange={(e) => updateDaySchedule(i, "end", e.target.value)}
+                          dir="ltr"
+                          className="h-8 text-sm"
+                        />
                       </div>
                     </div>
                     {/* Breaks */}
@@ -315,14 +345,31 @@ export default function AdminSettings() {
                         <div className="flex-1 grid grid-cols-2 gap-2">
                           <div className="space-y-1">
                             <Label className="text-xs">הפסקה {bi + 1} - התחלה</Label>
-                            <Input type="time" value={brk.start} onChange={e => updateBreak(i, bi, 'start', e.target.value)} dir="ltr" className="h-8 text-sm" />
+                            <Input
+                              type="time"
+                              value={brk.start}
+                              onChange={(e) => updateBreak(i, bi, "start", e.target.value)}
+                              dir="ltr"
+                              className="h-8 text-sm"
+                            />
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">סיום</Label>
-                            <Input type="time" value={brk.end} onChange={e => updateBreak(i, bi, 'end', e.target.value)} dir="ltr" className="h-8 text-sm" />
+                            <Input
+                              type="time"
+                              value={brk.end}
+                              onChange={(e) => updateBreak(i, bi, "end", e.target.value)}
+                              dir="ltr"
+                              className="h-8 text-sm"
+                            />
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeBreak(i, bi)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => removeBreak(i, bi)}
+                        >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
@@ -340,20 +387,37 @@ export default function AdminSettings() {
 
       {/* Appointment Settings */}
       <Card className="shadow-card">
-        <CardHeader><CardTitle className="text-lg">הגדרות תורים</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-lg">הגדרות תורים</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>יחידת זמן (דקות)</Label>
-              <Input type="number" value={settings.slot_duration_minutes} onChange={e => setSettings({ ...settings, slot_duration_minutes: Number(e.target.value) })} dir="ltr" />
+              <Input
+                type="number"
+                value={settings.slot_duration_minutes}
+                onChange={(e) => setSettings({ ...settings, slot_duration_minutes: Number(e.target.value) })}
+                dir="ltr"
+              />
             </div>
             <div className="space-y-2">
               <Label>הזמנה עד (ימים)</Label>
-              <Input type="number" value={settings.advance_booking_days} onChange={e => setSettings({ ...settings, advance_booking_days: Number(e.target.value) })} dir="ltr" />
+              <Input
+                type="number"
+                value={settings.advance_booking_days}
+                onChange={(e) => setSettings({ ...settings, advance_booking_days: Number(e.target.value) })}
+                dir="ltr"
+              />
             </div>
             <div className="space-y-2">
               <Label>ביטול עד (שעות)</Label>
-              <Input type="number" value={settings.cancellation_hours} onChange={e => setSettings({ ...settings, cancellation_hours: Number(e.target.value) })} dir="ltr" />
+              <Input
+                type="number"
+                value={settings.cancellation_hours}
+                onChange={(e) => setSettings({ ...settings, cancellation_hours: Number(e.target.value) })}
+                dir="ltr"
+              />
             </div>
           </div>
         </CardContent>
@@ -361,7 +425,9 @@ export default function AdminSettings() {
 
       {/* Branding - Logo driven */}
       <Card className="shadow-card">
-        <CardHeader><CardTitle className="text-lg">עיצוב (לוגו)</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-lg">עיצוב (לוגו)</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">העלי לוגו — הצבעים של האתר יתעדכנו אוטומטית לפי הלוגו</p>
           <div className="space-y-2">
@@ -383,7 +449,7 @@ export default function AdminSettings() {
           </div>
           {galleryImages.length > 0 && (
             <div className="grid grid-cols-4 gap-2">
-              {galleryImages.map(img => (
+              {galleryImages.map((img) => (
                 <div key={img.name} className="relative group">
                   <img src={img.url} alt="" className="h-20 w-full object-cover rounded" />
                   <button
@@ -401,13 +467,15 @@ export default function AdminSettings() {
 
       {/* Custom Texts */}
       <Card className="shadow-card">
-        <CardHeader><CardTitle className="text-lg">טקסטים מותאמים</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-lg">טקסטים מותאמים</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>טקסט אודות</Label>
             <Textarea
-              value={settings.custom_texts.about || ''}
-              onChange={e => updateCustomText('about', e.target.value)}
+              value={settings.custom_texts.about || ""}
+              onChange={(e) => updateCustomText("about", e.target.value)}
               placeholder="הטקסט שיופיע בעמוד אודות"
               rows={4}
             />
@@ -415,8 +483,8 @@ export default function AdminSettings() {
           <div className="space-y-2">
             <Label>טקסט נוסף (אודות)</Label>
             <Textarea
-              value={settings.custom_texts.about_extra || ''}
-              onChange={e => updateCustomText('about_extra', e.target.value)}
+              value={settings.custom_texts.about_extra || ""}
+              onChange={(e) => updateCustomText("about_extra", e.target.value)}
               placeholder="פסקה נוספת (אופציונלי)"
               rows={3}
             />
@@ -425,7 +493,7 @@ export default function AdminSettings() {
       </Card>
 
       <Button className="w-full gradient-primary text-primary-foreground" onClick={handleSave} disabled={loading}>
-        {loading ? 'שומר...' : 'שמירת הגדרות'}
+        {loading ? "שומר..." : "שמירת הגדרות"}
       </Button>
     </div>
   );
