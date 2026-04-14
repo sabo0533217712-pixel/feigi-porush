@@ -863,7 +863,7 @@ export default function AdminCalendar() {
                       <Button
                         asChild
                         size="sm"
-                        className="gap-1.5 bg-[hsl(202_90%_94%)] text-[hsl(202_68%_40%)] hover:bg-[hsl(202_90%_90%)] border-0"
+                        className="gap-1.5 bg-[hsl(0_0%_92%)] text-[hsl(0_0%_35%)] hover:bg-[hsl(0_0%_88%)] border-0"
                       >
                         <a href={`sms:${rawPhone}`}>
                           <MessageSquare className="h-3.5 w-3.5" /> SMS
