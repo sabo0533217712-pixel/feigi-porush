@@ -445,7 +445,7 @@ export default function AdminCalendar() {
               {timeBlocks.map((block) => (
                 <div
                   key={block.id}
-                  className="absolute left-16 right-4 rounded-md z-[2] flex items-center justify-between px-2 group"
+                  className="absolute right-16 left-4 rounded-md z-[2] flex items-center justify-between px-2 group"
                   style={{
                     top: getTopOffset(block.start_time),
                     height: getHeight(block.start_time, block.end_time),
