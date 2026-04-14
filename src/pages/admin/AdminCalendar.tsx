@@ -70,6 +70,8 @@ export default function AdminCalendar() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [monthCounts, setMonthCounts] = useState<Record<string, number>>({});
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
   // Dialogs
   const [showBookDialog, setShowBookDialog] = useState(false);
@@ -95,6 +97,28 @@ export default function AdminCalendar() {
   useEffect(() => {
     fetchDayData();
   }, [selectedDate]);
+
+  useEffect(() => {
+    fetchMonthCounts();
+  }, [currentMonth]);
+
+  const fetchMonthCounts = async () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = format(new Date(year, month, 1), 'yyyy-MM-dd');
+    const lastDay = format(new Date(year, month + 1, 0), 'yyyy-MM-dd');
+    const { data } = await supabase
+      .from('appointments')
+      .select('appointment_date')
+      .gte('appointment_date', firstDay)
+      .lte('appointment_date', lastDay)
+      .neq('status', 'cancelled');
+    if (data) {
+      const counts: Record<string, number> = {};
+      data.forEach(a => { counts[a.appointment_date] = (counts[a.appointment_date] || 0) + 1; });
+      setMonthCounts(counts);
+    }
+  };
 
   const fetchSettings = async () => {
     const { data } = await supabase.from('business_settings').select('start_time, end_time, day_schedules, working_days').limit(1).single();
