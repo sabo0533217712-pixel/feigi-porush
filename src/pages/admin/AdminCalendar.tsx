@@ -434,7 +434,7 @@ export default function AdminCalendar() {
               {daySchedule.breaks.map((brk, i) => (
                 <div
                   key={`brk-${i}`}
-                  className="absolute right-0 left-16 bg-muted/40 border-y border-dashed border-border/60 pointer-events-none z-[1]"
+                  className="absolute left-0 right-16 bg-muted/40 border-y border-dashed border-border/60 pointer-events-none z-[1]"
                   style={{ top: getTopOffset(brk.start), height: getHeight(brk.start, brk.end) }}
                 >
                   <span className="text-[10px] text-muted-foreground px-2">הפסקה</span>
