@@ -279,6 +279,33 @@ export type Database = {
         }
         Relationships: []
       }
+      time_blocks: {
+        Row: {
+          block_date: string
+          created_at: string | null
+          end_time: string
+          id: string
+          notes: string | null
+          start_time: string
+        }
+        Insert: {
+          block_date: string
+          created_at?: string | null
+          end_time: string
+          id?: string
+          notes?: string | null
+          start_time: string
+        }
+        Update: {
+          block_date?: string
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          notes?: string | null
+          start_time?: string
+        }
+        Relationships: []
+      }
       treatment_price_tiers: {
         Row: {
           created_at: string
