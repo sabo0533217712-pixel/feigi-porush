@@ -374,20 +374,49 @@ export default function ClientBooking() {
           )}
 
           {selectedTreatments.length > 0 && (
-            <Card className="bg-secondary/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedTreatments.length} טיפולים • {totalDuration} דק׳ • ₪{totalPrice}
-                    </p>
+            <div className="space-y-3">
+              {/* Duration picker for variable-duration treatments */}
+              {selectedTreatments.filter(t => t.is_variable_duration).map(t => (
+                <Card key={`dur-${t.id}`} className="bg-accent/30 border-accent">
+                  <CardContent className="p-4 space-y-2">
+                    <Label className="text-sm font-medium">כמה זמן את צריכה ל{t.name}?</Label>
+                    <div className="flex items-center gap-3">
+                      <select
+                        value={variableDurations[t.id] || ''}
+                        onChange={e => setVariableDurations(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
+                        className="border border-input rounded-md px-3 py-2 text-sm bg-background w-full"
+                      >
+                        <option value="" disabled>בחרי משך זמן</option>
+                        {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map(min => (
+                          <option key={min} value={min}>{min} דקות</option>
+                        ))}
+                      </select>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              <Card className="bg-secondary/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedTreatments.length} טיפולים
+                        {allDurationsSet && <> • {totalDuration} דק׳</>}
+                        {' '}• ₪{totalPrice}
+                      </p>
+                    </div>
+                    <Button
+                      className="gradient-primary text-primary-foreground"
+                      onClick={() => setStep('date')}
+                      disabled={!allDurationsSet}
+                    >
+                      {!allDurationsSet ? 'בחרי משך זמן' : 'המשך לבחירת תאריך'}
+                    </Button>
                   </div>
-                  <Button className="gradient-primary text-primary-foreground" onClick={() => setStep('date')}>
-                    המשך לבחירת תאריך
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       )}
