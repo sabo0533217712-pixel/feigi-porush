@@ -153,7 +153,7 @@ export default function AdminCalendar() {
   };
 
   const fetchProfiles = async () => {
-    const { data } = await supabase.from("profiles").select("user_id, full_name, phone");
+    const { data } = await supabase.from("profiles").select("user_id, full_name, phone, email");
     if (data) setProfiles(data);
   };
 
