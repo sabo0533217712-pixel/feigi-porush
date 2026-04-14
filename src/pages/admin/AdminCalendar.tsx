@@ -209,7 +209,7 @@ export default function AdminCalendar() {
     return hours;
   }, [daySchedule]);
 
-  const HOUR_HEIGHT = 80; // px per hour
+  const HOUR_HEIGHT = 120; // px per hour
   const totalTimelineMinutes = (daySchedule.endHour - daySchedule.startHour) * 60;
 
   const getTopOffset = (time: string) => {
