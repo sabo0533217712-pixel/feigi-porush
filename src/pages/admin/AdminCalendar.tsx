@@ -287,35 +287,31 @@ export default function AdminCalendar() {
     <div className="space-y-4 animate-fade-in">
       <h1 className="text-2xl font-display font-bold text-foreground">יומן תורים</h1>
 
-      {/* Timeline (above calendar) */}
-      {showTimeline && (
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
+      {/* Timeline Dialog */}
+      <Dialog open={showTimeline} onOpenChange={setShowTimeline}>
+        <DialogContent dir="rtl" className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col p-4">
+          <DialogHeader>
+            <DialogTitle className="text-right">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">
-                  {format(selectedDate, 'EEEE, d בMMMM yyyy', { locale: he })}
-                </h2>
-                <p className="text-sm text-muted-foreground">{getHebrewDate(selectedDate)}</p>
+                <span>{format(selectedDate, 'EEEE, d בMMMM yyyy', { locale: he })}</span>
+                <p className="text-sm font-normal text-muted-foreground mt-0.5">{getHebrewDate(selectedDate)}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
-                  setBlockForm({ start_time: '09:00', end_time: '10:00', notes: '' });
-                  setShowBlockDialog(true);
-                }}>
-                  <Ban className="h-3.5 w-3.5" /> חסימת זמן
-                </Button>
-                <Button size="sm" className="gradient-primary text-primary-foreground gap-1.5" onClick={() => {
-                  setBookForm({ client_id: '', treatment_id: '', start_time: '09:00', end_time: '09:30', notes: '' });
-                  setShowBookDialog(true);
-                }}>
-                  <Plus className="h-3.5 w-3.5" /> תור חדש
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => setShowTimeline(false)}>
-                  <ChevronUp className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center gap-2 pb-2 border-b border-border">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
+              setBlockForm({ start_time: '09:00', end_time: '10:00', notes: '' });
+              setShowBlockDialog(true);
+            }}>
+              <Ban className="h-3.5 w-3.5" /> חסימת זמן
+            </Button>
+            <Button size="sm" className="gradient-primary text-primary-foreground gap-1.5" onClick={() => {
+              setBookForm({ client_id: '', treatment_id: '', start_time: '09:00', end_time: '09:30', notes: '' });
+              setShowBookDialog(true);
+            }}>
+              <Plus className="h-3.5 w-3.5" /> תור חדש
+            </Button>
+          </div>
 
             {/* Legend */}
             {legendItems.length > 0 && (
@@ -330,7 +326,7 @@ export default function AdminCalendar() {
             )}
 
             {/* Timeline grid */}
-            <div className="relative overflow-y-auto max-h-[500px] border border-border rounded-lg" dir="ltr">
+            <div className="relative overflow-y-auto flex-1 border border-border rounded-lg" dir="ltr">
               <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
                 {/* Hour lines */}
                 {timelineHours.map((hour, i) => (
@@ -422,9 +418,9 @@ export default function AdminCalendar() {
                 })}
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+        </DialogContent>
+      </Dialog>
+
 
       {/* Calendar */}
       <Card className="shadow-card max-w-2xl mx-auto">
@@ -621,22 +617,22 @@ export default function AdminCalendar() {
                 </div>
               )}
               {/* Contact buttons */}
-              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
+              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border">
                 {showClientInfo.profiles.phone && (
                   <>
                     <a href={`tel:${showClientInfo.profiles.phone}`}>
-                      <Button size="sm" variant="outline" className="gap-1.5"><Phone className="h-3.5 w-3.5" /> התקשרי</Button>
+                      <Button size="sm" className="gap-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 border-0"><Phone className="h-3.5 w-3.5" /> התקשרי</Button>
                     </a>
                     <a href={`sms:${showClientInfo.profiles.phone}`}>
-                      <Button size="sm" variant="outline" className="gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> SMS</Button>
+                      <Button size="sm" className="gap-1.5 bg-sky-100 text-sky-700 hover:bg-sky-200 border-0"><MessageSquare className="h-3.5 w-3.5" /> SMS</Button>
                     </a>
                     <a href={`https://wa.me/${showClientInfo.profiles.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" variant="outline" className="gap-1.5"><MessageCircle className="h-3.5 w-3.5" /> WhatsApp</Button>
+                      <Button size="sm" className="gap-1.5 bg-green-100 text-green-700 hover:bg-green-200 border-0"><MessageCircle className="h-3.5 w-3.5" /> WhatsApp</Button>
                     </a>
                   </>
                 )}
-                <a href={`mailto:${''}`}>
-                  <Button size="sm" variant="outline" className="gap-1.5"><Mail className="h-3.5 w-3.5" /> מייל</Button>
+                <a href={`mailto:`}>
+                  <Button size="sm" className="gap-1.5 bg-red-100 text-red-700 hover:bg-red-200 border-0"><Mail className="h-3.5 w-3.5" /> מייל</Button>
                 </a>
               </div>
             </div>
