@@ -103,7 +103,26 @@ export default function ClientBooking() {
 
   const fetchTreatments = async () => {
     const { data } = await supabase.from('treatments').select('*').eq('is_active', true);
-    if (data) setTreatments(data as Treatment[]);
+    if (data) {
+      setTreatments(data as Treatment[]);
+      // Fetch price tiers for all variable duration treatments
+      const variableTreatments = (data as Treatment[]).filter(t => t.is_variable_duration);
+      if (variableTreatments.length > 0) {
+        const { data: tiersData } = await supabase
+          .from('treatment_price_tiers')
+          .select('*')
+          .in('treatment_id', variableTreatments.map(t => t.id))
+          .order('min_minutes');
+        if (tiersData) {
+          const tiersMap: Record<string, PriceTier[]> = {};
+          (tiersData as any[]).forEach(tier => {
+            if (!tiersMap[tier.treatment_id]) tiersMap[tier.treatment_id] = [];
+            tiersMap[tier.treatment_id].push(tier);
+          });
+          setPriceTiers(tiersMap);
+        }
+      }
+    }
   };
 
   const fetchSettings = async () => {
