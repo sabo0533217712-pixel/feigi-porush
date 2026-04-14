@@ -209,7 +209,7 @@ export default function AdminCalendar() {
     return hours;
   }, [daySchedule]);
 
-  const HOUR_HEIGHT = 120; // px per hour
+  const HOUR_HEIGHT = 80; // px per hour
   const totalTimelineMinutes = (daySchedule.endHour - daySchedule.startHour) * 60;
 
   const getTopOffset = (time: string) => {
@@ -413,7 +413,7 @@ export default function AdminCalendar() {
           )}
 
           {/* Timeline grid */}
-          <div className="relative overflow-y-auto flex-1 border border-border rounded-lg" dir="rtl">
+          <div className="relative overflow-y-auto flex-1 border border-border rounded-lg" dir="ltr">
             <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
               {/* Hour lines */}
               {timelineHours.map((hour, i) => (
@@ -423,7 +423,7 @@ export default function AdminCalendar() {
                   style={{ top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }}
                   onClick={() => handleTimelineClick(hour)}
                 >
-                  <div className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-l border-border/50 font-mono" dir="ltr">
+                  <div className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-r border-border/50 font-mono">
                     {hour}
                   </div>
                   <div className="flex-1" />
@@ -434,7 +434,7 @@ export default function AdminCalendar() {
               {daySchedule.breaks.map((brk, i) => (
                 <div
                   key={`brk-${i}`}
-                  className="absolute left-0 right-16 bg-muted/40 border-y border-dashed border-border/60 pointer-events-none z-[1]"
+                  className="absolute right-0 left-16 bg-muted/40 border-y border-dashed border-border/60 pointer-events-none z-[1]"
                   style={{ top: getTopOffset(brk.start), height: getHeight(brk.start, brk.end) }}
                 >
                   <span className="text-[10px] text-muted-foreground px-2">הפסקה</span>
@@ -445,7 +445,7 @@ export default function AdminCalendar() {
               {timeBlocks.map((block) => (
                 <div
                   key={block.id}
-                  className="absolute right-16 left-4 rounded-md z-[2] flex items-center justify-between px-2 group"
+                  className="absolute left-16 right-4 rounded-md z-[2] flex items-center justify-between px-2 group"
                   style={{
                     top: getTopOffset(block.start_time),
                     height: getHeight(block.start_time, block.end_time),
@@ -470,87 +470,55 @@ export default function AdminCalendar() {
               ))}
 
               {/* Appointments */}
-              {(() => {
-                // Detect overlaps and assign columns
-                const toMin = (t: string) => { const [h, m] = t.substring(0, 5).split(":").map(Number); return h * 60 + m; };
-                const sorted = [...appointments].sort((a, b) => toMin(a.start_time) - toMin(b.start_time));
-                const cols: number[] = new Array(sorted.length).fill(0);
-                const maxCol: number[] = new Array(sorted.length).fill(0);
-                
-                for (let i = 0; i < sorted.length; i++) {
-                  const usedCols = new Set<number>();
-                  for (let j = 0; j < i; j++) {
-                    if (toMin(sorted[j].end_time) > toMin(sorted[i].start_time) && toMin(sorted[j].start_time) < toMin(sorted[i].end_time)) {
-                      usedCols.add(cols[j]);
-                    }
-                  }
-                  let col = 0;
-                  while (usedCols.has(col)) col++;
-                  cols[i] = col;
-                }
-                
-                // Calculate max concurrent for each appointment
-                for (let i = 0; i < sorted.length; i++) {
-                  let max = cols[i];
-                  for (let j = 0; j < sorted.length; j++) {
-                    if (i !== j && toMin(sorted[j].end_time) > toMin(sorted[i].start_time) && toMin(sorted[j].start_time) < toMin(sorted[i].end_time)) {
-                      max = Math.max(max, cols[j]);
-                    }
-                  }
-                  maxCol[i] = max + 1;
-                }
-
-                return sorted.map((apt, idx) => {
-                  const color = apt.treatments?.color || "hsl(var(--primary))";
-                  const totalCols = maxCol[idx];
-                  const col = cols[idx];
-                  const widthPercent = 100 / totalCols;
-                  const leftPercent = col * widthPercent;
-                  
-                  return (
+              {appointments.map((apt) => {
+                const color = apt.treatments?.color || "hsl(var(--primary))";
+                return (
+                  <div
+                    key={apt.id}
+                    className="absolute left-16 right-4 rounded-md z-[3] flex items-stretch overflow-hidden shadow-sm cursor-pointer group"
+                    style={{
+                      top: getTopOffset(apt.start_time),
+                      height: getHeight(apt.start_time, apt.end_time),
+                    }}
+                    onClick={() => openEditDialog(apt)}
+                  >
+                    <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
                     <div
-                      key={apt.id}
-                      className="absolute rounded-md z-[3] flex items-stretch overflow-hidden shadow-sm cursor-pointer group"
-                      style={{
-                        top: getTopOffset(apt.start_time),
-                        height: getHeight(apt.start_time, apt.end_time),
-                        ...(totalCols === 1 ? { right: '64px', left: '16px' } : {
-                          right: `calc(64px + (100% - 64px - 16px) * ${leftPercent / 100})`,
-                          width: `calc((100% - 64px - 16px) * ${widthPercent / 100})`,
-                        }),
-                      }}
-                      onClick={() => openEditDialog(apt)}
+                      className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-1 flex items-center justify-between min-w-0"
+                      style={{ borderLeftColor: color }}
                     >
-                      {(() => {
-                        const [sh, sm] = apt.start_time.substring(0, 5).split(":").map(Number);
-                        const [eh, em] = apt.end_time.substring(0, 5).split(":").map(Number);
-                        const dur = eh * 60 + em - (sh * 60 + sm);
-
-                        return (
-                          <>
-                            <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
-                            <div
-                              className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-0.5 flex items-center min-w-0 overflow-hidden cursor-pointer"
-                              style={{ borderLeftColor: color }}
-                            >
-                              <div className="flex flex-col gap-0 min-w-0 flex-1">
-                                <span className="text-[11px] font-semibold text-foreground truncate flex items-center gap-1">
-                                  {apt.profiles?.full_name || "לקוחה"} - {apt.treatments?.name}
-                                  {apt.status === "cancelled" && <Badge variant="destructive" className="text-[9px] h-3.5">בוטל</Badge>}
-                                  {apt.booked_by_admin && <Badge variant="outline" className="text-[9px] h-3.5">אדמין</Badge>}
-                                </span>
-                                <span className="text-[10px] font-mono text-muted-foreground">
-                                  {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)} ({dur} דק׳)
-                                </span>
-                              </div>
-                            </div>
-                          </>
-                        );
-                      })()}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs font-mono text-muted-foreground flex-shrink-0">
+                          {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
+                        </span>
+                        {(() => {
+                          const [sh, sm] = apt.start_time.substring(0, 5).split(":").map(Number);
+                          const [eh, em] = apt.end_time.substring(0, 5).split(":").map(Number);
+                          const dur = eh * 60 + em - (sh * 60 + sm);
+                          return <span className="text-[10px] text-muted-foreground flex-shrink-0">({dur} דק׳)</span>;
+                        })()}
+                        <span className="text-sm font-medium text-foreground truncate">{apt.treatments?.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">
+                          {apt.profiles?.full_name || "לקוחה"}
+                        </span>
+                        {apt.status === "cancelled" && (
+                          <Badge variant="destructive" className="text-[10px] h-4">
+                            בוטל
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowClientInfo(apt)}>
+                          <User className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(apt)}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                  );
-                });
-              })()}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </DialogContent>
@@ -668,7 +636,8 @@ export default function AdminCalendar() {
                     <SelectContent>
                       {options.map((d) => (
                         <SelectItem key={d} value={String(d)}>
-                          {d} דקות ({Math.floor(d / 60) > 0 ? `${Math.floor(d / 60)} שעה ` : ""}{d % 60 > 0 ? `${d % 60} דק׳` : ""})
+                          {d} דקות ({Math.floor(d / 60) > 0 ? `${Math.floor(d / 60)} שעה ` : ""}
+                          {d % 60 > 0 ? `${d % 60} דק׳` : ""})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -685,7 +654,7 @@ export default function AdminCalendar() {
                   onChange={(e) => {
                     const val = e.target.value;
                     const t = treatments.find((tr) => tr.id === bookForm.treatment_id);
-                    const dur = t?.is_variable_duration ? bookDuration : (t?.duration_minutes || 30);
+                    const dur = t?.is_variable_duration ? bookDuration : t?.duration_minutes || 30;
                     const [h, m] = val.split(":").map(Number);
                     const endMin = h * 60 + m + dur;
                     setBookForm((prev) => ({
@@ -805,9 +774,6 @@ export default function AdminCalendar() {
                   {format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })} •{" "}
                   {editingAppointment.start_time.substring(0, 5)}-{editingAppointment.end_time.substring(0, 5)}
                 </div>
-                <Button variant="outline" size="sm" className="w-full mt-1" onClick={() => setShowClientInfo(editingAppointment)}>
-                  <User className="h-4 w-4" /> יצירת קשר
-                </Button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
