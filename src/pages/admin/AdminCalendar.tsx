@@ -34,7 +34,7 @@ interface Appointment {
   booked_by_admin: boolean;
   treatment_id: string;
   client_id: string;
-  profiles: { full_name: string; phone: string; user_id: string } | null;
+  profiles: { full_name: string; phone: string; email: string; user_id: string } | null;
   treatments: { name: string; color: string } | null;
 }
 
