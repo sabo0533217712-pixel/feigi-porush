@@ -257,6 +257,7 @@ export default function AdminCalendar() {
       setShowEditDialog(false);
       setEditForm(null);
       fetchDayData();
+      fetchMonthCounts();
     }
   };
 
