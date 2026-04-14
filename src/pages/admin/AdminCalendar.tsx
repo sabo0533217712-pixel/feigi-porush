@@ -84,6 +84,7 @@ export default function AdminCalendar() {
   const [editForm, setEditForm] = useState<{
     id: string; start_time: string; end_time: string; status: string; notes: string;
   } | null>(null);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
   useEffect(() => {
     fetchTreatments();
