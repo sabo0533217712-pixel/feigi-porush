@@ -30,8 +30,9 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
 
 function AppRoutes() {
   const { user, loading, isAdmin } = useAuth();
+  const { ready: themeReady } = useBusinessTheme();
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">טוען...</div>;
+  if (loading || !themeReady) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">טוען...</div>;
 
   return (
     <Routes>
