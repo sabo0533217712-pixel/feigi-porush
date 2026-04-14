@@ -524,46 +524,70 @@ export default function AdminCalendar() {
                       }}
                       onClick={() => openEditDialog(apt)}
                     >
-                      <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
-                      <div
-                        className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-1 flex flex-col justify-center min-w-0"
-                        style={{ borderLeftColor: color }}
-                      >
-                        <div className="flex items-center justify-between min-w-0">
-                          <div className="flex flex-col gap-0.5 min-w-0">
-                            <span className="text-sm font-semibold text-foreground truncate flex items-center gap-1">
-                              {apt.profiles?.full_name || "לקוחה"}
-                              {apt.status === "cancelled" && (
-                                <Badge variant="destructive" className="text-[10px] h-4">בוטל</Badge>
+                      {(() => {
+                        const [sh, sm] = apt.start_time.substring(0, 5).split(":").map(Number);
+                        const [eh, em] = apt.end_time.substring(0, 5).split(":").map(Number);
+                        const dur = eh * 60 + em - (sh * 60 + sm);
+                        const pxHeight = Math.max((dur / 60) * HOUR_HEIGHT, 24);
+                        const isCompact = pxHeight < 50;
+                        const isMedium = pxHeight >= 50 && pxHeight < 75;
+
+                        return (
+                          <>
+                            <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
+                            <div
+                              className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-0.5 flex items-center min-w-0 overflow-hidden"
+                              style={{ borderLeftColor: color }}
+                            >
+                              {isCompact ? (
+                                /* Single line for very short appointments */
+                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                  <span className="text-[11px] font-semibold text-foreground truncate">{apt.profiles?.full_name || "לקוחה"}</span>
+                                  <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0">{apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}</span>
+                                  <span className="text-[10px] text-muted-foreground truncate">{apt.treatments?.name}</span>
+                                  {apt.status === "cancelled" && <Badge variant="destructive" className="text-[9px] h-3.5">בוטל</Badge>}
+                                </div>
+                              ) : isMedium ? (
+                                /* Two lines for medium appointments */
+                                <div className="flex flex-col gap-0 min-w-0 flex-1">
+                                  <span className="text-[11px] font-semibold text-foreground truncate flex items-center gap-1">
+                                    {apt.profiles?.full_name || "לקוחה"}
+                                    {apt.status === "cancelled" && <Badge variant="destructive" className="text-[9px] h-3.5">בוטל</Badge>}
+                                    {apt.booked_by_admin && <Badge variant="outline" className="text-[9px] h-3.5">אדמין</Badge>}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground truncate">
+                                    {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)} ({dur} דק׳) • {apt.treatments?.name}
+                                  </span>
+                                </div>
+                              ) : (
+                                /* Full 3-line layout */
+                                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                                  <span className="text-sm font-semibold text-foreground truncate flex items-center gap-1">
+                                    {apt.profiles?.full_name || "לקוחה"}
+                                    {apt.status === "cancelled" && <Badge variant="destructive" className="text-[10px] h-4">בוטל</Badge>}
+                                    {apt.booked_by_admin && <Badge variant="outline" className="text-[10px] h-4">אדמין</Badge>}
+                                  </span>
+                                  <span className="text-xs font-mono text-muted-foreground">
+                                    {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)} ({dur} דק׳)
+                                  </span>
+                                  <span className="text-xs text-muted-foreground truncate">{apt.treatments?.name}</span>
+                                </div>
                               )}
-                              {apt.booked_by_admin && (
-                                <Badge variant="outline" className="text-[10px] h-4">אדמין</Badge>
-                              )}
-                            </span>
-                            <span className="text-xs font-mono text-muted-foreground">
-                              {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
-                              {(() => {
-                                const [sh, sm] = apt.start_time.substring(0, 5).split(":").map(Number);
-                                const [eh, em] = apt.end_time.substring(0, 5).split(":").map(Number);
-                                const dur = eh * 60 + em - (sh * 60 + sm);
-                                return ` (${dur} דק׳)`;
-                              })()}
-                            </span>
-                            <span className="text-xs text-muted-foreground truncate">{apt.treatments?.name}</span>
-                          </div>
-                          <div
-                            className="flex items-center gap-0.5 flex-shrink-0"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowClientInfo(apt)}>
-                              <User className="h-3 w-3" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(apt)}>
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
+                              <div
+                                className="flex items-center gap-0.5 flex-shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowClientInfo(apt)}>
+                                  <User className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(apt)}>
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   );
                 });
