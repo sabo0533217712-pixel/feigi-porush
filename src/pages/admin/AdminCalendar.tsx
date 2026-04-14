@@ -470,63 +470,106 @@ export default function AdminCalendar() {
               ))}
 
               {/* Appointments */}
-              {appointments.map((apt) => {
-                const color = apt.treatments?.color || "hsl(var(--primary))";
-                return (
-                  <div
-                    key={apt.id}
-                    className="absolute left-16 right-4 rounded-md z-[3] flex items-stretch overflow-hidden shadow-sm cursor-pointer group"
-                    style={{
-                      top: getTopOffset(apt.start_time),
-                      height: getHeight(apt.start_time, apt.end_time),
-                    }}
-                    onClick={() => openEditDialog(apt)}
-                  >
-                    <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
+              {(() => {
+                // Detect overlaps and assign columns
+                const toMin = (t: string) => { const [h, m] = t.substring(0, 5).split(":").map(Number); return h * 60 + m; };
+                const sorted = [...appointments].sort((a, b) => toMin(a.start_time) - toMin(b.start_time));
+                const cols: number[] = new Array(sorted.length).fill(0);
+                const maxCol: number[] = new Array(sorted.length).fill(0);
+                
+                for (let i = 0; i < sorted.length; i++) {
+                  const usedCols = new Set<number>();
+                  for (let j = 0; j < i; j++) {
+                    if (toMin(sorted[j].end_time) > toMin(sorted[i].start_time) && toMin(sorted[j].start_time) < toMin(sorted[i].end_time)) {
+                      usedCols.add(cols[j]);
+                    }
+                  }
+                  let col = 0;
+                  while (usedCols.has(col)) col++;
+                  cols[i] = col;
+                }
+                
+                // Calculate max concurrent for each appointment
+                for (let i = 0; i < sorted.length; i++) {
+                  let max = cols[i];
+                  for (let j = 0; j < sorted.length; j++) {
+                    if (i !== j && toMin(sorted[j].end_time) > toMin(sorted[i].start_time) && toMin(sorted[j].start_time) < toMin(sorted[i].end_time)) {
+                      max = Math.max(max, cols[j]);
+                    }
+                  }
+                  maxCol[i] = max + 1;
+                }
+
+                return sorted.map((apt, idx) => {
+                  const color = apt.treatments?.color || "hsl(var(--primary))";
+                  const totalCols = maxCol[idx];
+                  const col = cols[idx];
+                  const widthPercent = 100 / totalCols;
+                  const leftPercent = col * widthPercent;
+                  
+                  return (
                     <div
-                      className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-1 flex items-center justify-between min-w-0"
-                      style={{ borderLeftColor: color }}
+                      key={apt.id}
+                      className="absolute rounded-md z-[3] flex items-stretch overflow-hidden shadow-sm cursor-pointer group"
+                      style={{
+                        top: getTopOffset(apt.start_time),
+                        height: getHeight(apt.start_time, apt.end_time),
+                        left: `calc(64px + ${leftPercent}% * (100% - 64px - 16px) / 100)`,
+                        width: `calc(${widthPercent}% * (100% - 64px - 16px) / 100)`,
+                        right: totalCols === 1 ? '16px' : undefined,
+                        ...(totalCols === 1 ? { left: '64px' } : {
+                          left: `calc(64px + (100% - 64px - 16px) * ${leftPercent / 100})`,
+                          width: `calc((100% - 64px - 16px) * ${widthPercent / 100})`,
+                        }),
+                      }}
+                      onClick={() => openEditDialog(apt)}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-mono text-muted-foreground flex-shrink-0">
-                          {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
-                        </span>
-                        {(() => {
-                          const [sh, sm] = apt.start_time.substring(0, 5).split(":").map(Number);
-                          const [eh, em] = apt.end_time.substring(0, 5).split(":").map(Number);
-                          const dur = eh * 60 + em - (sh * 60 + sm);
-                          return <span className="text-[10px] text-muted-foreground flex-shrink-0">({dur} דק׳)</span>;
-                        })()}
-                        <span className="text-sm font-medium text-foreground truncate">{apt.treatments?.name}</span>
-                        <span className="text-xs text-muted-foreground truncate">
-                          {apt.profiles?.full_name || "לקוחה"}
-                        </span>
-                        {apt.status === "cancelled" && (
-                          <Badge variant="destructive" className="text-[10px] h-4">
-                            בוטל
-                          </Badge>
-                        )}
-                        {apt.booked_by_admin && (
-                          <Badge variant="outline" className="text-[10px] h-4">
-                            אדמין
-                          </Badge>
-                        )}
-                      </div>
+                      <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
                       <div
-                        className="flex items-center gap-0.5 flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-1 flex items-center justify-between min-w-0"
+                        style={{ borderLeftColor: color }}
                       >
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowClientInfo(apt)}>
-                          <User className="h-3 w-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(apt)}>
-                          <Edit className="h-3 w-3" />
-                        </Button>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs font-mono text-muted-foreground flex-shrink-0">
+                            {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
+                          </span>
+                          {(() => {
+                            const [sh, sm] = apt.start_time.substring(0, 5).split(":").map(Number);
+                            const [eh, em] = apt.end_time.substring(0, 5).split(":").map(Number);
+                            const dur = eh * 60 + em - (sh * 60 + sm);
+                            return <span className="text-[10px] text-muted-foreground flex-shrink-0">({dur} דק׳)</span>;
+                          })()}
+                          <span className="text-sm font-medium text-foreground truncate">{apt.treatments?.name}</span>
+                          <span className="text-xs text-muted-foreground truncate">
+                            {apt.profiles?.full_name || "לקוחה"}
+                          </span>
+                          {apt.status === "cancelled" && (
+                            <Badge variant="destructive" className="text-[10px] h-4">
+                              בוטל
+                            </Badge>
+                          )}
+                          {apt.booked_by_admin && (
+                            <Badge variant="outline" className="text-[10px] h-4">
+                              אדמין
+                            </Badge>
+                          )}
+                        </div>
+                        <div
+                          className="flex items-center gap-0.5 flex-shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowClientInfo(apt)}>
+                            <User className="h-3 w-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(apt)}>
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </div>
         </DialogContent>
