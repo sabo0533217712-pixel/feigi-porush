@@ -526,34 +526,31 @@ export default function AdminCalendar() {
                     >
                       <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
                       <div
-                        className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-1 flex items-center justify-between min-w-0"
+                        className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-1 flex flex-col justify-center min-w-0"
                         style={{ borderLeftColor: color }}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs font-mono text-muted-foreground flex-shrink-0">
-                            {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
-                          </span>
-                          {(() => {
-                            const [sh, sm] = apt.start_time.substring(0, 5).split(":").map(Number);
-                            const [eh, em] = apt.end_time.substring(0, 5).split(":").map(Number);
-                            const dur = eh * 60 + em - (sh * 60 + sm);
-                            return <span className="text-[10px] text-muted-foreground flex-shrink-0">({dur} דק׳)</span>;
-                          })()}
-                          <span className="text-sm font-medium text-foreground truncate">{apt.treatments?.name}</span>
-                          <span className="text-xs text-muted-foreground truncate">
-                            {apt.profiles?.full_name || "לקוחה"}
-                          </span>
-                          {apt.status === "cancelled" && (
-                            <Badge variant="destructive" className="text-[10px] h-4">
-                              בוטל
-                            </Badge>
-                          )}
-                          {apt.booked_by_admin && (
-                            <Badge variant="outline" className="text-[10px] h-4">
-                              אדמין
-                            </Badge>
-                          )}
-                        </div>
+                        <div className="flex items-center justify-between min-w-0">
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="text-sm font-semibold text-foreground truncate flex items-center gap-1">
+                              {apt.profiles?.full_name || "לקוחה"}
+                              {apt.status === "cancelled" && (
+                                <Badge variant="destructive" className="text-[10px] h-4">בוטל</Badge>
+                              )}
+                              {apt.booked_by_admin && (
+                                <Badge variant="outline" className="text-[10px] h-4">אדמין</Badge>
+                              )}
+                            </span>
+                            <span className="text-xs font-mono text-muted-foreground">
+                              {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
+                              {(() => {
+                                const [sh, sm] = apt.start_time.substring(0, 5).split(":").map(Number);
+                                const [eh, em] = apt.end_time.substring(0, 5).split(":").map(Number);
+                                const dur = eh * 60 + em - (sh * 60 + sm);
+                                return ` (${dur} דק׳)`;
+                              })()}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate">{apt.treatments?.name}</span>
+                          </div>
                         <div
                           className="flex items-center gap-0.5 flex-shrink-0"
                           onClick={(e) => e.stopPropagation()}
