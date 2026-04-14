@@ -873,7 +873,7 @@ export default function AdminCalendar() {
                       <Button
                         size="sm"
                         disabled
-                        className="gap-1.5 bg-[hsl(202_35%_94%)] text-[hsl(202_20%_55%)] border-0"
+                        className="gap-1.5 bg-[hsl(0_0%_92%)] text-[hsl(0_0%_35%)] hover:bg-[hsl(0_0%_88%)] border-0"
                       >
                         <MessageSquare className="h-3.5 w-3.5" /> SMS
                       </Button>
