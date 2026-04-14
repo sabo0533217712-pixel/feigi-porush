@@ -721,11 +721,17 @@ export default function AdminCalendar() {
               <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-sm">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{editingAppointment.profiles?.full_name || "לקוחה"}</span>
-                  {editingAppointment.profiles?.phone && (
-                    <span className="text-muted-foreground">({editingAppointment.profiles.phone})</span>
-                  )}
-                </div>
+                   <span className="font-medium">{editingAppointment.profiles?.full_name || "לקוחה"}</span>
+                   {editingAppointment.profiles?.phone && (
+                     <span className="text-muted-foreground">({editingAppointment.profiles.phone})</span>
+                   )}
+                 </div>
+                 {editingAppointment.profiles?.email && (
+                   <div className="flex items-center gap-2 text-muted-foreground">
+                     <Mail className="h-4 w-4" />
+                     <span>{editingAppointment.profiles.email}</span>
+                   </div>
+                 )}
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0"
