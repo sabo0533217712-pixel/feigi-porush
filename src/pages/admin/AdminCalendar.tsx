@@ -22,6 +22,7 @@ interface Treatment {
   color: string;
   duration_minutes: number;
   price: number;
+  is_variable_duration: boolean;
 }
 
 interface Appointment {
