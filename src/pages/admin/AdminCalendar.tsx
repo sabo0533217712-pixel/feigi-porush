@@ -298,14 +298,26 @@ export default function AdminCalendar() {
     }
   };
 
+  const [bookDuration, setBookDuration] = useState<number>(30);
+
   const onTreatmentSelect = (treatmentId: string) => {
     const t = treatments.find((tr) => tr.id === treatmentId);
     if (t) {
+      const dur = t.duration_minutes;
+      setBookDuration(dur);
       const [h, m] = bookForm.start_time.split(":").map(Number);
-      const endMin = h * 60 + m + t.duration_minutes;
+      const endMin = h * 60 + m + dur;
       const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
       setBookForm((prev) => ({ ...prev, treatment_id: treatmentId, end_time: endTime }));
     }
+  };
+
+  const onBookDurationChange = (newDuration: number) => {
+    setBookDuration(newDuration);
+    const [h, m] = bookForm.start_time.split(":").map(Number);
+    const endMin = h * 60 + m + newDuration;
+    const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+    setBookForm((prev) => ({ ...prev, end_time: endTime }));
   };
 
   const handleTimelineClick = (hour: string) => {
@@ -614,6 +626,31 @@ export default function AdminCalendar() {
                 </SelectContent>
               </Select>
             </div>
+            {(() => {
+              const selectedTreatment = treatments.find((t) => t.id === bookForm.treatment_id);
+              if (!selectedTreatment?.is_variable_duration) return null;
+              const minDur = selectedTreatment.duration_minutes;
+              const maxDur = 180;
+              const options: number[] = [];
+              for (let d = minDur; d <= maxDur; d += 5) options.push(d);
+              return (
+                <div className="space-y-2">
+                  <Label>משך הטיפול (דקות)</Label>
+                  <Select value={String(bookDuration)} onValueChange={(v) => onBookDurationChange(Number(v))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {options.map((d) => (
+                        <SelectItem key={d} value={String(d)}>
+                          {d} דקות ({Math.floor(d / 60) > 0 ? `${Math.floor(d / 60)} שעה ` : ""}{d % 60 > 0 ? `${d % 60} דק׳` : ""})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })()}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>שעת התחלה</Label>
