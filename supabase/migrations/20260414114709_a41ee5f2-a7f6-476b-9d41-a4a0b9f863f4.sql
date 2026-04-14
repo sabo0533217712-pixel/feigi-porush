@@ -1,0 +1,1 @@
+ALTER TABLE public.business_settings ADD COLUMN IF NOT EXISTS day_schedules jsonb DEFAULT '{}'::jsonb;
