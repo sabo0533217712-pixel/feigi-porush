@@ -661,7 +661,7 @@ export default function AdminCalendar() {
                   onChange={(e) => {
                     const val = e.target.value;
                     const t = treatments.find((tr) => tr.id === bookForm.treatment_id);
-                    const dur = t?.duration_minutes || 30;
+                    const dur = t?.is_variable_duration ? bookDuration : (t?.duration_minutes || 30);
                     const [h, m] = val.split(":").map(Number);
                     const endMin = h * 60 + m + dur;
                     setBookForm((prev) => ({
