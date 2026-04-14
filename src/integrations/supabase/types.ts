@@ -117,6 +117,7 @@ export type Database = {
           cancellation_hours: number
           created_at: string
           custom_texts: Json | null
+          day_schedules: Json | null
           end_time: string
           font_family: string | null
           id: string
@@ -137,6 +138,7 @@ export type Database = {
           cancellation_hours?: number
           created_at?: string
           custom_texts?: Json | null
+          day_schedules?: Json | null
           end_time?: string
           font_family?: string | null
           id?: string
@@ -157,6 +159,7 @@ export type Database = {
           cancellation_hours?: number
           created_at?: string
           custom_texts?: Json | null
+          day_schedules?: Json | null
           end_time?: string
           font_family?: string | null
           id?: string
