@@ -17,13 +17,20 @@ interface Treatment {
   price: number;
   category: string;
   is_active: boolean;
+  color: string;
+  is_variable_duration: boolean;
 }
+
+const DEFAULT_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#14b8a6'];
 
 export default function AdminTreatments() {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Treatment | null>(null);
-  const [form, setForm] = useState({ name: '', description: '', duration_minutes: 30, price: 0, category: '' });
+  const [form, setForm] = useState({
+    name: '', description: '', duration_minutes: 30, price: 0, category: '',
+    color: '#6366f1', is_variable_duration: false,
+  });
 
   useEffect(() => {
     fetchTreatments();
@@ -48,7 +55,7 @@ export default function AdminTreatments() {
     }
     setOpen(false);
     setEditing(null);
-    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '' });
+    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false });
     fetchTreatments();
   };
 
@@ -65,13 +72,17 @@ export default function AdminTreatments() {
 
   const openEdit = (t: Treatment) => {
     setEditing(t);
-    setForm({ name: t.name, description: t.description, duration_minutes: t.duration_minutes, price: t.price, category: t.category });
+    setForm({
+      name: t.name, description: t.description, duration_minutes: t.duration_minutes,
+      price: t.price, category: t.category, color: t.color || '#6366f1',
+      is_variable_duration: t.is_variable_duration || false,
+    });
     setOpen(true);
   };
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '' });
+    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false });
     setOpen(true);
   };
 
@@ -113,6 +124,41 @@ export default function AdminTreatments() {
                 <Label>קטגוריה</Label>
                 <Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="למשל: פנים, גוף" />
               </div>
+
+              {/* Color Picker */}
+              <div className="space-y-2">
+                <Label>צבע</Label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {DEFAULT_COLORS.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`w-8 h-8 rounded-full border-2 transition-transform ${form.color === c ? 'border-foreground scale-110' : 'border-transparent'}`}
+                      style={{ backgroundColor: c }}
+                      onClick={() => setForm({ ...form, color: c })}
+                    />
+                  ))}
+                  <Input
+                    type="color"
+                    value={form.color}
+                    onChange={e => setForm({ ...form, color: e.target.value })}
+                    className="w-10 h-8 p-0 border-0 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Variable Duration Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>משך משתנה</Label>
+                  <p className="text-xs text-muted-foreground">הלקוחה יכולה לקבל זמן קצר יותר</p>
+                </div>
+                <Switch
+                  checked={form.is_variable_duration}
+                  onCheckedChange={v => setForm({ ...form, is_variable_duration: v })}
+                />
+              </div>
+
               <Button className="w-full gradient-primary text-primary-foreground" onClick={handleSave}>שמירה</Button>
             </div>
           </DialogContent>
@@ -123,12 +169,16 @@ export default function AdminTreatments() {
         {treatments.map(t => (
           <Card key={t.id} className={`shadow-card transition-opacity ${!t.is_active ? 'opacity-50' : ''}`}>
             <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-foreground">{t.name}</h3>
-                <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
-                  <span>₪{t.price}</span>
-                  {t.category && <span>{t.category}</span>}
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: t.color || '#6366f1' }} />
+                <div>
+                  <h3 className="font-medium text-foreground">{t.name}</h3>
+                  <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
+                    <span>₪{t.price}</span>
+                    {t.category && <span>{t.category}</span>}
+                    {t.is_variable_duration && <span className="text-xs bg-accent px-2 py-0.5 rounded">משך משתנה</span>}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
