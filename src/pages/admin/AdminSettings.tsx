@@ -248,25 +248,13 @@ export default function AdminSettings() {
   };
 
   const applyLogoColors = async (imageUrl: string) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = async () => {
-      const hex = extractDominantColor(img);
-      if (!hex) return;
-      const hsl = hexToHSL(hex);
-      if (!hsl) return;
-      // Apply to CSS variables
-      document.documentElement.style.setProperty('--primary', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
-      // Create a lighter secondary
-      document.documentElement.style.setProperty('--secondary', `${(hsl.h + 30) % 360} ${Math.max(hsl.s - 20, 10)}% ${Math.min(hsl.l + 20, 90)}%`);
-      document.documentElement.style.setProperty('--accent', `${hsl.h} ${Math.max(hsl.s - 30, 10)}% ${Math.min(hsl.l + 30, 95)}%`);
-      // Save extracted colors to DB
+    const hex = await applyThemeFromImage(imageUrl);
+    if (hex) {
+      // Save extracted color to DB
       await supabase.from('business_settings').update({
         primary_color: hex,
-        secondary_color: `hsl(${(hsl.h + 30) % 360}, ${Math.max(hsl.s - 20, 10)}%, ${Math.min(hsl.l + 20, 90)}%)`,
       } as any).eq('id', settings.id);
-    };
-    img.src = imageUrl;
+    }
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
