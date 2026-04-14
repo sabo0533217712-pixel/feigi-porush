@@ -70,6 +70,8 @@ export default function AdminCalendar() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [monthCounts, setMonthCounts] = useState<Record<string, number>>({});
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
   // Dialogs
   const [showBookDialog, setShowBookDialog] = useState(false);
@@ -95,6 +97,28 @@ export default function AdminCalendar() {
   useEffect(() => {
     fetchDayData();
   }, [selectedDate]);
+
+  useEffect(() => {
+    fetchMonthCounts();
+  }, [currentMonth]);
+
+  const fetchMonthCounts = async () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = format(new Date(year, month, 1), 'yyyy-MM-dd');
+    const lastDay = format(new Date(year, month + 1, 0), 'yyyy-MM-dd');
+    const { data } = await supabase
+      .from('appointments')
+      .select('appointment_date')
+      .gte('appointment_date', firstDay)
+      .lte('appointment_date', lastDay)
+      .neq('status', 'cancelled');
+    if (data) {
+      const counts: Record<string, number> = {};
+      data.forEach(a => { counts[a.appointment_date] = (counts[a.appointment_date] || 0) + 1; });
+      setMonthCounts(counts);
+    }
+  };
 
   const fetchSettings = async () => {
     const { data } = await supabase.from('business_settings').select('start_time, end_time, day_schedules, working_days').limit(1).single();
@@ -190,6 +214,7 @@ export default function AdminCalendar() {
       setShowBookDialog(false);
       setBookForm({ client_id: '', treatment_id: '', start_time: '09:00', end_time: '09:30', notes: '' });
       fetchDayData();
+      fetchMonthCounts();
     }
   };
 
@@ -232,6 +257,7 @@ export default function AdminCalendar() {
       setShowEditDialog(false);
       setEditForm(null);
       fetchDayData();
+      fetchMonthCounts();
     }
   };
 
@@ -395,6 +421,12 @@ export default function AdminCalendar() {
                           <span className="text-xs font-mono text-muted-foreground flex-shrink-0">
                             {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
                           </span>
+                          {(() => {
+                            const [sh, sm] = apt.start_time.substring(0, 5).split(':').map(Number);
+                            const [eh, em] = apt.end_time.substring(0, 5).split(':').map(Number);
+                            const dur = (eh * 60 + em) - (sh * 60 + sm);
+                            return <span className="text-[10px] text-muted-foreground flex-shrink-0">({dur} דק׳)</span>;
+                          })()}
                           <span className="text-sm font-medium text-foreground truncate">
                             {apt.treatments?.name}
                           </span>
@@ -452,13 +484,21 @@ export default function AdminCalendar() {
               day_hidden: "invisible",
             }}
             components={{
-              DayContent: ({ date }) => (
-                <div className="flex flex-col items-center leading-tight">
-                  <span className="text-sm font-medium">{date.getDate()}</span>
-                  <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
-                </div>
-              ),
+              DayContent: ({ date }) => {
+                const dateStr = format(date, 'yyyy-MM-dd');
+                const count = monthCounts[dateStr] || 0;
+                return (
+                  <div className="flex flex-col items-center leading-tight">
+                    <span className="text-sm font-medium">{date.getDate()}</span>
+                    <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
+                    {count > 0 && (
+                      <span className="text-[9px] font-semibold text-primary bg-primary/10 rounded-full px-1.5 mt-0.5">{count}</span>
+                    )}
+                  </div>
+                );
+              },
             }}
+            onMonthChange={setCurrentMonth}
           />
         </CardContent>
       </Card>
