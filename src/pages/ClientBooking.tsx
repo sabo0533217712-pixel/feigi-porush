@@ -30,6 +30,10 @@ interface PriceTier {
   price_per_minute: number;
 }
 
+interface DayBreak { start: string; end: string; }
+interface DaySchedule { start: string; end: string; breaks: DayBreak[]; }
+type DaySchedules = Record<string, DaySchedule>;
+
 interface BusinessSettings {
   working_days: number[];
   start_time: string;
@@ -39,6 +43,7 @@ interface BusinessSettings {
   slot_duration_minutes: number;
   advance_booking_days: number;
   business_name: string;
+  day_schedules?: DaySchedules;
 }
 
 interface SlotSuggestion {
@@ -142,11 +147,18 @@ export default function ClientBooking() {
 
   const getAvailableSlots = (date: Date, booked: { start_time: string; end_time: string }[], duration: number) => {
     if (!settings) return [];
+    const dayOfWeek = date.getDay();
+    const daySchedule = settings.day_schedules?.[String(dayOfWeek)];
+    
+    // Use per-day schedule if available, else fall back to global
+    const startTime = daySchedule?.start || settings.start_time;
+    const endTime = daySchedule?.end || settings.end_time;
+    const breaks: { start: string; end: string }[] = daySchedule?.breaks || 
+      (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
+
     const slots: string[] = [];
-    const [startH, startM] = settings.start_time.split(':').map(Number);
-    const [endH, endM] = settings.end_time.split(':').map(Number);
-    const breakStart = settings.break_start ? settings.break_start.split(':').map(Number) : null;
-    const breakEnd = settings.break_end ? settings.break_end.split(':').map(Number) : null;
+    const [startH, startM] = startTime.split(':').map(Number);
+    const [endH, endM] = endTime.split(':').map(Number);
 
     let current = startH * 60 + startM;
     const end = endH * 60 + endM;
@@ -160,12 +172,13 @@ export default function ClientBooking() {
       const slotEndM = slotEndMin % 60;
       const slotEnd = `${String(slotEndH).padStart(2, '0')}:${String(slotEndM).padStart(2, '0')}`;
 
-      let inBreak = false;
-      if (breakStart && breakEnd) {
-        const bStart = breakStart[0] * 60 + breakStart[1];
-        const bEnd = breakEnd[0] * 60 + breakEnd[1];
-        if (current < bEnd && slotEndMin > bStart) inBreak = true;
-      }
+      const inBreak = breaks.some(brk => {
+        const [bsH, bsM] = brk.start.split(':').map(Number);
+        const [beH, beM] = brk.end.split(':').map(Number);
+        const bStart = bsH * 60 + bsM;
+        const bEnd = beH * 60 + beM;
+        return current < bEnd && slotEndMin > bStart;
+      });
 
       const isBooked = booked.some(b => {
         const bStart = b.start_time.substring(0, 5);
@@ -177,7 +190,7 @@ export default function ClientBooking() {
         slots.push(slotStart);
       }
 
-      current += 5; // 5-minute increments for more granularity
+      current += 5;
     }
 
     return slots;
