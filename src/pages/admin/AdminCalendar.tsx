@@ -214,6 +214,7 @@ export default function AdminCalendar() {
       setShowBookDialog(false);
       setBookForm({ client_id: '', treatment_id: '', start_time: '09:00', end_time: '09:30', notes: '' });
       fetchDayData();
+      fetchMonthCounts();
     }
   };
 
