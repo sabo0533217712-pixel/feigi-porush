@@ -418,9 +418,10 @@ export default function AdminCalendar() {
                 })}
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Calendar */}
       <Card className="shadow-card max-w-2xl mx-auto">
