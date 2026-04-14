@@ -276,6 +276,41 @@ export type Database = {
         }
         Relationships: []
       }
+      treatment_price_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          max_minutes: number
+          min_minutes: number
+          price_per_minute: number
+          treatment_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_minutes: number
+          min_minutes?: number
+          price_per_minute?: number
+          treatment_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_minutes?: number
+          min_minutes?: number
+          price_per_minute?: number
+          treatment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_price_tiers_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatments: {
         Row: {
           category: string | null
