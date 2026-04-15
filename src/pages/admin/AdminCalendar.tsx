@@ -121,6 +121,7 @@ export default function AdminCalendar() {
     fetchTreatments();
     fetchProfiles();
     fetchSettings();
+    fetchWaitlist();
   }, []);
 
   useEffect(() => {
