@@ -339,13 +339,20 @@ export default function ClientBooking() {
 
   const handleJoinWaitlist = async () => {
     if (!user || !selectedDate || selectedTreatments.length === 0) return;
+    const [prefH, prefM] = preferredTime.split(':').map(Number);
+    const startMin = Math.max(0, (prefH * 60 + prefM) - 60);
+    const endMin = prefH * 60 + prefM + 60;
+    const timeStart = `${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')}`;
+    const timeEnd = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
     const { error } = await supabase.from('waitlist').insert({
       client_id: user.id,
       treatment_id: selectedTreatments[0].id,
       preferred_date: format(selectedDate, 'yyyy-MM-dd'),
+      preferred_time_start: timeStart,
+      preferred_time_end: timeEnd,
     });
     if (error) toast.error('שגיאה בהצטרפות לרשימת המתנה');
-    else toast.success('הצטרפת לרשימת המתנה! נעדכן אותך אם יתפנה תור');
+    else toast.success('הצטרפת לרשימת המתנה! נעדכן אותך אם יתפנה תור 🎉');
   };
 
   // Fetch more day suggestions
