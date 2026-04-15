@@ -371,7 +371,49 @@ export default function AdminCalendar() {
     setBookForm((prev) => ({ ...prev, end_time: endTime }));
   };
 
-  const handleTimelineClick = (hour: string) => {
+  const selectFromWaitlist = (entry: WaitlistEntry) => {
+    setSelectedWaitlistId(entry.id);
+    setBookForm((prev) => ({
+      ...prev,
+      client_id: entry.client_id,
+      treatment_id: entry.treatment_id || "",
+      notes: entry.notes || "",
+    }));
+    if (entry.treatment_id) {
+      const t = treatments.find((tr) => tr.id === entry.treatment_id);
+      if (t) {
+        const dur = t.duration_minutes;
+        setBookDuration(dur);
+        const [h, m] = bookForm.start_time.split(":").map(Number);
+        const endMin = h * 60 + m + dur;
+        setBookForm((prev) => ({
+          ...prev,
+          client_id: entry.client_id,
+          treatment_id: entry.treatment_id || "",
+          notes: entry.notes || "",
+          end_time: `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`,
+        }));
+      }
+    }
+    if (entry.preferred_time_start) {
+      const startTime = entry.preferred_time_start.substring(0, 5);
+      const t = treatments.find((tr) => tr.id === entry.treatment_id);
+      const dur = t?.is_variable_duration ? bookDuration : t?.duration_minutes || 30;
+      const [h, m] = startTime.split(":").map(Number);
+      const endMin = h * 60 + m + dur;
+      setBookForm((prev) => ({
+        ...prev,
+        client_id: entry.client_id,
+        treatment_id: entry.treatment_id || "",
+        notes: entry.notes || "",
+        start_time: startTime,
+        end_time: `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`,
+      }));
+    }
+    setShowWaitlistPicker(false);
+    toast.success(`נבחרה ${entry.profiles?.full_name || "לקוחה"} מרשימת ההמתנה`);
+  };
+
     setBookForm((prev) => {
       const t = treatments.find((tr) => tr.id === prev.treatment_id);
       const dur = t?.duration_minutes || 30;
