@@ -97,6 +97,8 @@ export default function AdminCalendar() {
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showClientInfo, setShowClientInfo] = useState<Appointment | null>(null);
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [showWaitlistPicker, setShowWaitlistPicker] = useState(false);
 
   const [bookForm, setBookForm] = useState({
     client_id: "",
