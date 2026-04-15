@@ -100,6 +100,7 @@ export default function AdminCalendar() {
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [showWaitlistPicker, setShowWaitlistPicker] = useState(false);
   const [selectedWaitlistId, setSelectedWaitlistId] = useState<string | null>(null);
+  const [waitlistContactEntry, setWaitlistContactEntry] = useState<WaitlistEntry | null>(null);
 
   const [bookForm, setBookForm] = useState({
     client_id: "",
@@ -1094,6 +1095,89 @@ export default function AdminCalendar() {
         </DialogContent>
       </Dialog>
 
+      {/* Waitlist Contact Dialog */}
+      <Dialog open={!!waitlistContactEntry} onOpenChange={() => setWaitlistContactEntry(null)}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>שליחת הצעת תור</DialogTitle>
+          </DialogHeader>
+          {waitlistContactEntry?.profiles && (() => {
+            const rawPhone = waitlistContactEntry.profiles.phone?.trim() || "";
+            const normalizedPhone = rawPhone.replace(/[^0-9]/g, "");
+            const hasPhone = normalizedPhone.length > 0;
+            const clientEmail = waitlistContactEntry.profiles.email?.trim() || "";
+            const hasEmail = clientEmail.length > 0;
+            const dateStr = format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he });
+            const timeStr = bookForm.start_time;
+            const treatmentName = waitlistContactEntry.treatments?.name || "";
+            const msgText = `שלום ${waitlistContactEntry.profiles.full_name}, התפנה תור ל${treatmentName} בתאריך ${dateStr} בשעה ${timeStr}. האם את מעוניינת?`;
+            const encodedMsg = encodeURIComponent(msgText);
+            const whatsappPhone = normalizedPhone.startsWith("0") ? "972" + normalizedPhone.slice(1) : normalizedPhone;
+
+            return (
+              <div className="space-y-3">
+                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                  <p className="font-medium">{waitlistContactEntry.profiles.full_name}</p>
+                  {treatmentName && <p>טיפול: {treatmentName}</p>}
+                  <p>תאריך מוצע: {dateStr}</p>
+                  <p>שעה מוצעת: {timeStr}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">הודעה מוכנה מראש תישלח ללקוחה. קבעי את התור רק לאחר אישורה.</p>
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
+                  {hasPhone && (
+                    <Button
+                      asChild
+                      size="sm"
+                      className="gap-1.5 bg-[hsl(142_70%_45%)] text-white hover:bg-[hsl(142_70%_38%)] border-0"
+                    >
+                      <a href={`https://wa.me/${whatsappPhone}?text=${encodedMsg}`} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                      </a>
+                    </Button>
+                  )}
+                  {hasPhone && (
+                    <Button
+                      asChild
+                      size="sm"
+                      className="gap-1.5 bg-[hsl(0_0%_92%)] text-[hsl(0_0%_35%)] hover:bg-[hsl(0_0%_88%)] border-0"
+                    >
+                      <a href={`sms:${rawPhone}?body=${encodedMsg}`}>
+                        <MessageSquare className="h-3.5 w-3.5" /> SMS
+                      </a>
+                    </Button>
+                  )}
+                  {hasPhone && (
+                    <Button
+                      asChild
+                      size="sm"
+                      className="gap-1.5 bg-[hsl(210_85%_94%)] text-[hsl(210_70%_38%)] hover:bg-[hsl(210_85%_90%)] border-0"
+                    >
+                      <a href={`tel:${rawPhone}`}>
+                        <Phone className="h-3.5 w-3.5" /> התקשרי
+                      </a>
+                    </Button>
+                  )}
+                  {hasEmail && (
+                    <Button
+                      asChild
+                      size="sm"
+                      className="gap-1.5 bg-[hsl(0_85%_95%)] text-[hsl(0_70%_45%)] hover:bg-[hsl(0_85%_91%)] border-0"
+                    >
+                      <a href={`mailto:${clientEmail}?subject=${encodeURIComponent("תור פנוי עבורך")}&body=${encodedMsg}`}>
+                        <Mail className="h-3.5 w-3.5" /> מייל
+                      </a>
+                    </Button>
+                  )}
+                  {!hasPhone && !hasEmail && (
+                    <p className="text-sm text-muted-foreground">אין פרטי קשר זמינים ללקוחה זו</p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* Waitlist Picker Dialog */}
       <Dialog open={showWaitlistPicker} onOpenChange={setShowWaitlistPicker}>
         <DialogContent dir="rtl" className="sm:max-w-md max-h-[80vh] overflow-y-auto">
@@ -1107,8 +1191,7 @@ export default function AdminCalendar() {
             {waitlist.map((entry) => (
               <div
                 key={entry.id}
-                className="border rounded-lg p-3 cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => selectFromWaitlist(entry)}
+                className="border rounded-lg p-3 hover:bg-accent/50 transition-colors"
               >
                 <div className="flex justify-between items-start">
                   <div>
@@ -1135,6 +1218,26 @@ export default function AdminCalendar() {
                 {entry.notes && (
                   <p className="text-xs text-muted-foreground mt-0.5">הערות: {entry.notes}</p>
                 )}
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-xs gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setWaitlistContactEntry(entry);
+                    }}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" /> שליחת הצעה
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 text-xs gap-1"
+                    onClick={() => selectFromWaitlist(entry)}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> בחירה לתור
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
