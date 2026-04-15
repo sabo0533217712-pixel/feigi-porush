@@ -1141,4 +1141,5 @@ export default function AdminCalendar() {
         </DialogContent>
       </Dialog>
     </div>
+  );
 }
