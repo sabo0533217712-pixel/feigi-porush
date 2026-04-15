@@ -10,6 +10,7 @@ import LandingPage from "@/pages/LandingPage";
 import Auth from "@/pages/Auth";
 import ClientBooking from "@/pages/ClientBooking";
 import MyAppointments from "@/pages/MyAppointments";
+import ClientProfile from "@/pages/ClientProfile";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminTreatments from "@/pages/admin/AdminTreatments";
 import AdminSettings from "@/pages/admin/AdminSettings";
@@ -42,6 +43,7 @@ function AppRoutes() {
       <Route path="/about" element={<About />} />
       <Route path="/booking" element={<ProtectedRoute><ClientBooking /></ProtectedRoute>} />
       <Route path="/my-appointments" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><ClientProfile /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/treatments" element={<ProtectedRoute adminOnly><AdminTreatments /></ProtectedRoute>} />
       <Route path="/admin/settings" element={<ProtectedRoute adminOnly><AdminSettings /></ProtectedRoute>} />
