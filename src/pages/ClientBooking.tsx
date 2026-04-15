@@ -352,15 +352,24 @@ export default function ClientBooking() {
   const fetchMoreDays = async () => {
     if (!settings || selectedTreatments.length === 0 || !selectedDate) return;
     setShowMoreDays(true);
+    const [prefH, prefM] = preferredTime.split(':').map(Number);
+    const prefMin = prefH * 60 + prefM;
     const results: { date: Date; slots: string[] }[] = [];
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= 14; i++) {
       const d = addDays(selectedDate, i);
       if (!isWorkingDay(d)) continue;
+      if (isBefore(addDays(new Date(), settings.advance_booking_days), d)) break;
       const dateStr = format(d, 'yyyy-MM-dd');
       const { data } = await supabase.from('appointments').select('start_time, end_time').eq('appointment_date', dateStr).eq('status', 'confirmed');
-      const slots = getAvailableSlots(d, data || [], totalDuration);
-      if (slots.length > 0) {
-        results.push({ date: d, slots: slots.slice(0, 3) });
+      const allSlots = getAvailableSlots(d, data || [], totalDuration);
+      // Filter slots close to preferred time (within 2 hours)
+      const nearSlots = allSlots.filter(s => {
+        const [sH, sM] = s.split(':').map(Number);
+        return Math.abs(sH * 60 + sM - prefMin) <= 120;
+      });
+      const slotsToShow = nearSlots.length > 0 ? nearSlots.slice(0, 3) : allSlots.slice(0, 3);
+      if (slotsToShow.length > 0) {
+        results.push({ date: d, slots: slotsToShow });
       }
       if (results.length >= 3) break;
     }
