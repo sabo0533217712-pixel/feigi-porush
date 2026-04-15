@@ -14,7 +14,20 @@ import { he } from "date-fns/locale";
 import { getHebrewDateShort, getHebrewDate } from "@/lib/hebrew-date";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp } from "lucide-react";
+import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks } from "lucide-react";
+
+interface WaitlistEntry {
+  id: string;
+  client_id: string;
+  treatment_id: string | null;
+  preferred_date: string | null;
+  preferred_time_start: string | null;
+  preferred_time_end: string | null;
+  notes: string | null;
+  status: string;
+  profiles?: { full_name: string; phone: string; email: string } | null;
+  treatments?: { name: string; duration_minutes: number; is_variable_duration: boolean } | null;
+}
 
 interface Treatment {
   id: string;
@@ -84,6 +97,9 @@ export default function AdminCalendar() {
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showClientInfo, setShowClientInfo] = useState<Appointment | null>(null);
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [showWaitlistPicker, setShowWaitlistPicker] = useState(false);
+  const [selectedWaitlistId, setSelectedWaitlistId] = useState<string | null>(null);
 
   const [bookForm, setBookForm] = useState({
     client_id: "",
@@ -106,6 +122,7 @@ export default function AdminCalendar() {
     fetchTreatments();
     fetchProfiles();
     fetchSettings();
+    fetchWaitlist();
   }, []);
 
   useEffect(() => {
@@ -156,6 +173,34 @@ export default function AdminCalendar() {
   const fetchProfiles = async () => {
     const { data } = await supabase.from("profiles").select("user_id, full_name, phone, email");
     if (data) setProfiles(data);
+  };
+
+  const fetchWaitlist = async () => {
+    const { data } = await supabase
+      .from("waitlist")
+      .select("*")
+      .eq("status", "waiting");
+    if (data && data.length > 0) {
+      const clientIds = [...new Set(data.map((w) => w.client_id))];
+      const treatmentIds = [...new Set(data.filter((w) => w.treatment_id).map((w) => w.treatment_id!))];
+      const [profsRes, treatsRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name, phone, email").in("user_id", clientIds),
+        treatmentIds.length > 0
+          ? supabase.from("treatments").select("id, name, duration_minutes, is_variable_duration").in("id", treatmentIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const profMap = new Map<string, any>(profsRes.data?.map((p) => [p.user_id, p] as const) || []);
+      const treatMap = new Map<string, any>(treatsRes.data?.map((t: any) => [t.id, t] as const) || []);
+      setWaitlist(
+        data.map((w) => ({
+          ...w,
+          profiles: profMap.get(w.client_id) || null,
+          treatments: w.treatment_id ? (treatMap.get(w.treatment_id) as WaitlistEntry['treatments']) || null : null,
+        })) as WaitlistEntry[]
+      );
+    } else {
+      setWaitlist([]);
+    }
   };
 
   const fetchDayData = async () => {
@@ -243,6 +288,11 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה בקביעת תור");
     else {
       toast.success("התור נקבע בהצלחה");
+      if (selectedWaitlistId) {
+        await supabase.from("waitlist").update({ status: "booked" }).eq("id", selectedWaitlistId);
+        setSelectedWaitlistId(null);
+        fetchWaitlist();
+      }
       setShowBookDialog(false);
       setBookForm({ client_id: "", treatment_id: "", start_time: "09:00", end_time: "09:30", notes: "" });
       fetchDayData();
@@ -319,6 +369,49 @@ export default function AdminCalendar() {
     const endMin = h * 60 + m + newDuration;
     const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
     setBookForm((prev) => ({ ...prev, end_time: endTime }));
+  };
+
+  const selectFromWaitlist = (entry: WaitlistEntry) => {
+    setSelectedWaitlistId(entry.id);
+    setBookForm((prev) => ({
+      ...prev,
+      client_id: entry.client_id,
+      treatment_id: entry.treatment_id || "",
+      notes: entry.notes || "",
+    }));
+    if (entry.treatment_id) {
+      const t = treatments.find((tr) => tr.id === entry.treatment_id);
+      if (t) {
+        const dur = t.duration_minutes;
+        setBookDuration(dur);
+        const [h, m] = bookForm.start_time.split(":").map(Number);
+        const endMin = h * 60 + m + dur;
+        setBookForm((prev) => ({
+          ...prev,
+          client_id: entry.client_id,
+          treatment_id: entry.treatment_id || "",
+          notes: entry.notes || "",
+          end_time: `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`,
+        }));
+      }
+    }
+    if (entry.preferred_time_start) {
+      const startTime = entry.preferred_time_start.substring(0, 5);
+      const t = treatments.find((tr) => tr.id === entry.treatment_id);
+      const dur = t?.is_variable_duration ? bookDuration : t?.duration_minutes || 30;
+      const [h, m] = startTime.split(":").map(Number);
+      const endMin = h * 60 + m + dur;
+      setBookForm((prev) => ({
+        ...prev,
+        client_id: entry.client_id,
+        treatment_id: entry.treatment_id || "",
+        notes: entry.notes || "",
+        start_time: startTime,
+        end_time: `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`,
+      }));
+    }
+    setShowWaitlistPicker(false);
+    toast.success(`נבחרה ${entry.profiles?.full_name || "לקוחה"} מרשימת ההמתנה`);
   };
 
   const handleTimelineClick = (hour: string) => {
@@ -636,6 +729,17 @@ export default function AdminCalendar() {
             <DialogTitle>קביעת תור חדש</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {waitlist.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-dashed border-accent text-accent-foreground hover:bg-accent/10"
+                onClick={() => setShowWaitlistPicker(true)}
+              >
+                <ListChecks className="h-4 w-4 ml-2" />
+                בחרי מרשימת המתנה ({waitlist.length})
+              </Button>
+            )}
             <div className="space-y-2">
               <Label>לקוחה</Label>
               <Select
@@ -987,6 +1091,53 @@ export default function AdminCalendar() {
                 </div>
               );
             })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Waitlist Picker Dialog */}
+      <Dialog open={showWaitlistPicker} onOpenChange={setShowWaitlistPicker}>
+        <DialogContent dir="rtl" className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>רשימת המתנה</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {waitlist.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">רשימת ההמתנה ריקה</p>
+            )}
+            {waitlist.map((entry) => (
+              <div
+                key={entry.id}
+                className="border rounded-lg p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => selectFromWaitlist(entry)}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium text-sm">{entry.profiles?.full_name || "לקוחה"}</p>
+                    <p className="text-xs text-muted-foreground">{entry.profiles?.phone}</p>
+                  </div>
+                  {entry.preferred_date && (
+                    <Badge variant="outline" className="text-xs">
+                      {format(new Date(entry.preferred_date), "dd/MM")}
+                    </Badge>
+                  )}
+                </div>
+                {entry.treatments && (
+                  <p className="text-xs mt-1">
+                    טיפול: {entry.treatments.name} • {entry.treatments.duration_minutes} דק׳
+                  </p>
+                )}
+                {entry.preferred_time_start && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    שעה מועדפת: {entry.preferred_time_start.substring(0, 5)}
+                    {entry.preferred_time_end ? ` - ${entry.preferred_time_end.substring(0, 5)}` : ""}
+                  </p>
+                )}
+                {entry.notes && (
+                  <p className="text-xs text-muted-foreground mt-0.5">הערות: {entry.notes}</p>
+                )}
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
