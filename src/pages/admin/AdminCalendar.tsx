@@ -733,7 +733,7 @@ export default function AdminCalendar() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full border-dashed border-orange-400 text-orange-600 hover:bg-orange-50"
+                className="w-full border-dashed border-accent text-accent-foreground hover:bg-accent/10"
                 onClick={() => setShowWaitlistPicker(true)}
               >
                 <ListChecks className="h-4 w-4 ml-2" />
