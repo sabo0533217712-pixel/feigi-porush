@@ -189,14 +189,14 @@ export default function AdminCalendar() {
           ? supabase.from("treatments").select("id, name, duration_minutes, is_variable_duration").in("id", treatmentIds)
           : Promise.resolve({ data: [] }),
       ]);
-      const profMap = new Map(profsRes.data?.map((p) => [p.user_id, p]) || []);
-      const treatMap = new Map(treatsRes.data?.map((t: any) => [t.id, t]) || []);
+      const profMap = new Map<string, any>(profsRes.data?.map((p) => [p.user_id, p] as const) || []);
+      const treatMap = new Map<string, any>(treatsRes.data?.map((t: any) => [t.id, t] as const) || []);
       setWaitlist(
         data.map((w) => ({
           ...w,
           profiles: profMap.get(w.client_id) || null,
-          treatments: w.treatment_id ? treatMap.get(w.treatment_id) || null : null,
-        }))
+          treatments: w.treatment_id ? (treatMap.get(w.treatment_id) as WaitlistEntry['treatments']) || null : null,
+        })) as WaitlistEntry[]
       );
     } else {
       setWaitlist([]);
