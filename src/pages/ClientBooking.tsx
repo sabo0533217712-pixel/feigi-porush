@@ -413,27 +413,52 @@ export default function ClientBooking() {
                   )}
                   onClick={() => toggleTreatment(t)}
                 >
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                      <Checkbox checked={!!isSelected} className="pointer-events-none" />
-                      <div>
-                        <h3 className="font-medium text-foreground">{t.name}</h3>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                          {t.is_variable_duration
-                            ? <span className="text-xs bg-accent px-2 py-0.5 rounded">משך גמיש</span>
-                            : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
-                          }
-                          {t.category && <Badge variant="secondary" className="text-xs">{t.category}</Badge>}
+                  <CardContent className="p-4 space-y-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Checkbox checked={!!isSelected} className="pointer-events-none" />
+                        <div>
+                          <h3 className="font-medium text-foreground">{t.name}</h3>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                            {t.is_variable_duration
+                              ? <span className="text-xs bg-accent px-2 py-0.5 rounded">משך גמיש</span>
+                              : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
+                            }
+                            {t.category && <Badge variant="secondary" className="text-xs">{t.category}</Badge>}
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color || '#6366f1' }} />
+                        {t.is_variable_duration
+                          ? <span className="text-sm text-muted-foreground">תמחור לפי דקות</span>
+                          : <span className="text-lg font-semibold text-primary">₪{t.price}</span>
+                        }
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color || '#6366f1' }} />
-                      {t.is_variable_duration
-                        ? <span className="text-sm text-muted-foreground">תמחור לפי דקות</span>
-                        : <span className="text-lg font-semibold text-primary">₪{t.price}</span>
-                      }
-                    </div>
+                    {/* Inline duration picker for variable-duration treatments */}
+                    {isSelected && t.is_variable_duration && (
+                      <div className="mt-3 pt-3 border-t border-border/50" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3">
+                          <Label className="text-sm whitespace-nowrap">משך זמן:</Label>
+                          <select
+                            value={variableDurations[t.id] || ''}
+                            onChange={e => setVariableDurations(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
+                            className="border border-input rounded-md px-3 py-1.5 text-sm bg-background flex-1"
+                          >
+                            <option value="" disabled>בחרי משך זמן</option>
+                            {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map(min => (
+                              <option key={min} value={min}>{min} דקות</option>
+                            ))}
+                          </select>
+                          {variableDurations[t.id] && (
+                            <span className="text-sm font-medium text-primary whitespace-nowrap">
+                              ₪{calculateTierPrice(t.id, variableDurations[t.id])}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -444,55 +469,26 @@ export default function ClientBooking() {
           )}
 
           {selectedTreatments.length > 0 && (
-            <div className="space-y-3">
-              {/* Duration picker for variable-duration treatments */}
-              {selectedTreatments.filter(t => t.is_variable_duration).map(t => (
-                <Card key={`dur-${t.id}`} className="bg-accent/30 border-accent">
-                  <CardContent className="p-4 space-y-2">
-                    <Label className="text-sm font-medium">כמה זמן את צריכה ל{t.name}?</Label>
-                    <div className="flex items-center gap-3">
-                      <select
-                        value={variableDurations[t.id] || ''}
-                        onChange={e => setVariableDurations(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
-                        className="border border-input rounded-md px-3 py-2 text-sm bg-background w-full"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <option value="" disabled>בחרי משך זמן</option>
-                        {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map(min => (
-                          <option key={min} value={min}>{min} דקות</option>
-                        ))}
-                      </select>
-                    </div>
-                    {variableDurations[t.id] && (
-                      <p className="text-sm font-medium text-primary">
-                        מחיר: ₪{calculateTierPrice(t.id, variableDurations[t.id])}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-
-              <Card className="bg-secondary/50">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedTreatments.length} טיפולים
-                        {allDurationsSet && <> • {totalDuration} דק׳</>}
-                        {' '}• ₪{totalPrice}
-                      </p>
-                    </div>
-                    <Button
-                      className="gradient-primary text-primary-foreground"
-                      onClick={() => setStep('date')}
-                      disabled={!allDurationsSet}
-                    >
-                      {!allDurationsSet ? 'בחרי משך זמן' : 'המשך לבחירת תאריך'}
-                    </Button>
+            <Card className="bg-secondary/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedTreatments.length} טיפולים
+                      {allDurationsSet && <> • {totalDuration} דק׳</>}
+                      {' '}• ₪{totalPrice}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <Button
+                    className="gradient-primary text-primary-foreground"
+                    onClick={() => setStep('date')}
+                    disabled={!allDurationsSet}
+                  >
+                    {!allDurationsSet ? 'בחרי משך זמן' : 'המשך לבחירת תאריך'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
