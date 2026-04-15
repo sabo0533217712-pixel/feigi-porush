@@ -680,6 +680,17 @@ export default function AdminCalendar() {
             <DialogTitle>קביעת תור חדש</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {waitlist.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-dashed border-orange-400 text-orange-600 hover:bg-orange-50"
+                onClick={() => setShowWaitlistPicker(true)}
+              >
+                <ListChecks className="h-4 w-4 ml-2" />
+                בחרי מרשימת המתנה ({waitlist.length})
+              </Button>
+            )}
             <div className="space-y-2">
               <Label>לקוחה</Label>
               <Select
