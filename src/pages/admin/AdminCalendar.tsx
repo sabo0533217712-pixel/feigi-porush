@@ -288,6 +288,11 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה בקביעת תור");
     else {
       toast.success("התור נקבע בהצלחה");
+      if (selectedWaitlistId) {
+        await supabase.from("waitlist").update({ status: "booked" }).eq("id", selectedWaitlistId);
+        setSelectedWaitlistId(null);
+        fetchWaitlist();
+      }
       setShowBookDialog(false);
       setBookForm({ client_id: "", treatment_id: "", start_time: "09:00", end_time: "09:30", notes: "" });
       fetchDayData();
