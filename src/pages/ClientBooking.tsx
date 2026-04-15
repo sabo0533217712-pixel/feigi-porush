@@ -339,28 +339,44 @@ export default function ClientBooking() {
 
   const handleJoinWaitlist = async () => {
     if (!user || !selectedDate || selectedTreatments.length === 0) return;
+    const [prefH, prefM] = preferredTime.split(':').map(Number);
+    const startMin = Math.max(0, (prefH * 60 + prefM) - 60);
+    const endMin = prefH * 60 + prefM + 60;
+    const timeStart = `${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')}`;
+    const timeEnd = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
     const { error } = await supabase.from('waitlist').insert({
       client_id: user.id,
       treatment_id: selectedTreatments[0].id,
       preferred_date: format(selectedDate, 'yyyy-MM-dd'),
+      preferred_time_start: timeStart,
+      preferred_time_end: timeEnd,
     });
     if (error) toast.error('שגיאה בהצטרפות לרשימת המתנה');
-    else toast.success('הצטרפת לרשימת המתנה! נעדכן אותך אם יתפנה תור');
+    else toast.success('הצטרפת לרשימת המתנה! נעדכן אותך אם יתפנה תור 🎉');
   };
 
   // Fetch more day suggestions
   const fetchMoreDays = async () => {
     if (!settings || selectedTreatments.length === 0 || !selectedDate) return;
     setShowMoreDays(true);
+    const [prefH, prefM] = preferredTime.split(':').map(Number);
+    const prefMin = prefH * 60 + prefM;
     const results: { date: Date; slots: string[] }[] = [];
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= 14; i++) {
       const d = addDays(selectedDate, i);
       if (!isWorkingDay(d)) continue;
+      if (isBefore(addDays(new Date(), settings.advance_booking_days), d)) break;
       const dateStr = format(d, 'yyyy-MM-dd');
       const { data } = await supabase.from('appointments').select('start_time, end_time').eq('appointment_date', dateStr).eq('status', 'confirmed');
-      const slots = getAvailableSlots(d, data || [], totalDuration);
-      if (slots.length > 0) {
-        results.push({ date: d, slots: slots.slice(0, 3) });
+      const allSlots = getAvailableSlots(d, data || [], totalDuration);
+      // Filter slots close to preferred time (within 2 hours)
+      const nearSlots = allSlots.filter(s => {
+        const [sH, sM] = s.split(':').map(Number);
+        return Math.abs(sH * 60 + sM - prefMin) <= 120;
+      });
+      const slotsToShow = nearSlots.length > 0 ? nearSlots.slice(0, 3) : allSlots.slice(0, 3);
+      if (slotsToShow.length > 0) {
+        results.push({ date: d, slots: slotsToShow });
       }
       if (results.length >= 3) break;
     }
@@ -413,27 +429,52 @@ export default function ClientBooking() {
                   )}
                   onClick={() => toggleTreatment(t)}
                 >
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                      <Checkbox checked={!!isSelected} className="pointer-events-none" />
-                      <div>
-                        <h3 className="font-medium text-foreground">{t.name}</h3>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                          {t.is_variable_duration
-                            ? <span className="text-xs bg-accent px-2 py-0.5 rounded">משך גמיש</span>
-                            : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
-                          }
-                          {t.category && <Badge variant="secondary" className="text-xs">{t.category}</Badge>}
+                  <CardContent className="p-4 space-y-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Checkbox checked={!!isSelected} className="pointer-events-none" />
+                        <div>
+                          <h3 className="font-medium text-foreground">{t.name}</h3>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                            {t.is_variable_duration
+                              ? <span className="text-xs bg-accent px-2 py-0.5 rounded">משך גמיש</span>
+                              : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
+                            }
+                            {t.category && <Badge variant="secondary" className="text-xs">{t.category}</Badge>}
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color || '#6366f1' }} />
+                        {t.is_variable_duration
+                          ? <span className="text-sm text-muted-foreground">תמחור לפי דקות</span>
+                          : <span className="text-lg font-semibold text-primary">₪{t.price}</span>
+                        }
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color || '#6366f1' }} />
-                      {t.is_variable_duration
-                        ? <span className="text-sm text-muted-foreground">תמחור לפי דקות</span>
-                        : <span className="text-lg font-semibold text-primary">₪{t.price}</span>
-                      }
-                    </div>
+                    {/* Inline duration picker for variable-duration treatments */}
+                    {isSelected && t.is_variable_duration && (
+                      <div className="mt-3 pt-3 border-t border-border/50" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3">
+                          <Label className="text-sm whitespace-nowrap">משך זמן:</Label>
+                          <select
+                            value={variableDurations[t.id] || ''}
+                            onChange={e => setVariableDurations(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
+                            className="border border-input rounded-md px-3 py-1.5 text-sm bg-background flex-1"
+                          >
+                            <option value="" disabled>בחרי משך זמן</option>
+                            {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map(min => (
+                              <option key={min} value={min}>{min} דקות</option>
+                            ))}
+                          </select>
+                          {variableDurations[t.id] && (
+                            <span className="text-sm font-medium text-primary whitespace-nowrap">
+                              ₪{calculateTierPrice(t.id, variableDurations[t.id])}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -444,55 +485,26 @@ export default function ClientBooking() {
           )}
 
           {selectedTreatments.length > 0 && (
-            <div className="space-y-3">
-              {/* Duration picker for variable-duration treatments */}
-              {selectedTreatments.filter(t => t.is_variable_duration).map(t => (
-                <Card key={`dur-${t.id}`} className="bg-accent/30 border-accent">
-                  <CardContent className="p-4 space-y-2">
-                    <Label className="text-sm font-medium">כמה זמן את צריכה ל{t.name}?</Label>
-                    <div className="flex items-center gap-3">
-                      <select
-                        value={variableDurations[t.id] || ''}
-                        onChange={e => setVariableDurations(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
-                        className="border border-input rounded-md px-3 py-2 text-sm bg-background w-full"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <option value="" disabled>בחרי משך זמן</option>
-                        {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map(min => (
-                          <option key={min} value={min}>{min} דקות</option>
-                        ))}
-                      </select>
-                    </div>
-                    {variableDurations[t.id] && (
-                      <p className="text-sm font-medium text-primary">
-                        מחיר: ₪{calculateTierPrice(t.id, variableDurations[t.id])}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-
-              <Card className="bg-secondary/50">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedTreatments.length} טיפולים
-                        {allDurationsSet && <> • {totalDuration} דק׳</>}
-                        {' '}• ₪{totalPrice}
-                      </p>
-                    </div>
-                    <Button
-                      className="gradient-primary text-primary-foreground"
-                      onClick={() => setStep('date')}
-                      disabled={!allDurationsSet}
-                    >
-                      {!allDurationsSet ? 'בחרי משך זמן' : 'המשך לבחירת תאריך'}
-                    </Button>
+            <Card className="bg-secondary/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedTreatments.length} טיפולים
+                      {allDurationsSet && <> • {totalDuration} דק׳</>}
+                      {' '}• ₪{totalPrice}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <Button
+                    className="gradient-primary text-primary-foreground"
+                    onClick={() => setStep('date')}
+                    disabled={!allDurationsSet}
+                  >
+                    {!allDurationsSet ? 'בחרי משך זמן' : 'המשך לבחירת תאריך'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
@@ -662,16 +674,13 @@ export default function ClientBooking() {
             {availableSlots.length === 0 && partialSuggestions.length === 0 && (
               <div className="text-center space-y-3 py-4">
                 <p className="text-muted-foreground">אין שעות פנויות בתאריך זה</p>
-                <Button variant="outline" onClick={handleJoinWaitlist}>
-                  הצטרפי לרשימת המתנה
-                </Button>
               </div>
             )}
 
-            {/* More days suggestion */}
-            {availableSlots.length === 0 && !showMoreDays && (
-              <Button variant="ghost" size="sm" onClick={fetchMoreDays} className="w-full">
-                הצג ימים נוספים עם שעות פנויות
+            {/* Alternative days - always show button in time step */}
+            {!showMoreDays && (
+              <Button variant="outline" size="sm" onClick={fetchMoreDays} className="w-full">
+                🔍 הצע לי ימים אחרים עם שעות דומות
               </Button>
             )}
 
@@ -686,6 +695,7 @@ export default function ClientBooking() {
                         setSelectedDate(ds.date);
                         setSelectedTime(slot);
                         fetchBookedSlots(ds.date);
+                        setShowMoreDays(false);
                       }}>
                         {slot}
                       </Button>
@@ -694,6 +704,17 @@ export default function ClientBooking() {
                 ))}
               </div>
             )}
+            {showMoreDays && moreDaySuggestions.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center">לא נמצאו ימים פנויים בשבוע הקרוב</p>
+            )}
+
+            {/* Waitlist option */}
+            <div className="p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">לא מצאת שעה מתאימה?</p>
+              <Button variant="outline" size="sm" onClick={handleJoinWaitlist} className="border-primary/50 text-primary">
+                📋 הצטרפי לרשימת המתנה — נעדכן אותך כשיתפנה מקום
+              </Button>
+            </div>
 
             {/* Booking summary */}
             {selectedTime && (

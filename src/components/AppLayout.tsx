@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Calendar, Settings, User, LogOut, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Calendar, Settings, User, LogOut, Sparkles, LayoutDashboard, UserCircle } from 'lucide-react';
 import Brand from '@/components/Brand';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -25,6 +25,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     : [
         { to: '/booking', label: 'קביעת תור', icon: Calendar },
         { to: '/my-appointments', label: 'התורים שלי', icon: User },
+        { to: '/profile', label: 'פרופיל', icon: UserCircle },
       ];
 
   return (
