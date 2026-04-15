@@ -174,7 +174,35 @@ export default function AdminCalendar() {
     if (data) setProfiles(data);
   };
 
-  const fetchDayData = async () => {
+  const fetchWaitlist = async () => {
+    const { data } = await supabase
+      .from("waitlist")
+      .select("*")
+      .eq("status", "waiting");
+    if (data && data.length > 0) {
+      const clientIds = [...new Set(data.map((w) => w.client_id))];
+      const treatmentIds = [...new Set(data.filter((w) => w.treatment_id).map((w) => w.treatment_id!))];
+      const [profsRes, treatsRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name, phone, email").in("user_id", clientIds),
+        treatmentIds.length > 0
+          ? supabase.from("treatments").select("id, name, duration_minutes, is_variable_duration").in("id", treatmentIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const profMap = new Map(profsRes.data?.map((p) => [p.user_id, p]) || []);
+      const treatMap = new Map(treatsRes.data?.map((t: any) => [t.id, t]) || []);
+      setWaitlist(
+        data.map((w) => ({
+          ...w,
+          profiles: profMap.get(w.client_id) || null,
+          treatments: w.treatment_id ? treatMap.get(w.treatment_id) || null : null,
+        }))
+      );
+    } else {
+      setWaitlist([]);
+    }
+  };
+
+
     const dateStr = format(selectedDate, "yyyy-MM-dd");
     const [aptsRes, blocksRes] = await Promise.all([
       supabase
