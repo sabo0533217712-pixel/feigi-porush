@@ -14,7 +14,20 @@ import { he } from "date-fns/locale";
 import { getHebrewDateShort, getHebrewDate } from "@/lib/hebrew-date";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp } from "lucide-react";
+import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks } from "lucide-react";
+
+interface WaitlistEntry {
+  id: string;
+  client_id: string;
+  treatment_id: string | null;
+  preferred_date: string | null;
+  preferred_time_start: string | null;
+  preferred_time_end: string | null;
+  notes: string | null;
+  status: string;
+  profiles?: { full_name: string; phone: string; email: string } | null;
+  treatments?: { name: string; duration_minutes: number; is_variable_duration: boolean } | null;
+}
 
 interface Treatment {
   id: string;
