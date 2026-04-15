@@ -658,16 +658,13 @@ export default function ClientBooking() {
             {availableSlots.length === 0 && partialSuggestions.length === 0 && (
               <div className="text-center space-y-3 py-4">
                 <p className="text-muted-foreground">אין שעות פנויות בתאריך זה</p>
-                <Button variant="outline" onClick={handleJoinWaitlist}>
-                  הצטרפי לרשימת המתנה
-                </Button>
               </div>
             )}
 
-            {/* More days suggestion */}
-            {availableSlots.length === 0 && !showMoreDays && (
-              <Button variant="ghost" size="sm" onClick={fetchMoreDays} className="w-full">
-                הצג ימים נוספים עם שעות פנויות
+            {/* Alternative days - always show button in time step */}
+            {!showMoreDays && (
+              <Button variant="outline" size="sm" onClick={fetchMoreDays} className="w-full">
+                🔍 הצע לי ימים אחרים עם שעות דומות
               </Button>
             )}
 
@@ -682,6 +679,7 @@ export default function ClientBooking() {
                         setSelectedDate(ds.date);
                         setSelectedTime(slot);
                         fetchBookedSlots(ds.date);
+                        setShowMoreDays(false);
                       }}>
                         {slot}
                       </Button>
@@ -690,6 +688,17 @@ export default function ClientBooking() {
                 ))}
               </div>
             )}
+            {showMoreDays && moreDaySuggestions.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center">לא נמצאו ימים פנויים בשבוע הקרוב</p>
+            )}
+
+            {/* Waitlist option */}
+            <div className="p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">לא מצאת שעה מתאימה?</p>
+              <Button variant="outline" size="sm" onClick={handleJoinWaitlist} className="border-primary/50 text-primary">
+                📋 הצטרפי לרשימת המתנה — נעדכן אותך כשיתפנה מקום
+              </Button>
+            </div>
 
             {/* Booking summary */}
             {selectedTime && (
