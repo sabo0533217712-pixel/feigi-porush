@@ -1093,6 +1093,53 @@ export default function AdminCalendar() {
             })()}
         </DialogContent>
       </Dialog>
+
+      {/* Waitlist Picker Dialog */}
+      <Dialog open={showWaitlistPicker} onOpenChange={setShowWaitlistPicker}>
+        <DialogContent dir="rtl" className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>רשימת המתנה</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {waitlist.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">רשימת ההמתנה ריקה</p>
+            )}
+            {waitlist.map((entry) => (
+              <div
+                key={entry.id}
+                className="border rounded-lg p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => selectFromWaitlist(entry)}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium text-sm">{entry.profiles?.full_name || "לקוחה"}</p>
+                    <p className="text-xs text-muted-foreground">{entry.profiles?.phone}</p>
+                  </div>
+                  {entry.preferred_date && (
+                    <Badge variant="outline" className="text-xs">
+                      {format(new Date(entry.preferred_date), "dd/MM")}
+                    </Badge>
+                  )}
+                </div>
+                {entry.treatments && (
+                  <p className="text-xs mt-1">
+                    טיפול: {entry.treatments.name} • {entry.treatments.duration_minutes} דק׳
+                  </p>
+                )}
+                {entry.preferred_time_start && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    שעה מועדפת: {entry.preferred_time_start.substring(0, 5)}
+                    {entry.preferred_time_end ? ` - ${entry.preferred_time_end.substring(0, 5)}` : ""}
+                  </p>
+                )}
+                {entry.notes && (
+                  <p className="text-xs text-muted-foreground mt-0.5">הערות: {entry.notes}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
