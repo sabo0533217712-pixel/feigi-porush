@@ -203,7 +203,7 @@ export default function AdminCalendar() {
     }
   };
 
-
+  const fetchDayData = async () => {
     const dateStr = format(selectedDate, "yyyy-MM-dd");
     const [aptsRes, blocksRes] = await Promise.all([
       supabase
