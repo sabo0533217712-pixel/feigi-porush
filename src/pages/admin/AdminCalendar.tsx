@@ -414,6 +414,7 @@ export default function AdminCalendar() {
     toast.success(`נבחרה ${entry.profiles?.full_name || "לקוחה"} מרשימת ההמתנה`);
   };
 
+  const handleTimelineClick = (hour: string) => {
     setBookForm((prev) => {
       const t = treatments.find((tr) => tr.id === prev.treatment_id);
       const dur = t?.duration_minutes || 30;
