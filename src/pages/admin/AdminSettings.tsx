@@ -39,6 +39,7 @@ export default function AdminSettings() {
     admin_email: "",
     custom_texts: {} as Record<string, string>,
     day_schedules: {} as DaySchedules,
+    slot_step_minutes: 15,
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -66,6 +67,7 @@ export default function AdminSettings() {
         admin_email: (data as any).admin_email || "",
         custom_texts: ((data as any).custom_texts as Record<string, string>) || {},
         day_schedules: ds,
+        slot_step_minutes: (data as any).slot_step_minutes || 15,
       });
     }
   };
@@ -108,6 +110,7 @@ export default function AdminSettings() {
         admin_email: settings.admin_email,
         custom_texts: settings.custom_texts,
         day_schedules: settings.day_schedules,
+        slot_step_minutes: settings.slot_step_minutes,
         // Keep legacy fields synced from first working day as fallback
         start_time: Object.values(settings.day_schedules)[0]?.start || "09:00",
         end_time: Object.values(settings.day_schedules)[0]?.end || "18:00",
@@ -391,6 +394,26 @@ export default function AdminSettings() {
           <CardTitle className="text-lg">הגדרות תורים</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>קפיצות זמן בהצעת שעות (דקות)</Label>
+            <div className="flex gap-2">
+              {[5, 10, 15, 30].map((step) => (
+                <Button
+                  key={step}
+                  type="button"
+                  variant={settings.slot_step_minutes === step ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSettings({ ...settings, slot_step_minutes: step })}
+                  className={settings.slot_step_minutes === step ? "gradient-primary text-primary-foreground" : ""}
+                >
+                  {step} דק׳
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              קובע את הצפיפות של השעות המוצעות ללקוחות (קטן יותר = יותר אופציות)
+            </p>
+          </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>יחידת זמן (דקות)</Label>

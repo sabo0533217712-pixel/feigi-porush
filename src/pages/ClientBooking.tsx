@@ -48,6 +48,7 @@ interface BusinessSettings {
   break_start: string | null;
   break_end: string | null;
   slot_duration_minutes: number;
+  slot_step_minutes?: number;
   advance_booking_days: number;
   business_name: string;
   day_schedules?: DaySchedules;
@@ -212,10 +213,65 @@ export default function ClientBooking() {
         slots.push(slotStart);
       }
 
-      current += 15;
+      current += settings.slot_step_minutes || 15;
     }
 
     return slots;
+  };
+
+  // Find empty gaps in the day's schedule (for variable-duration treatments)
+  // Returns gaps SHORTER than the requested duration but at least 5 minutes
+  const findShortGaps = (date: Date): { time: string; minutes: number }[] => {
+    if (!settings) return [];
+    const dayOfWeek = date.getDay();
+    const daySchedule = settings.day_schedules?.[String(dayOfWeek)];
+    const startTime = daySchedule?.start || settings.start_time;
+    const endTime = daySchedule?.end || settings.end_time;
+    const breaks: { start: string; end: string }[] =
+      daySchedule?.breaks ||
+      (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
+
+    const toMin = (s: string) => {
+      const [h, m] = s.split(":").map(Number);
+      return h * 60 + m;
+    };
+    const fromMin = (n: number) =>
+      `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
+
+    const dayStart = toMin(startTime);
+    const dayEnd = toMin(endTime);
+
+    // Build list of busy intervals (bookings + breaks + blocks)
+    const busy: { start: number; end: number }[] = [
+      ...bookedSlots.map((b) => ({ start: toMin(b.start_time.substring(0, 5)), end: toMin(b.end_time.substring(0, 5)) })),
+      ...blockedSlots.map((b) => ({ start: toMin(b.start_time.substring(0, 5)), end: toMin(b.end_time.substring(0, 5)) })),
+      ...breaks.map((b) => ({ start: toMin(b.start), end: toMin(b.end) })),
+    ].sort((a, b) => a.start - b.start);
+
+    // Merge overlapping
+    const merged: { start: number; end: number }[] = [];
+    busy.forEach((iv) => {
+      const last = merged[merged.length - 1];
+      if (last && iv.start <= last.end) last.end = Math.max(last.end, iv.end);
+      else merged.push({ ...iv });
+    });
+
+    // Find gaps between busy intervals within the workday
+    const gaps: { time: string; minutes: number }[] = [];
+    let cursor = dayStart;
+    for (const iv of merged) {
+      if (iv.start > cursor) {
+        const gapLen = iv.start - cursor;
+        if (gapLen >= 5) gaps.push({ time: fromMin(cursor), minutes: gapLen });
+      }
+      cursor = Math.max(cursor, iv.end);
+    }
+    if (cursor < dayEnd) {
+      const gapLen = dayEnd - cursor;
+      if (gapLen >= 5) gaps.push({ time: fromMin(cursor), minutes: gapLen });
+    }
+
+    return gaps;
   };
 
   const availableSlots = useMemo(() => {
@@ -291,6 +347,24 @@ export default function ClientBooking() {
     }
     return shortSlots;
   }, [hasVariableDuration, availableSlots, settings, selectedDate, bookedSlots, totalDuration]);
+
+  // Gap suggestions: for variable-duration treatments, show empty windows in the day
+  // that are NOT already in smart suggestions — sorted by largest first, max 3.
+  const gapSuggestions = useMemo((): SlotSuggestion[] => {
+    if (!hasVariableDuration || !settings || !selectedDate) return [];
+    const gaps = findShortGaps(selectedDate);
+    const taken = new Set(smartSuggestions.map((s) => s.time));
+    const filtered = gaps
+      .filter((g) => !taken.has(g.time) && g.minutes >= 5)
+      .sort((a, b) => b.minutes - a.minutes)
+      .slice(0, 3);
+    return filtered.map((g) => ({
+      time: g.time,
+      isGapFiller: true,
+      isPartial: true,
+      availableMinutes: g.minutes,
+    }));
+  }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions]);
 
   const isWorkingDay = (date: Date) => {
     if (!settings) return false;
@@ -700,7 +774,33 @@ export default function ClientBooking() {
               </div>
             )}
 
-            {/* All slots */}
+            {/* Gap suggestions for variable-duration treatments — empty windows in the day */}
+            {gapSuggestions.length > 0 && (
+              <div className="space-y-2 p-3 rounded-lg bg-secondary/40 border border-border">
+                <h4 className="text-sm font-medium flex items-center gap-1">
+                  <Clock className="h-4 w-4 text-primary" /> חורים פנויים ביומן
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  חלונות זמן ריקים נוספים ביום הזה (מסודרים לפי הגדול ביותר):
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  {gapSuggestions.map((s) => (
+                    <Button
+                      key={`gap-${s.time}-${s.availableMinutes}`}
+                      variant={selectedTime === s.time ? "default" : "outline"}
+                      className={cn(
+                        "justify-start text-right",
+                        selectedTime === s.time && "gradient-primary text-primary-foreground",
+                      )}
+                      onClick={() => setSelectedTime(s.time)}
+                    >
+                      {s.time} • {s.availableMinutes} דקות פנויות
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {availableSlots.length > 0 && (
               <div className="space-y-2">
                 <Button variant="ghost" size="sm" onClick={() => setShowAllSlots(!showAllSlots)} className="text-sm">
@@ -801,7 +901,9 @@ export default function ClientBooking() {
                 <Button
                   className="w-full mt-3 gradient-primary text-primary-foreground"
                   onClick={() => {
-                    const partial = partialSuggestions.find((s) => s.time === selectedTime);
+                    const partial =
+                      partialSuggestions.find((s) => s.time === selectedTime) ||
+                      gapSuggestions.find((s) => s.time === selectedTime);
                     handleBook(partial?.availableMinutes);
                   }}
                   disabled={loading}
