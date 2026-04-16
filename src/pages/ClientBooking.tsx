@@ -354,8 +354,10 @@ export default function ClientBooking() {
     if (!hasVariableDuration || !settings || !selectedDate) return [];
     const gaps = findShortGaps(selectedDate);
     const taken = new Set(smartSuggestions.map((s) => s.time));
+    // Only show gaps SMALLER than (or equal to) the requested duration —
+    // gaps larger than the request are already covered by regular smart suggestions.
     const filtered = gaps
-      .filter((g) => !taken.has(g.time) && g.minutes >= 5)
+      .filter((g) => !taken.has(g.time) && g.minutes >= 5 && g.minutes < totalDuration)
       .sort((a, b) => b.minutes - a.minutes)
       .slice(0, 3);
     return filtered.map((g) => ({
