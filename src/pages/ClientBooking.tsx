@@ -212,7 +212,7 @@ export default function ClientBooking() {
         slots.push(slotStart);
       }
 
-      current += 5;
+      current += 15;
     }
 
     return slots;
