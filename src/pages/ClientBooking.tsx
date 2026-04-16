@@ -901,7 +901,9 @@ export default function ClientBooking() {
                 <Button
                   className="w-full mt-3 gradient-primary text-primary-foreground"
                   onClick={() => {
-                    const partial = partialSuggestions.find((s) => s.time === selectedTime);
+                    const partial =
+                      partialSuggestions.find((s) => s.time === selectedTime) ||
+                      gapSuggestions.find((s) => s.time === selectedTime);
                     handleBook(partial?.availableMinutes);
                   }}
                   disabled={loading}
