@@ -366,7 +366,7 @@ export default function ClientBooking() {
       isPartial: true,
       availableMinutes: g.minutes,
     }));
-  }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions]);
+  }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions, totalDuration]);
 
   const isWorkingDay = (date: Date) => {
     if (!settings) return false;
