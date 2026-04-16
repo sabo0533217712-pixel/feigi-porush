@@ -477,6 +477,27 @@ export type Database = {
           start_time: string
         }[]
       }
+      get_public_business_settings: {
+        Args: never
+        Returns: {
+          advance_booking_days: number
+          break_end: string
+          break_start: string
+          business_name: string
+          cancellation_hours: number
+          custom_texts: Json
+          day_schedules: Json
+          end_time: string
+          font_family: string
+          id: string
+          primary_color: string
+          secondary_color: string
+          slot_duration_minutes: number
+          slot_step_minutes: number
+          start_time: string
+          working_days: number[]
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
