@@ -124,6 +124,7 @@ export type Database = {
           primary_color: string | null
           secondary_color: string | null
           slot_duration_minutes: number
+          slot_step_minutes: number
           start_time: string
           updated_at: string
           working_days: number[]
@@ -145,6 +146,7 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           slot_duration_minutes?: number
+          slot_step_minutes?: number
           start_time?: string
           updated_at?: string
           working_days?: number[]
@@ -166,6 +168,7 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           slot_duration_minutes?: number
+          slot_step_minutes?: number
           start_time?: string
           updated_at?: string
           working_days?: number[]

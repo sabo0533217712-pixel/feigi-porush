@@ -1,0 +1,1 @@
+ALTER TABLE public.business_settings ADD COLUMN IF NOT EXISTS slot_step_minutes integer NOT NULL DEFAULT 15;
