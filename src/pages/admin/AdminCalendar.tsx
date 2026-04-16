@@ -136,27 +136,67 @@ export default function AdminCalendar() {
     fetchMonthCounts();
   }, [currentMonth]);
 
-  // Realtime: refresh calendar when any appointment changes
+  // Realtime + fallback refresh for the currently viewed day
   useEffect(() => {
+    const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
+
+    const refreshDay = () => {
+      fetchDayData();
+    };
+
+    const refreshAll = () => {
+      fetchDayData();
+      fetchMonthCounts();
+    };
+
     const channel = supabase
-      .channel("admin-appointments-realtime")
+      .channel(`admin-appointments-realtime-${selectedDateStr}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "appointments" },
-        () => {
-          fetchDayData();
-          fetchMonthCounts();
+        {
+          event: "*",
+          schema: "public",
+          table: "appointments",
+          filter: `appointment_date=eq.${selectedDateStr}`,
         },
+        refreshAll,
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "time_blocks" },
-        () => {
-          fetchDayData();
+        {
+          event: "*",
+          schema: "public",
+          table: "time_blocks",
+          filter: `block_date=eq.${selectedDateStr}`,
         },
+        refreshDay,
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          refreshAll();
+        }
+      });
+
+    const fallbackInterval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refreshDay();
+      }
+    }, 2000);
+
+    const handleFocus = () => refreshAll();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshAll();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
+      window.clearInterval(fallbackInterval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
