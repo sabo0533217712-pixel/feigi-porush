@@ -531,10 +531,15 @@ export default function AdminCalendar() {
               {daySchedule.breaks.map((brk, i) => (
                 <div
                   key={`brk-${i}`}
-                  className="absolute left-0 right-16 bg-muted/40 border-y border-dashed border-border/60 pointer-events-none z-[1]"
-                  style={{ top: getTopOffset(brk.start), height: getHeight(brk.start, brk.end) }}
+                  className="absolute left-0 right-16 pointer-events-none z-[1]"
+                  style={{
+                    top: getTopOffset(brk.start),
+                    height: getHeight(brk.start, brk.end),
+                    backgroundImage:
+                      "repeating-linear-gradient(45deg, transparent, transparent 6px, hsl(var(--muted-foreground) / 0.08) 6px, hsl(var(--muted-foreground) / 0.08) 7px)",
+                  }}
                 >
-                  <span className="text-[10px] text-muted-foreground px-2">הפסקה</span>
+                  <span className="text-[10px] text-muted-foreground/70 px-2">הפסקה</span>
                 </div>
               ))}
 
