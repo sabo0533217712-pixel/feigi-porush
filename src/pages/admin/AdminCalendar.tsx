@@ -241,7 +241,11 @@ export default function AdminCalendar() {
     const ds = settings.day_schedules?.[String(dow)];
     const startTime = ds?.start || settings.start_time;
     const endTime = ds?.end || settings.end_time;
-    const breaks = ds?.breaks || [];
+    let breaks = ds?.breaks || [];
+    // Fallback to global break_start/break_end if no day-specific breaks
+    if (breaks.length === 0 && settings.break_start && settings.break_end) {
+      breaks = [{ start: settings.break_start.substring(0, 5), end: settings.break_end.substring(0, 5) }];
+    }
     return {
       startHour: parseInt(startTime.split(":")[0]),
       endHour: parseInt(endTime.split(":")[0]) + (parseInt(endTime.split(":")[1]) > 0 ? 1 : 0),
