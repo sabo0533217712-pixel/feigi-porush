@@ -843,8 +843,13 @@ export default function ClientBooking() {
 
             {availableSlots.length > 0 && (
               <div className="space-y-2">
-                <Button variant="ghost" size="sm" onClick={() => setShowAllSlots(!showAllSlots)} className="text-sm">
-                  {showAllSlots ? "הסתר שעות נוספות" : `הצגת כל השעות הפנויות ליום זה `}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllSlots(!showAllSlots)}
+                  className="w-full text-sm border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  {showAllSlots ? "הסתר שעות נוספות" : "הצגת כל השעות הפנויות ליום זה"}
                 </Button>
                 {showAllSlots && (
                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto">
