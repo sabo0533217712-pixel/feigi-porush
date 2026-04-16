@@ -469,14 +469,12 @@ export default function ClientBooking() {
       const dayBooked = aptsRes.data || [];
       const dayBlocked = blocksRes.data || [];
 
-      // Check if the EXACT preferred time is available on this day
+      // Check 3 candidate times: -15min, exact, +15min
       const [prefH, prefM] = preferredTime.split(":").map(Number);
-      const prefStartMin = prefH * 60 + prefM;
-      const prefEndMin = prefStartMin + totalDuration;
-      const prefStart = preferredTime;
-      const prefEnd = `${String(Math.floor(prefEndMin / 60)).padStart(2, "0")}:${String(prefEndMin % 60).padStart(2, "0")}`;
+      const baseMin = prefH * 60 + prefM;
+      const candidates = [baseMin - 15, baseMin, baseMin + 15].filter((m) => m >= 0 && m < 24 * 60);
 
-      // Validate against day schedule (working hours + breaks)
+      // Day schedule (working hours + breaks)
       const dayOfWeek = d.getDay();
       const daySchedule = settings.day_schedules?.[String(dayOfWeek)];
       const startTime = daySchedule?.start || settings.start_time;
@@ -489,30 +487,40 @@ export default function ClientBooking() {
       const dayStart = sH * 60 + sM;
       const dayEnd = eH * 60 + eM;
 
-      if (prefStartMin < dayStart || prefEndMin > dayEnd) continue;
+      const availableSlots: string[] = [];
+      for (const startMin of candidates) {
+        const endMin = startMin + totalDuration;
+        const startStr = `${String(Math.floor(startMin / 60)).padStart(2, "0")}:${String(startMin % 60).padStart(2, "0")}`;
+        const endStr = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
-      const inBreak = breaks.some((brk) => {
-        const [bsH, bsM] = brk.start.split(":").map(Number);
-        const [beH, beM] = brk.end.split(":").map(Number);
-        return prefStartMin < beH * 60 + beM && prefEndMin > bsH * 60 + bsM;
-      });
-      if (inBreak) continue;
+        if (startMin < dayStart || endMin > dayEnd) continue;
 
-      const isBooked = dayBooked.some((b) => {
-        const bStart = b.start_time.substring(0, 5);
-        const bEnd = b.end_time.substring(0, 5);
-        return prefStart < bEnd && prefEnd > bStart;
-      });
-      if (isBooked) continue;
+        const inBreak = breaks.some((brk) => {
+          const [bsH, bsM] = brk.start.split(":").map(Number);
+          const [beH, beM] = brk.end.split(":").map(Number);
+          return startMin < beH * 60 + beM && endMin > bsH * 60 + bsM;
+        });
+        if (inBreak) continue;
 
-      const isBlocked = dayBlocked.some((b) => {
-        const bStart = b.start_time.substring(0, 5);
-        const bEnd = b.end_time.substring(0, 5);
-        return prefStart < bEnd && prefEnd > bStart;
-      });
-      if (isBlocked) continue;
+        const isBooked = dayBooked.some((b) => {
+          const bStart = b.start_time.substring(0, 5);
+          const bEnd = b.end_time.substring(0, 5);
+          return startStr < bEnd && endStr > bStart;
+        });
+        if (isBooked) continue;
 
-      results.push({ date: d, slots: [preferredTime] });
+        const isBlocked = dayBlocked.some((b) => {
+          const bStart = b.start_time.substring(0, 5);
+          const bEnd = b.end_time.substring(0, 5);
+          return startStr < bEnd && endStr > bStart;
+        });
+        if (isBlocked) continue;
+
+        availableSlots.push(startStr);
+      }
+
+      if (availableSlots.length === 0) continue;
+      results.push({ date: d, slots: availableSlots });
       if (results.length >= 5) break;
     }
     setMoreDaySuggestions(results);
@@ -884,7 +892,7 @@ export default function ClientBooking() {
 
             {showMoreDays && moreDaySuggestions.length > 0 && (
               <div className="space-y-2 p-3 rounded-lg bg-secondary/50">
-                <h4 className="text-sm font-medium">ימים נוספים שבהם {preferredTime} פנויה:</h4>
+                <h4 className="text-sm font-medium">ימים נוספים עם שעות סמוכות ל-{preferredTime}:</h4>
                 {moreDaySuggestions.map((ds) => (
                   <div key={ds.date.toISOString()} className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">{format(ds.date, "EEEE d/M", { locale: he })}:</span>
