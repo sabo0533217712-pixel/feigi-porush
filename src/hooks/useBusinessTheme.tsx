@@ -120,12 +120,9 @@ export function useBusinessTheme() {
 
     (async () => {
       try {
-        // Check if saved color exists in business_settings
-        const { data: settings } = await supabase
-          .from('business_settings')
-          .select('primary_color')
-          .limit(1)
-          .single();
+        // Check if saved color exists in business_settings (public-safe RPC)
+        const { data: settingsRows } = await supabase.rpc('get_public_business_settings');
+        const settings = settingsRows?.[0];
 
         // Fetch logo
         const { data: files } = await supabase.storage.from('gallery').list('', { search: 'logo' });
