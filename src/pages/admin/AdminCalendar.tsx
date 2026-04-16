@@ -159,7 +159,7 @@ export default function AdminCalendar() {
   const fetchSettings = async () => {
     const { data } = await supabase
       .from("business_settings")
-      .select("start_time, end_time, day_schedules, working_days")
+      .select("start_time, end_time, day_schedules, working_days, break_start, break_end")
       .limit(1)
       .single();
     if (data) setSettings(data as unknown as BusinessSettings);
