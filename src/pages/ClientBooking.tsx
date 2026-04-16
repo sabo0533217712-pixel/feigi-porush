@@ -327,6 +327,13 @@ export default function ClientBooking() {
       }
     }
 
+    // Sort final suggestions chronologically (ascending by time)
+    suggestions.sort((a, b) => {
+      const [aH, aM] = a.time.split(":").map(Number);
+      const [bH, bM] = b.time.split(":").map(Number);
+      return aH * 60 + aM - (bH * 60 + bM);
+    });
+
     return suggestions;
   }, [availableSlots, preferredTime, bookedSlots, totalDuration]);
 
@@ -520,6 +527,12 @@ export default function ClientBooking() {
       }
 
       if (availableSlots.length === 0) continue;
+      // Sort slots chronologically within the day
+      availableSlots.sort((a, b) => {
+        const [aH, aM] = a.split(":").map(Number);
+        const [bH, bM] = b.split(":").map(Number);
+        return aH * 60 + aM - (bH * 60 + bM);
+      });
       results.push({ date: d, slots: availableSlots });
       if (results.length >= 5) break;
     }
@@ -892,7 +905,9 @@ export default function ClientBooking() {
 
             {showMoreDays && moreDaySuggestions.length > 0 && (
               <div className="space-y-2 p-3 rounded-lg bg-secondary/50">
-                <h4 className="text-sm font-medium">ימים נוספים עם שעות סמוכות ל-{preferredTime}:</h4>
+                <h4 className="text-base font-semibold text-foreground">
+                  ימים נוספים עם שעות סמוכות ל-<span className="text-primary font-bold">{preferredTime}</span>:
+                </h4>
                 {moreDaySuggestions.map((ds) => (
                   <div key={ds.date.toISOString()} className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">{format(ds.date, "EEEE d/M", { locale: he })}:</span>
