@@ -150,14 +150,10 @@ export default function ClientBooking() {
   const fetchBookedSlots = async (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const [aptsRes, blocksRes] = await Promise.all([
-      supabase
-        .from("appointments")
-        .select("start_time, end_time")
-        .eq("appointment_date", dateStr)
-        .eq("status", "confirmed"),
+      supabase.rpc("get_busy_slots", { _date: dateStr }),
       supabase.from("time_blocks").select("start_time, end_time").eq("block_date", dateStr),
     ]);
-    if (aptsRes.data) setBookedSlots(aptsRes.data);
+    if (aptsRes.data) setBookedSlots(aptsRes.data as { start_time: string; end_time: string }[]);
     if (blocksRes.data) setBlockedSlots(blocksRes.data);
   };
 
@@ -466,14 +462,10 @@ export default function ClientBooking() {
       if (isBefore(addDays(new Date(), settings.advance_booking_days), d)) break;
       const dateStr = format(d, "yyyy-MM-dd");
       const [aptsRes, blocksRes] = await Promise.all([
-        supabase
-          .from("appointments")
-          .select("start_time, end_time")
-          .eq("appointment_date", dateStr)
-          .eq("status", "confirmed"),
+        supabase.rpc("get_busy_slots", { _date: dateStr }),
         supabase.from("time_blocks").select("start_time, end_time").eq("block_date", dateStr),
       ]);
-      const dayBooked = aptsRes.data || [];
+      const dayBooked = (aptsRes.data || []) as { start_time: string; end_time: string }[];
       const dayBlocked = blocksRes.data || [];
 
       // Check 3 candidate times: -15min, exact, +15min
