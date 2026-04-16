@@ -348,6 +348,24 @@ export default function ClientBooking() {
     return shortSlots;
   }, [hasVariableDuration, availableSlots, settings, selectedDate, bookedSlots, totalDuration]);
 
+  // Gap suggestions: for variable-duration treatments, show empty windows in the day
+  // that are NOT already in smart suggestions — sorted by largest first, max 3.
+  const gapSuggestions = useMemo((): SlotSuggestion[] => {
+    if (!hasVariableDuration || !settings || !selectedDate) return [];
+    const gaps = findShortGaps(selectedDate);
+    const taken = new Set(smartSuggestions.map((s) => s.time));
+    const filtered = gaps
+      .filter((g) => !taken.has(g.time) && g.minutes >= 5)
+      .sort((a, b) => b.minutes - a.minutes)
+      .slice(0, 3);
+    return filtered.map((g) => ({
+      time: g.time,
+      isGapFiller: true,
+      isPartial: true,
+      availableMinutes: g.minutes,
+    }));
+  }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions]);
+
   const isWorkingDay = (date: Date) => {
     if (!settings) return false;
     return settings.working_days.includes(date.getDay());
