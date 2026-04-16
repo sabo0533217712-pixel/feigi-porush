@@ -459,6 +459,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_my_appointment: {
+        Args: { _appointment_id: string }
+        Returns: undefined
+      }
+      get_admin_contact: {
+        Args: never
+        Returns: {
+          admin_email: string
+          admin_phone: string
+        }[]
+      }
       get_busy_slots: {
         Args: { _date: string }
         Returns: {
