@@ -432,7 +432,9 @@ export default function ClientBooking() {
 
       if (error) {
         if (error.message.includes("already booked")) {
-          toast.error("השעה כבר תפוסה, נסי שעה אחרת");
+          toast.error("השעה הזו כבר נתפסה על ידי לקוחה אחרת. בחרי שעה אחרת");
+          setSelectedTime(null);
+          if (selectedDate) await fetchBookedSlots(selectedDate);
         } else {
           toast.error("שגיאה בהזמנת התור");
         }
