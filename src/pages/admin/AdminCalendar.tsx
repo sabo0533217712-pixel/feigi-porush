@@ -79,6 +79,8 @@ interface BusinessSettings {
   end_time: string;
   day_schedules?: DaySchedules;
   working_days: number[];
+  break_start?: string | null;
+  break_end?: string | null;
 }
 
 export default function AdminCalendar() {
