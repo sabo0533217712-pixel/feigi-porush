@@ -115,6 +115,31 @@ export default function ClientBooking() {
     if (selectedDate) fetchBookedSlots(selectedDate);
   }, [selectedDate]);
 
+  // Realtime: refresh availability when other users book/cancel for the selected day
+  useEffect(() => {
+    if (!selectedDate) return;
+    const channel = supabase
+      .channel(`client-booking-realtime-${format(selectedDate, "yyyy-MM-dd")}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "appointments" },
+        () => {
+          fetchBookedSlots(selectedDate);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "time_blocks" },
+        () => {
+          fetchBookedSlots(selectedDate);
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedDate]);
+
   const fetchTreatments = async () => {
     const { data } = await supabase.from("treatments").select("*").eq("is_active", true);
     if (data) {
@@ -407,7 +432,9 @@ export default function ClientBooking() {
 
       if (error) {
         if (error.message.includes("already booked")) {
-          toast.error("השעה כבר תפוסה, נסי שעה אחרת");
+          toast.error("השעה הזו כבר נתפסה על ידי לקוחה אחרת. בחרי שעה אחרת");
+          setSelectedTime(null);
+          if (selectedDate) await fetchBookedSlots(selectedDate);
         } else {
           toast.error("שגיאה בהזמנת התור");
         }

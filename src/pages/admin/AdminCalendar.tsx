@@ -136,6 +136,32 @@ export default function AdminCalendar() {
     fetchMonthCounts();
   }, [currentMonth]);
 
+  // Realtime: refresh calendar when any appointment changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-appointments-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "appointments" },
+        () => {
+          fetchDayData();
+          fetchMonthCounts();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "time_blocks" },
+        () => {
+          fetchDayData();
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, currentMonth]);
+
   const fetchMonthCounts = async () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
