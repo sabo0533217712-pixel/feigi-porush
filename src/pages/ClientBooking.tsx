@@ -774,7 +774,33 @@ export default function ClientBooking() {
               </div>
             )}
 
-            {/* All slots */}
+            {/* Gap suggestions for variable-duration treatments — empty windows in the day */}
+            {gapSuggestions.length > 0 && (
+              <div className="space-y-2 p-3 rounded-lg bg-secondary/40 border border-border">
+                <h4 className="text-sm font-medium flex items-center gap-1">
+                  <Clock className="h-4 w-4 text-primary" /> חורים פנויים ביומן
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  חלונות זמן ריקים נוספים ביום הזה (מסודרים לפי הגדול ביותר):
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  {gapSuggestions.map((s) => (
+                    <Button
+                      key={`gap-${s.time}-${s.availableMinutes}`}
+                      variant={selectedTime === s.time ? "default" : "outline"}
+                      className={cn(
+                        "justify-start text-right",
+                        selectedTime === s.time && "gradient-primary text-primary-foreground",
+                      )}
+                      onClick={() => setSelectedTime(s.time)}
+                    >
+                      {s.time} • {s.availableMinutes} דקות פנויות
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {availableSlots.length > 0 && (
               <div className="space-y-2">
                 <Button variant="ghost" size="sm" onClick={() => setShowAllSlots(!showAllSlots)} className="text-sm">
