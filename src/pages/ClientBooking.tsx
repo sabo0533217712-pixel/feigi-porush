@@ -354,8 +354,10 @@ export default function ClientBooking() {
     if (!hasVariableDuration || !settings || !selectedDate) return [];
     const gaps = findShortGaps(selectedDate);
     const taken = new Set(smartSuggestions.map((s) => s.time));
+    // Only show gaps SMALLER than (or equal to) the requested duration —
+    // gaps larger than the request are already covered by regular smart suggestions.
     const filtered = gaps
-      .filter((g) => !taken.has(g.time) && g.minutes >= 5)
+      .filter((g) => !taken.has(g.time) && g.minutes >= 5 && g.minutes < totalDuration)
       .sort((a, b) => b.minutes - a.minutes)
       .slice(0, 3);
     return filtered.map((g) => ({
@@ -364,7 +366,7 @@ export default function ClientBooking() {
       isPartial: true,
       availableMinutes: g.minutes,
     }));
-  }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions]);
+  }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions, totalDuration]);
 
   const isWorkingDay = (date: Date) => {
     if (!settings) return false;
@@ -446,34 +448,72 @@ export default function ClientBooking() {
     else toast.success("הצטרפת לרשימת המתנה! נעדכן אותך אם יתפנה תור 🎉");
   };
 
-  // Fetch more day suggestions
+  // Find days within the next 14 days where the EXACT preferred time is available
   const fetchMoreDays = async () => {
     if (!settings || selectedTreatments.length === 0 || !selectedDate) return;
     setShowMoreDays(true);
-    const [prefH, prefM] = preferredTime.split(":").map(Number);
-    const prefMin = prefH * 60 + prefM;
     const results: { date: Date; slots: string[] }[] = [];
     for (let i = 1; i <= 14; i++) {
       const d = addDays(selectedDate, i);
       if (!isWorkingDay(d)) continue;
       if (isBefore(addDays(new Date(), settings.advance_booking_days), d)) break;
       const dateStr = format(d, "yyyy-MM-dd");
-      const { data } = await supabase
-        .from("appointments")
-        .select("start_time, end_time")
-        .eq("appointment_date", dateStr)
-        .eq("status", "confirmed");
-      const allSlots = getAvailableSlots(d, data || [], totalDuration);
-      // Filter slots close to preferred time (within 2 hours)
-      const nearSlots = allSlots.filter((s) => {
-        const [sH, sM] = s.split(":").map(Number);
-        return Math.abs(sH * 60 + sM - prefMin) <= 120;
+      const [aptsRes, blocksRes] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select("start_time, end_time")
+          .eq("appointment_date", dateStr)
+          .eq("status", "confirmed"),
+        supabase.from("time_blocks").select("start_time, end_time").eq("block_date", dateStr),
+      ]);
+      const dayBooked = aptsRes.data || [];
+      const dayBlocked = blocksRes.data || [];
+
+      // Check if the EXACT preferred time is available on this day
+      const [prefH, prefM] = preferredTime.split(":").map(Number);
+      const prefStartMin = prefH * 60 + prefM;
+      const prefEndMin = prefStartMin + totalDuration;
+      const prefStart = preferredTime;
+      const prefEnd = `${String(Math.floor(prefEndMin / 60)).padStart(2, "0")}:${String(prefEndMin % 60).padStart(2, "0")}`;
+
+      // Validate against day schedule (working hours + breaks)
+      const dayOfWeek = d.getDay();
+      const daySchedule = settings.day_schedules?.[String(dayOfWeek)];
+      const startTime = daySchedule?.start || settings.start_time;
+      const endTime = daySchedule?.end || settings.end_time;
+      const breaks: { start: string; end: string }[] =
+        daySchedule?.breaks ||
+        (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
+      const [sH, sM] = startTime.split(":").map(Number);
+      const [eH, eM] = endTime.split(":").map(Number);
+      const dayStart = sH * 60 + sM;
+      const dayEnd = eH * 60 + eM;
+
+      if (prefStartMin < dayStart || prefEndMin > dayEnd) continue;
+
+      const inBreak = breaks.some((brk) => {
+        const [bsH, bsM] = brk.start.split(":").map(Number);
+        const [beH, beM] = brk.end.split(":").map(Number);
+        return prefStartMin < beH * 60 + beM && prefEndMin > bsH * 60 + bsM;
       });
-      const slotsToShow = nearSlots.length > 0 ? nearSlots.slice(0, 3) : allSlots.slice(0, 3);
-      if (slotsToShow.length > 0) {
-        results.push({ date: d, slots: slotsToShow });
-      }
-      if (results.length >= 3) break;
+      if (inBreak) continue;
+
+      const isBooked = dayBooked.some((b) => {
+        const bStart = b.start_time.substring(0, 5);
+        const bEnd = b.end_time.substring(0, 5);
+        return prefStart < bEnd && prefEnd > bStart;
+      });
+      if (isBooked) continue;
+
+      const isBlocked = dayBlocked.some((b) => {
+        const bStart = b.start_time.substring(0, 5);
+        const bEnd = b.end_time.substring(0, 5);
+        return prefStart < bEnd && prefEnd > bStart;
+      });
+      if (isBlocked) continue;
+
+      results.push({ date: d, slots: [preferredTime] });
+      if (results.length >= 5) break;
     }
     setMoreDaySuggestions(results);
   };
@@ -803,8 +843,13 @@ export default function ClientBooking() {
 
             {availableSlots.length > 0 && (
               <div className="space-y-2">
-                <Button variant="ghost" size="sm" onClick={() => setShowAllSlots(!showAllSlots)} className="text-sm">
-                  {showAllSlots ? "הסתר שעות נוספות" : `הצגת כל השעות הפנויות ליום זה `}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllSlots(!showAllSlots)}
+                  className="w-full text-sm border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  {showAllSlots ? "הסתר שעות נוספות" : "הצגת כל השעות הפנויות ליום זה"}
                 </Button>
                 {showAllSlots && (
                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto">
@@ -833,13 +878,13 @@ export default function ClientBooking() {
             {/* Alternative days - always show button in time step */}
             {!showMoreDays && (
               <Button variant="outline" size="sm" onClick={fetchMoreDays} className="w-full">
-                🔍 הצע לי ימים אחרים עם שעות דומות
+                🔍 הצע לי ימים אחרים עם השעה {preferredTime} פנויה
               </Button>
             )}
 
             {showMoreDays && moreDaySuggestions.length > 0 && (
               <div className="space-y-2 p-3 rounded-lg bg-secondary/50">
-                <h4 className="text-sm font-medium">ימים נוספים עם שעות פנויות:</h4>
+                <h4 className="text-sm font-medium">ימים נוספים שבהם {preferredTime} פנויה:</h4>
                 {moreDaySuggestions.map((ds) => (
                   <div key={ds.date.toISOString()} className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">{format(ds.date, "EEEE d/M", { locale: he })}:</span>
@@ -863,7 +908,9 @@ export default function ClientBooking() {
               </div>
             )}
             {showMoreDays && moreDaySuggestions.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center">לא נמצאו ימים פנויים בשבוע הקרוב</p>
+              <p className="text-sm text-muted-foreground text-center">
+                לא נמצאו ימים בשבועיים הקרובים שבהם השעה {preferredTime} פנויה
+              </p>
             )}
 
             {/* Waitlist option */}
