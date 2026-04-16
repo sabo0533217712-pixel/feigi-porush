@@ -878,13 +878,13 @@ export default function ClientBooking() {
             {/* Alternative days - always show button in time step */}
             {!showMoreDays && (
               <Button variant="outline" size="sm" onClick={fetchMoreDays} className="w-full">
-                🔍 הצע לי ימים אחרים עם שעות דומות
+                🔍 הצע לי ימים אחרים עם השעה {preferredTime} פנויה
               </Button>
             )}
 
             {showMoreDays && moreDaySuggestions.length > 0 && (
               <div className="space-y-2 p-3 rounded-lg bg-secondary/50">
-                <h4 className="text-sm font-medium">ימים נוספים עם שעות פנויות:</h4>
+                <h4 className="text-sm font-medium">ימים נוספים שבהם {preferredTime} פנויה:</h4>
                 {moreDaySuggestions.map((ds) => (
                   <div key={ds.date.toISOString()} className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">{format(ds.date, "EEEE d/M", { locale: he })}:</span>
@@ -908,7 +908,9 @@ export default function ClientBooking() {
               </div>
             )}
             {showMoreDays && moreDaySuggestions.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center">לא נמצאו ימים פנויים בשבוע הקרוב</p>
+              <p className="text-sm text-muted-foreground text-center">
+                לא נמצאו ימים בשבועיים הקרובים שבהם השעה {preferredTime} פנויה
+              </p>
             )}
 
             {/* Waitlist option */}
