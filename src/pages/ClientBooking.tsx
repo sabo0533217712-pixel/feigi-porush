@@ -1,18 +1,18 @@
-import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { format, addDays, isBefore, startOfDay } from 'date-fns';
-import { he } from 'date-fns/locale';
-import { getHebrewDateShort } from '@/lib/hebrew-date';
-import { Clock, Sparkles, ChevronLeft, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { format, addDays, isBefore, startOfDay } from "date-fns";
+import { he } from "date-fns/locale";
+import { getHebrewDateShort } from "@/lib/hebrew-date";
+import { Clock, Sparkles, ChevronLeft, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Treatment {
   id: string;
@@ -30,8 +30,15 @@ interface PriceTier {
   price_per_minute: number;
 }
 
-interface DayBreak { start: string; end: string; }
-interface DaySchedule { start: string; end: string; breaks: DayBreak[]; }
+interface DayBreak {
+  start: string;
+  end: string;
+}
+interface DaySchedule {
+  start: string;
+  end: string;
+  breaks: DayBreak[];
+}
 type DaySchedules = Record<string, DaySchedule>;
 
 interface BusinessSettings {
@@ -64,21 +71,21 @@ export default function ClientBooking() {
   const [bookedSlots, setBookedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'treatment' | 'date' | 'time'>('treatment');
+  const [step, setStep] = useState<"treatment" | "date" | "time">("treatment");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [preferredTime, setPreferredTime] = useState<string>('10:00');
+  const [preferredTime, setPreferredTime] = useState<string>("10:00");
   const [showAllSlots, setShowAllSlots] = useState(false);
   const [showMoreDays, setShowMoreDays] = useState(false);
   const [moreDaySuggestions, setMoreDaySuggestions] = useState<{ date: Date; slots: string[] }[]>([]);
 
-  const getDuration = (t: Treatment) => t.is_variable_duration ? (variableDurations[t.id] || 15) : t.duration_minutes;
+  const getDuration = (t: Treatment) => (t.is_variable_duration ? variableDurations[t.id] || 15 : t.duration_minutes);
   const totalDuration = selectedTreatments.reduce((sum, t) => sum + getDuration(t), 0);
 
   const calculateTierPrice = (treatmentId: string, minutes: number): number => {
     const tiers = priceTiers[treatmentId];
     if (!tiers || tiers.length === 0) return 0;
     // Find the matching tier
-    const tier = tiers.find(t => minutes >= t.min_minutes && minutes <= t.max_minutes);
+    const tier = tiers.find((t) => minutes >= t.min_minutes && minutes <= t.max_minutes);
     if (tier) return Math.round(tier.price_per_minute * minutes);
     // If no exact match, use the last tier
     const lastTier = tiers[tiers.length - 1];
@@ -95,8 +102,8 @@ export default function ClientBooking() {
   };
 
   const totalPrice = selectedTreatments.reduce((sum, t) => sum + getPrice(t), 0);
-  const hasVariableDuration = selectedTreatments.some(t => t.is_variable_duration);
-  const allDurationsSet = selectedTreatments.every(t => !t.is_variable_duration || variableDurations[t.id]);
+  const hasVariableDuration = selectedTreatments.some((t) => t.is_variable_duration);
+  const allDurationsSet = selectedTreatments.every((t) => !t.is_variable_duration || variableDurations[t.id]);
 
   useEffect(() => {
     fetchTreatments();
@@ -108,20 +115,23 @@ export default function ClientBooking() {
   }, [selectedDate]);
 
   const fetchTreatments = async () => {
-    const { data } = await supabase.from('treatments').select('*').eq('is_active', true);
+    const { data } = await supabase.from("treatments").select("*").eq("is_active", true);
     if (data) {
       setTreatments(data as Treatment[]);
       // Fetch price tiers for all variable duration treatments
-      const variableTreatments = (data as Treatment[]).filter(t => t.is_variable_duration);
+      const variableTreatments = (data as Treatment[]).filter((t) => t.is_variable_duration);
       if (variableTreatments.length > 0) {
         const { data: tiersData } = await supabase
-          .from('treatment_price_tiers')
-          .select('*')
-          .in('treatment_id', variableTreatments.map(t => t.id))
-          .order('min_minutes');
+          .from("treatment_price_tiers")
+          .select("*")
+          .in(
+            "treatment_id",
+            variableTreatments.map((t) => t.id),
+          )
+          .order("min_minutes");
         if (tiersData) {
           const tiersMap: Record<string, PriceTier[]> = {};
-          (tiersData as any[]).forEach(tier => {
+          (tiersData as any[]).forEach((tier) => {
             if (!tiersMap[tier.treatment_id]) tiersMap[tier.treatment_id] = [];
             tiersMap[tier.treatment_id].push(tier);
           });
@@ -132,15 +142,19 @@ export default function ClientBooking() {
   };
 
   const fetchSettings = async () => {
-    const { data } = await supabase.from('business_settings').select('*').limit(1).single();
+    const { data } = await supabase.from("business_settings").select("*").limit(1).single();
     if (data) setSettings(data as unknown as BusinessSettings);
   };
 
   const fetchBookedSlots = async (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
+    const dateStr = format(date, "yyyy-MM-dd");
     const [aptsRes, blocksRes] = await Promise.all([
-      supabase.from('appointments').select('start_time, end_time').eq('appointment_date', dateStr).eq('status', 'confirmed'),
-      supabase.from('time_blocks').select('start_time, end_time').eq('block_date', dateStr),
+      supabase
+        .from("appointments")
+        .select("start_time, end_time")
+        .eq("appointment_date", dateStr)
+        .eq("status", "confirmed"),
+      supabase.from("time_blocks").select("start_time, end_time").eq("block_date", dateStr),
     ]);
     if (aptsRes.data) setBookedSlots(aptsRes.data);
     if (blocksRes.data) setBlockedSlots(blocksRes.data);
@@ -150,16 +164,17 @@ export default function ClientBooking() {
     if (!settings) return [];
     const dayOfWeek = date.getDay();
     const daySchedule = settings.day_schedules?.[String(dayOfWeek)];
-    
+
     // Use per-day schedule if available, else fall back to global
     const startTime = daySchedule?.start || settings.start_time;
     const endTime = daySchedule?.end || settings.end_time;
-    const breaks: { start: string; end: string }[] = daySchedule?.breaks || 
+    const breaks: { start: string; end: string }[] =
+      daySchedule?.breaks ||
       (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
 
     const slots: string[] = [];
-    const [startH, startM] = startTime.split(':').map(Number);
-    const [endH, endM] = endTime.split(':').map(Number);
+    const [startH, startM] = startTime.split(":").map(Number);
+    const [endH, endM] = endTime.split(":").map(Number);
 
     let current = startH * 60 + startM;
     const end = endH * 60 + endM;
@@ -167,27 +182,27 @@ export default function ClientBooking() {
     while (current + duration <= end) {
       const h = Math.floor(current / 60);
       const m = current % 60;
-      const slotStart = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      const slotStart = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
       const slotEndMin = current + duration;
       const slotEndH = Math.floor(slotEndMin / 60);
       const slotEndM = slotEndMin % 60;
-      const slotEnd = `${String(slotEndH).padStart(2, '0')}:${String(slotEndM).padStart(2, '0')}`;
+      const slotEnd = `${String(slotEndH).padStart(2, "0")}:${String(slotEndM).padStart(2, "0")}`;
 
-      const inBreak = breaks.some(brk => {
-        const [bsH, bsM] = brk.start.split(':').map(Number);
-        const [beH, beM] = brk.end.split(':').map(Number);
+      const inBreak = breaks.some((brk) => {
+        const [bsH, bsM] = brk.start.split(":").map(Number);
+        const [beH, beM] = brk.end.split(":").map(Number);
         const bStart = bsH * 60 + bsM;
         const bEnd = beH * 60 + beM;
         return current < bEnd && slotEndMin > bStart;
       });
 
-      const isBooked = booked.some(b => {
+      const isBooked = booked.some((b) => {
         const bStart = b.start_time.substring(0, 5);
         const bEnd = b.end_time.substring(0, 5);
         return slotStart < bEnd && slotEnd > bStart;
       });
 
-      const isBlocked = blockedSlots.some(b => {
+      const isBlocked = blockedSlots.some((b) => {
         const bStart = b.start_time.substring(0, 5);
         const bEnd = b.end_time.substring(0, 5);
         return slotStart < bEnd && slotEnd > bStart;
@@ -211,27 +226,27 @@ export default function ClientBooking() {
   // Smart suggestions: 3 closest to preferred time + gap fillers
   const smartSuggestions = useMemo((): SlotSuggestion[] => {
     if (availableSlots.length === 0) return [];
-    const [prefH, prefM] = preferredTime.split(':').map(Number);
+    const [prefH, prefM] = preferredTime.split(":").map(Number);
     const prefMin = prefH * 60 + prefM;
 
     // Sort by distance from preferred time
     const sorted = [...availableSlots].sort((a, b) => {
-      const [aH, aM] = a.split(':').map(Number);
-      const [bH, bM] = b.split(':').map(Number);
+      const [aH, aM] = a.split(":").map(Number);
+      const [bH, bM] = b.split(":").map(Number);
       return Math.abs(aH * 60 + aM - prefMin) - Math.abs(bH * 60 + bM - prefMin);
     });
 
     // Find gap fillers: slots adjacent to booked slots
     const gapSlots = new Set<string>();
-    bookedSlots.forEach(b => {
+    bookedSlots.forEach((b) => {
       const bEnd = b.end_time.substring(0, 5);
       const bStart = b.start_time.substring(0, 5);
       if (availableSlots.includes(bEnd)) gapSlots.add(bEnd);
       // Also check slot ending right before booked slot
-      const [bsH, bsM] = bStart.split(':').map(Number);
+      const [bsH, bsM] = bStart.split(":").map(Number);
       const beforeMin = bsH * 60 + bsM - totalDuration;
       if (beforeMin >= 0) {
-        const beforeSlot = `${String(Math.floor(beforeMin / 60)).padStart(2, '0')}:${String(beforeMin % 60).padStart(2, '0')}`;
+        const beforeSlot = `${String(Math.floor(beforeMin / 60)).padStart(2, "0")}:${String(beforeMin % 60).padStart(2, "0")}`;
         if (availableSlots.includes(beforeSlot)) gapSlots.add(beforeSlot);
       }
     });
@@ -240,7 +255,7 @@ export default function ClientBooking() {
     const added = new Set<string>();
 
     // Add gap fillers first (priority)
-    gapSlots.forEach(slot => {
+    gapSlots.forEach((slot) => {
       if (suggestions.length < 3) {
         suggestions.push({ time: slot, isGapFiller: true });
         added.add(slot);
@@ -268,7 +283,7 @@ export default function ClientBooking() {
     for (let dur = totalDuration - 5; dur >= minDuration; dur -= 5) {
       const slots = getAvailableSlots(selectedDate, bookedSlots, dur);
       if (slots.length > 0) {
-        slots.slice(0, 3).forEach(slot => {
+        slots.slice(0, 3).forEach((slot) => {
           shortSlots.push({ time: slot, isGapFiller: false, isPartial: true, availableMinutes: dur });
         });
         break;
@@ -283,10 +298,8 @@ export default function ClientBooking() {
   };
 
   const toggleTreatment = (t: Treatment) => {
-    setSelectedTreatments(prev =>
-      prev.find(s => s.id === t.id)
-        ? prev.filter(s => s.id !== t.id)
-        : [...prev, t]
+    setSelectedTreatments((prev) =>
+      prev.find((s) => s.id === t.id) ? prev.filter((s) => s.id !== t.id) : [...prev, t],
     );
   };
 
@@ -295,39 +308,43 @@ export default function ClientBooking() {
     setLoading(true);
 
     const duration = customDuration || totalDuration;
-    const [h, m] = selectedTime.split(':').map(Number);
+    const [h, m] = selectedTime.split(":").map(Number);
     const endMin = h * 60 + m + duration;
-    const endTime = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+    const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
     try {
       // Insert appointment with first treatment (for backwards compatibility)
-      const { data: aptData, error } = await supabase.from('appointments').insert({
-        client_id: user.id,
-        treatment_id: selectedTreatments[0].id,
-        appointment_date: format(selectedDate, 'yyyy-MM-dd'),
-        start_time: selectedTime,
-        end_time: endTime,
-      }).select('id').single();
+      const { data: aptData, error } = await supabase
+        .from("appointments")
+        .insert({
+          client_id: user.id,
+          treatment_id: selectedTreatments[0].id,
+          appointment_date: format(selectedDate, "yyyy-MM-dd"),
+          start_time: selectedTime,
+          end_time: endTime,
+        })
+        .select("id")
+        .single();
 
       if (error) {
-        if (error.message.includes('already booked')) {
-          toast.error('השעה כבר תפוסה, נסי שעה אחרת');
+        if (error.message.includes("already booked")) {
+          toast.error("השעה כבר תפוסה, נסי שעה אחרת");
         } else {
-          toast.error('שגיאה בהזמנת התור');
+          toast.error("שגיאה בהזמנת התור");
         }
       } else if (aptData) {
         // Insert appointment_treatments for multi-treatment support
         if (selectedTreatments.length > 1) {
-          const treatmentRows = selectedTreatments.map(t => ({
+          const treatmentRows = selectedTreatments.map((t) => ({
             appointment_id: aptData.id,
             treatment_id: t.id,
             duration_minutes: t.duration_minutes,
             price: t.price,
           }));
-          await supabase.from('appointment_treatments').insert(treatmentRows);
+          await supabase.from("appointment_treatments").insert(treatmentRows);
         }
-        toast.success('התור נקבע בהצלחה! 🎉');
-        setStep('treatment');
+        toast.success("התור נקבע בהצלחה! 🎉");
+        setStep("treatment");
         setSelectedTreatments([]);
         setSelectedDate(undefined);
         setSelectedTime(null);
@@ -339,39 +356,43 @@ export default function ClientBooking() {
 
   const handleJoinWaitlist = async () => {
     if (!user || !selectedDate || selectedTreatments.length === 0) return;
-    const [prefH, prefM] = preferredTime.split(':').map(Number);
-    const startMin = Math.max(0, (prefH * 60 + prefM) - 60);
+    const [prefH, prefM] = preferredTime.split(":").map(Number);
+    const startMin = Math.max(0, prefH * 60 + prefM - 60);
     const endMin = prefH * 60 + prefM + 60;
-    const timeStart = `${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')}`;
-    const timeEnd = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
-    const { error } = await supabase.from('waitlist').insert({
+    const timeStart = `${String(Math.floor(startMin / 60)).padStart(2, "0")}:${String(startMin % 60).padStart(2, "0")}`;
+    const timeEnd = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+    const { error } = await supabase.from("waitlist").insert({
       client_id: user.id,
       treatment_id: selectedTreatments[0].id,
-      preferred_date: format(selectedDate, 'yyyy-MM-dd'),
+      preferred_date: format(selectedDate, "yyyy-MM-dd"),
       preferred_time_start: timeStart,
       preferred_time_end: timeEnd,
     });
-    if (error) toast.error('שגיאה בהצטרפות לרשימת המתנה');
-    else toast.success('הצטרפת לרשימת המתנה! נעדכן אותך אם יתפנה תור 🎉');
+    if (error) toast.error("שגיאה בהצטרפות לרשימת המתנה");
+    else toast.success("הצטרפת לרשימת המתנה! נעדכן אותך אם יתפנה תור 🎉");
   };
 
   // Fetch more day suggestions
   const fetchMoreDays = async () => {
     if (!settings || selectedTreatments.length === 0 || !selectedDate) return;
     setShowMoreDays(true);
-    const [prefH, prefM] = preferredTime.split(':').map(Number);
+    const [prefH, prefM] = preferredTime.split(":").map(Number);
     const prefMin = prefH * 60 + prefM;
     const results: { date: Date; slots: string[] }[] = [];
     for (let i = 1; i <= 14; i++) {
       const d = addDays(selectedDate, i);
       if (!isWorkingDay(d)) continue;
       if (isBefore(addDays(new Date(), settings.advance_booking_days), d)) break;
-      const dateStr = format(d, 'yyyy-MM-dd');
-      const { data } = await supabase.from('appointments').select('start_time, end_time').eq('appointment_date', dateStr).eq('status', 'confirmed');
+      const dateStr = format(d, "yyyy-MM-dd");
+      const { data } = await supabase
+        .from("appointments")
+        .select("start_time, end_time")
+        .eq("appointment_date", dateStr)
+        .eq("status", "confirmed");
       const allSlots = getAvailableSlots(d, data || [], totalDuration);
       // Filter slots close to preferred time (within 2 hours)
-      const nearSlots = allSlots.filter(s => {
-        const [sH, sM] = s.split(':').map(Number);
+      const nearSlots = allSlots.filter((s) => {
+        const [sH, sM] = s.split(":").map(Number);
         return Math.abs(sH * 60 + sM - prefMin) <= 120;
       });
       const slotsToShow = nearSlots.length > 0 ? nearSlots.slice(0, 3) : allSlots.slice(0, 3);
@@ -386,28 +407,38 @@ export default function ClientBooking() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       <div className="text-center">
-        <h1 className="text-2xl font-display font-bold text-foreground">
-          {settings?.business_name || 'קביעת תור'}
-        </h1>
+        <h1 className="text-2xl font-display font-bold text-foreground">{settings?.business_name || "קביעת תור"}</h1>
         <p className="text-muted-foreground mt-1">בחרי טיפולים, תאריך ושעה</p>
       </div>
 
       {/* Steps indicator */}
       <div className="flex items-center justify-center gap-2">
-        {['טיפולים', 'תאריך', 'שעה'].map((label, i) => {
-          const stepNames = ['treatment', 'date', 'time'] as const;
+        {["טיפולים", "תאריך", "שעה"].map((label, i) => {
+          const stepNames = ["treatment", "date", "time"] as const;
           const isActive = step === stepNames[i];
           const isDone = stepNames.indexOf(step) > i;
           return (
             <div key={label} className="flex items-center gap-2">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-                isActive ? "gradient-primary text-primary-foreground" :
-                isDone ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
-              )}>
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
+                  isActive
+                    ? "gradient-primary text-primary-foreground"
+                    : isDone
+                      ? "bg-primary/20 text-primary"
+                      : "bg-muted text-muted-foreground",
+                )}
+              >
                 {i + 1}
               </div>
-              <span className={cn("text-sm hidden sm:inline", isActive ? "text-foreground font-medium" : "text-muted-foreground")}>{label}</span>
+              <span
+                className={cn(
+                  "text-sm hidden sm:inline",
+                  isActive ? "text-foreground font-medium" : "text-muted-foreground",
+                )}
+              >
+                {label}
+              </span>
               {i < 2 && <ChevronLeft className="h-4 w-4 text-muted-foreground" />}
             </div>
           );
@@ -415,17 +446,17 @@ export default function ClientBooking() {
       </div>
 
       {/* Step 1: Treatment Multi-Select */}
-      {step === 'treatment' && (
+      {step === "treatment" && (
         <div className="space-y-4">
           <div className="grid gap-3">
-            {treatments.map(t => {
-              const isSelected = selectedTreatments.find(s => s.id === t.id);
+            {treatments.map((t) => {
+              const isSelected = selectedTreatments.find((s) => s.id === t.id);
               return (
                 <Card
                   key={t.id}
                   className={cn(
                     "cursor-pointer transition-all hover:shadow-elegant",
-                    isSelected && "ring-2 ring-primary"
+                    isSelected && "ring-2 ring-primary",
                   )}
                   onClick={() => toggleTreatment(t)}
                 >
@@ -436,35 +467,50 @@ export default function ClientBooking() {
                         <div>
                           <h3 className="font-medium text-foreground">{t.name}</h3>
                           <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                            {t.is_variable_duration
-                              ? <span className="text-xs bg-accent px-2 py-0.5 rounded">משך גמיש</span>
-                              : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
-                            }
-                            {t.category && <Badge variant="secondary" className="text-xs">{t.category}</Badge>}
+                            {t.is_variable_duration ? (
+                              <span className="text-xs bg-accent px-2 py-0.5 rounded">משך גמיש</span>
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {t.duration_minutes} דק׳
+                              </span>
+                            )}
+                            {t.category && (
+                              <Badge variant="secondary" className="text-xs">
+                                {t.category}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color || '#6366f1' }} />
-                        {t.is_variable_duration
-                          ? <span className="text-sm text-muted-foreground">תמחור לפי דקות</span>
-                          : <span className="text-lg font-semibold text-primary">₪{t.price}</span>
-                        }
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color || "#6366f1" }} />
+                        {t.is_variable_duration ? (
+                          <span className="text-sm text-muted-foreground">תמחור לפי דקות</span>
+                        ) : (
+                          <span className="text-lg font-semibold text-primary">₪{t.price}</span>
+                        )}
                       </div>
                     </div>
                     {/* Inline duration picker for variable-duration treatments */}
                     {isSelected && t.is_variable_duration && (
-                      <div className="mt-3 pt-3 border-t border-border/50" onClick={e => e.stopPropagation()}>
+                      <div className="mt-3 pt-3 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-3">
                           <Label className="text-sm whitespace-nowrap">משך זמן:</Label>
                           <select
-                            value={variableDurations[t.id] || ''}
-                            onChange={e => setVariableDurations(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
+                            value={variableDurations[t.id] || ""}
+                            onChange={(e) =>
+                              setVariableDurations((prev) => ({ ...prev, [t.id]: Number(e.target.value) }))
+                            }
                             className="border border-input rounded-md px-3 py-1.5 text-sm bg-background flex-1"
                           >
-                            <option value="" disabled>בחרי משך זמן</option>
-                            {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map(min => (
-                              <option key={min} value={min}>{min} דקות</option>
+                            <option value="" disabled>
+                              בחרי משך זמן
+                            </option>
+                            {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map((min) => (
+                              <option key={min} value={min}>
+                                {min} דקות
+                              </option>
                             ))}
                           </select>
                           {variableDurations[t.id] && (
@@ -480,9 +526,7 @@ export default function ClientBooking() {
               );
             })}
           </div>
-          {treatments.length === 0 && (
-            <p className="text-center text-muted-foreground py-8">אין טיפולים זמינים כרגע</p>
-          )}
+          {treatments.length === 0 && <p className="text-center text-muted-foreground py-8">אין טיפולים זמינים כרגע</p>}
 
           {selectedTreatments.length > 0 && (
             <Card className="bg-secondary/50">
@@ -491,16 +535,15 @@ export default function ClientBooking() {
                   <div>
                     <p className="text-sm text-muted-foreground">
                       {selectedTreatments.length} טיפולים
-                      {allDurationsSet && <> • {totalDuration} דק׳</>}
-                      {' '}• ₪{totalPrice}
+                      {allDurationsSet && <> • {totalDuration} דק׳</>} • ₪{totalPrice}
                     </p>
                   </div>
                   <Button
                     className="gradient-primary text-primary-foreground"
-                    onClick={() => setStep('date')}
+                    onClick={() => setStep("date")}
                     disabled={!allDurationsSet}
                   >
-                    {!allDurationsSet ? 'בחרי משך זמן' : 'המשך לבחירת תאריך'}
+                    {!allDurationsSet ? "בחרי משך זמן" : "המשיכי לבחירת תאריך"}
                   </Button>
                 </div>
               </CardContent>
@@ -510,15 +553,17 @@ export default function ClientBooking() {
       )}
 
       {/* Step 2: Date */}
-      {step === 'date' && (
+      {step === "date" && (
         <Card className="shadow-card">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">בחרי תאריך</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setStep('treatment')}>חזרה</Button>
+              <Button variant="ghost" size="sm" onClick={() => setStep("treatment")}>
+                חזרה
+              </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              {selectedTreatments.map(t => t.name).join(', ')} • {totalDuration} דק׳
+              {selectedTreatments.map((t) => t.name).join(", ")} • {totalDuration} דק׳
             </p>
           </CardHeader>
           <CardContent className="flex justify-center">
@@ -527,7 +572,7 @@ export default function ClientBooking() {
               selected={selectedDate}
               onSelect={(date) => {
                 setSelectedDate(date);
-                if (date) setStep('time');
+                if (date) setStep("time");
               }}
               disabled={(date) =>
                 isBefore(date, startOfDay(new Date())) ||
@@ -541,16 +586,20 @@ export default function ClientBooking() {
                 month: "space-y-6",
                 caption: "flex justify-center pt-2 relative items-center",
                 caption_label: "text-base font-semibold",
-                nav_button: cn("h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input"),
+                nav_button: cn(
+                  "h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input",
+                ),
                 nav_button_previous: "absolute left-2",
                 nav_button_next: "absolute right-2",
                 table: "w-full border-collapse",
                 head_row: "flex",
-                head_cell: "text-muted-foreground rounded-md w-10 md:w-14 h-8 md:h-10 font-medium text-xs md:text-sm flex items-center justify-center",
+                head_cell:
+                  "text-muted-foreground rounded-md w-10 md:w-14 h-8 md:h-10 font-medium text-xs md:text-sm flex items-center justify-center",
                 row: "flex w-full mt-1",
                 cell: "h-10 w-10 md:h-14 md:w-14 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
                 day: "h-10 w-10 md:h-14 md:w-14 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center rounded-md text-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                day_selected:
+                  "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                 day_today: "bg-accent text-accent-foreground",
                 day_outside: "text-muted-foreground opacity-50",
                 day_disabled: "text-muted-foreground opacity-50",
@@ -570,19 +619,21 @@ export default function ClientBooking() {
       )}
 
       {/* Step 3: Time with Smart Suggestions */}
-      {step === 'time' && selectedDate && (
+      {step === "time" && selectedDate && (
         <Card className="shadow-card">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-lg">בחרי שעה</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {format(selectedDate, 'EEEE, d בMMMM yyyy', { locale: he })}
-                  {' • '}
+                  {format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })}
+                  {" • "}
                   {getHebrewDateShort(selectedDate)}
                 </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setStep('date')}>חזרה</Button>
+              <Button variant="ghost" size="sm" onClick={() => setStep("date")}>
+                חזרה
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -592,7 +643,7 @@ export default function ClientBooking() {
               <input
                 type="time"
                 value={preferredTime}
-                onChange={e => setPreferredTime(e.target.value)}
+                onChange={(e) => setPreferredTime(e.target.value)}
                 className="border border-input rounded-md px-3 py-1.5 text-sm bg-background"
                 dir="ltr"
               />
@@ -605,13 +656,13 @@ export default function ClientBooking() {
                   <Sparkles className="h-4 w-4 text-primary" /> הצעות לשעות
                 </h4>
                 <div className="grid grid-cols-3 gap-2">
-                  {smartSuggestions.map(s => (
+                  {smartSuggestions.map((s) => (
                     <Button
                       key={s.time}
-                      variant={selectedTime === s.time ? 'default' : 'outline'}
+                      variant={selectedTime === s.time ? "default" : "outline"}
                       className={cn(
                         selectedTime === s.time && "gradient-primary text-primary-foreground",
-                        s.isGapFiller && "border-primary/50"
+                        s.isGapFiller && "border-primary/50",
                       )}
                       onClick={() => setSelectedTime(s.time)}
                     >
@@ -629,9 +680,11 @@ export default function ClientBooking() {
                 <h4 className="text-sm font-medium flex items-center gap-1">
                   <AlertCircle className="h-4 w-4 text-primary" /> זמנים חלקיים זמינים
                 </h4>
-                <p className="text-xs text-muted-foreground">אין חלון פנוי ל-{totalDuration} דקות, אבל יש אפשרויות קצרות יותר:</p>
+                <p className="text-xs text-muted-foreground">
+                  אין חלון פנוי ל-{totalDuration} דקות, אבל יש אפשרויות קצרות יותר:
+                </p>
                 <div className="grid grid-cols-1 gap-2">
-                  {partialSuggestions.map(s => (
+                  {partialSuggestions.map((s) => (
                     <Button
                       key={`${s.time}-${s.availableMinutes}`}
                       variant="outline"
@@ -651,14 +704,14 @@ export default function ClientBooking() {
             {availableSlots.length > 0 && (
               <div className="space-y-2">
                 <Button variant="ghost" size="sm" onClick={() => setShowAllSlots(!showAllSlots)} className="text-sm">
-                  {showAllSlots ? 'הסתר שעות נוספות' : `הצג את כל ${availableSlots.length} השעות`}
+                  {showAllSlots ? "הסתר שעות נוספות" : `הצג את כל ${availableSlots.length} השעות`}
                 </Button>
                 {showAllSlots && (
                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto">
-                    {availableSlots.map(slot => (
+                    {availableSlots.map((slot) => (
                       <Button
                         key={slot}
-                        variant={selectedTime === slot ? 'default' : 'outline'}
+                        variant={selectedTime === slot ? "default" : "outline"}
                         size="sm"
                         className={cn(selectedTime === slot && "gradient-primary text-primary-foreground")}
                         onClick={() => setSelectedTime(slot)}
@@ -687,16 +740,21 @@ export default function ClientBooking() {
             {showMoreDays && moreDaySuggestions.length > 0 && (
               <div className="space-y-2 p-3 rounded-lg bg-secondary/50">
                 <h4 className="text-sm font-medium">ימים נוספים עם שעות פנויות:</h4>
-                {moreDaySuggestions.map(ds => (
+                {moreDaySuggestions.map((ds) => (
                   <div key={ds.date.toISOString()} className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium">{format(ds.date, 'EEEE d/M', { locale: he })}:</span>
-                    {ds.slots.map(slot => (
-                      <Button key={slot} variant="outline" size="sm" onClick={() => {
-                        setSelectedDate(ds.date);
-                        setSelectedTime(slot);
-                        fetchBookedSlots(ds.date);
-                        setShowMoreDays(false);
-                      }}>
+                    <span className="text-sm font-medium">{format(ds.date, "EEEE d/M", { locale: he })}:</span>
+                    {ds.slots.map((slot) => (
+                      <Button
+                        key={slot}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedDate(ds.date);
+                          setSelectedTime(slot);
+                          fetchBookedSlots(ds.date);
+                          setShowMoreDays(false);
+                        }}
+                      >
                         {slot}
                       </Button>
                     ))}
@@ -711,7 +769,12 @@ export default function ClientBooking() {
             {/* Waitlist option */}
             <div className="p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 text-center space-y-2">
               <p className="text-sm text-muted-foreground">לא מצאת שעה מתאימה?</p>
-              <Button variant="outline" size="sm" onClick={handleJoinWaitlist} className="border-primary/50 text-primary">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleJoinWaitlist}
+                className="border-primary/50 text-primary"
+              >
                 📋 הצטרפי לרשימת המתנה — נעדכן אותך כשיתפנה מקום
               </Button>
             </div>
@@ -720,26 +783,30 @@ export default function ClientBooking() {
             {selectedTime && (
               <div className="mt-4 p-4 rounded-lg bg-secondary/50 space-y-2">
                 <h4 className="font-medium text-foreground">סיכום הזמנה</h4>
-                {selectedTreatments.map(t => (
+                {selectedTreatments.map((t) => (
                   <div key={t.id} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
-                    <span>{t.name} • {getDuration(t)} דק׳ • ₪{t.price}</span>
+                    <span>
+                      {t.name} • {getDuration(t)} דק׳ • ₪{t.price}
+                    </span>
                   </div>
                 ))}
                 <p className="text-sm text-muted-foreground">
-                  תאריך: {format(selectedDate, 'd/M/yyyy')} • {getHebrewDateShort(selectedDate)}
+                  תאריך: {format(selectedDate, "d/M/yyyy")} • {getHebrewDateShort(selectedDate)}
                 </p>
                 <p className="text-sm text-muted-foreground">שעה: {selectedTime}</p>
-                <p className="text-sm font-medium text-primary">סה״כ: {totalDuration} דק׳ • ₪{totalPrice}</p>
+                <p className="text-sm font-medium text-primary">
+                  סה״כ: {totalDuration} דק׳ • ₪{totalPrice}
+                </p>
                 <Button
                   className="w-full mt-3 gradient-primary text-primary-foreground"
                   onClick={() => {
-                    const partial = partialSuggestions.find(s => s.time === selectedTime);
+                    const partial = partialSuggestions.find((s) => s.time === selectedTime);
                     handleBook(partial?.availableMinutes);
                   }}
                   disabled={loading}
                 >
-                  {loading ? 'מזמין...' : 'אישור הזמנה'}
+                  {loading ? "מזמין..." : "אישור הזמנה"}
                 </Button>
               </div>
             )}
