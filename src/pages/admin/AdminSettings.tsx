@@ -56,6 +56,9 @@ export default function AdminSettings() {
     const { data } = await supabase.from("business_settings").select("*").limit(1).single();
     if (data) {
       const ds = ((data as any).day_schedules as DaySchedules) || {};
+      // Admin contact fields are restricted from the public table view; fetch via RPC.
+      const { data: contact } = await (supabase.rpc as any)("get_admin_contact");
+      const contactRow = Array.isArray(contact) ? contact[0] : contact;
       setSettings({
         id: data.id,
         business_name: data.business_name,
@@ -63,8 +66,8 @@ export default function AdminSettings() {
         slot_duration_minutes: data.slot_duration_minutes,
         advance_booking_days: data.advance_booking_days,
         cancellation_hours: data.cancellation_hours,
-        admin_phone: (data as any).admin_phone || "",
-        admin_email: (data as any).admin_email || "",
+        admin_phone: contactRow?.admin_phone || "",
+        admin_email: contactRow?.admin_email || "",
         custom_texts: ((data as any).custom_texts as Record<string, string>) || {},
         day_schedules: ds,
         slot_step_minutes: (data as any).slot_step_minutes || 15,

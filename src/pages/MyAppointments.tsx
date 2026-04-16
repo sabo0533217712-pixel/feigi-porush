@@ -64,12 +64,14 @@ export default function MyAppointments() {
   };
 
   const handleCancel = async (id: string) => {
-    const { error } = await supabase
-      .from('appointments')
-      .update({ status: 'cancelled' })
-      .eq('id', id);
+    const { error } = await (supabase.rpc as any)('cancel_my_appointment', { _appointment_id: id });
     if (error) {
-      toast.error('שגיאה בביטול');
+      const msg = error.message || '';
+      if (msg.includes('Cancellation window')) {
+        toast.error('חלון הביטול נסגר (פחות מ-24 שעות לפני התור)');
+      } else {
+        toast.error('שגיאה בביטול');
+      }
     } else {
       toast.success('התור בוטל');
       fetchAppointments();
