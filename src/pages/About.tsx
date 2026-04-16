@@ -14,11 +14,12 @@ export default function About() {
   }, []);
 
   const fetchSettings = async () => {
-    const { data } = await supabase.from('business_settings').select('business_name, custom_texts').limit(1).single();
-    if (data) {
-      setBusinessName(data.business_name);
-      if (data.custom_texts && typeof data.custom_texts === 'object') {
-        setCustomTexts(data.custom_texts as Record<string, string>);
+    const { data } = await supabase.rpc('get_public_business_settings');
+    const row = data?.[0];
+    if (row) {
+      setBusinessName(row.business_name);
+      if (row.custom_texts && typeof row.custom_texts === 'object') {
+        setCustomTexts(row.custom_texts as Record<string, string>);
       }
     }
   };

@@ -168,8 +168,9 @@ export default function ClientBooking() {
   };
 
   const fetchSettings = async () => {
-    const { data } = await supabase.from("business_settings").select("*").limit(1).single();
-    if (data) setSettings(data as unknown as BusinessSettings);
+    const { data } = await supabase.rpc("get_public_business_settings");
+    const row = data?.[0];
+    if (row) setSettings(row as unknown as BusinessSettings);
   };
 
   const fetchBookedSlots = async (date: Date) => {
