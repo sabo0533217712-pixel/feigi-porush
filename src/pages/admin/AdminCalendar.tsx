@@ -536,10 +536,10 @@ export default function AdminCalendar() {
                     top: getTopOffset(brk.start),
                     height: getHeight(brk.start, brk.end),
                     backgroundImage:
-                      "repeating-linear-gradient(45deg, transparent, transparent 6px, hsl(var(--muted-foreground) / 0.08) 6px, hsl(var(--muted-foreground) / 0.08) 7px)",
+                      "repeating-linear-gradient(45deg, transparent 0, transparent 5px, hsl(var(--muted-foreground) / 0.25) 5px, hsl(var(--muted-foreground) / 0.25) 7px)",
                   }}
                 >
-                  <span className="text-[10px] text-muted-foreground/70 px-2">הפסקה</span>
+                  <span className="text-[10px] font-medium text-muted-foreground bg-background/80 rounded px-1.5 py-0.5 mr-2 mt-1 inline-block">הפסקה</span>
                 </div>
               ))}
 
@@ -547,13 +547,13 @@ export default function AdminCalendar() {
               {timeBlocks.map((block) => (
                 <div
                   key={block.id}
-                  className="absolute right-16 left-4 rounded-md z-[2] flex items-center justify-between px-2 group"
+                  className="absolute right-16 left-4 rounded-md z-[2] flex items-center justify-between px-2 group overflow-hidden"
                   style={{
                     top: getTopOffset(block.start_time),
                     height: getHeight(block.start_time, block.end_time),
-                    background:
-                      "repeating-linear-gradient(135deg, hsl(var(--muted)), hsl(var(--muted)) 4px, hsl(var(--muted-foreground) / 0.1) 4px, hsl(var(--muted-foreground) / 0.1) 8px)",
-                    border: "1px dashed hsl(var(--border))",
+                    backgroundImage:
+                      "repeating-linear-gradient(45deg, transparent 0, transparent 5px, hsl(var(--muted-foreground) / 0.25) 5px, hsl(var(--muted-foreground) / 0.25) 7px)",
+                    border: "1px dashed hsl(var(--muted-foreground) / 0.4)",
                   }}
                 >
                   <span className="text-xs text-muted-foreground truncate">
