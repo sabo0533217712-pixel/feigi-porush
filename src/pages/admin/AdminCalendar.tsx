@@ -1414,6 +1414,28 @@ export default function AdminCalendar() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Confirmation */}
+      <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>ביטול תור</AlertDialogTitle>
+            <AlertDialogDescription>
+              האם את בטוחה שברצונך לבטל את התור של {editingAppointment?.profiles?.full_name || "הלקוחה"} בשעה{" "}
+              {editingAppointment?.start_time.substring(0, 5)}? פעולה זו תפנה את השעה ללקוחות אחרות.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>חזרה</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleAdminCancel}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              כן, בטלי את התור
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
