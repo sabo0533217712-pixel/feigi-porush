@@ -144,6 +144,11 @@ export default function AdminCalendar() {
     fetchMonthCounts();
   }, [currentMonth]);
 
+  useEffect(() => {
+    if (!showMoveDatePicker) return;
+    fetchMonthCountsFor(moveMonth, setMoveMonthCounts, setMoveMonthColors);
+  }, [moveMonth, showMoveDatePicker]);
+
   // Realtime + fallback refresh for the currently viewed day
   useEffect(() => {
     const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
