@@ -1168,7 +1168,81 @@ export default function AdminCalendar() {
         </DialogContent>
       </Dialog>
 
-      {/* Client Info Dialog */}
+      {/* Move Date Dialog — full calendar view */}
+      <Dialog open={showMoveDatePicker} onOpenChange={setShowMoveDatePicker}>
+        <DialogContent dir="rtl" className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>בחירת תאריך חדש</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2">
+            לחצי על תאריך כדי להעביר את התור אליו
+          </p>
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleMoveDate}
+            locale={he}
+            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+            onMonthChange={setMoveMonth}
+            className="pointer-events-auto w-full"
+            classNames={{
+              months: "flex flex-col w-full",
+              month: "space-y-4 w-full",
+              caption: "flex justify-center pt-2 relative items-center",
+              caption_label: "text-base font-semibold",
+              nav_button: cn(
+                "h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input",
+              ),
+              nav_button_previous: "absolute left-2",
+              nav_button_next: "absolute right-2",
+              table: "w-full border-collapse",
+              head_row: "flex w-full",
+              head_cell:
+                "text-muted-foreground rounded-md flex-1 h-10 font-medium text-sm flex items-center justify-center",
+              row: "flex w-full mt-1",
+              cell: "flex-1 h-14 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+              day: "h-14 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center rounded-md text-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              day_selected:
+                "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+              day_today: "bg-accent text-accent-foreground",
+              day_outside: "text-muted-foreground opacity-50",
+              day_disabled: "text-muted-foreground opacity-50",
+              day_hidden: "invisible",
+            }}
+            components={{
+              DayContent: ({ date }) => {
+                const dateStr = format(date, "yyyy-MM-dd");
+                const count = moveMonthCounts[dateStr] || 0;
+                const colors = moveMonthColors[dateStr] || [];
+                const dots = colors.slice(0, 4);
+                return (
+                  <div className="flex flex-col items-center leading-tight">
+                    <span className="text-sm font-medium">{date.getDate()}</span>
+                    <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
+                    {dots.length > 0 && (
+                      <div className="flex gap-0.5 mt-0.5 items-center">
+                        {dots.map((c, i) => (
+                          <span
+                            key={i}
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                        {count > dots.length && (
+                          <span className="text-[8px] font-semibold text-muted-foreground ml-0.5">
+                            +{count - dots.length}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              },
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!showClientInfo} onOpenChange={() => setShowClientInfo(null)}>
         <DialogContent dir="rtl" className="sm:max-w-sm">
           <DialogHeader>
