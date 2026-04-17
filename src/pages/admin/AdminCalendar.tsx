@@ -833,14 +833,27 @@ export default function AdminCalendar() {
               DayContent: ({ date }) => {
                 const dateStr = format(date, "yyyy-MM-dd");
                 const count = monthCounts[dateStr] || 0;
+                const colors = monthColors[dateStr] || [];
+                const dots = colors.slice(0, 4);
                 return (
                   <div className="flex flex-col items-center leading-tight">
                     <span className="text-sm font-medium">{date.getDate()}</span>
                     <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
-                    {count > 0 && (
-                      <span className="text-[9px] font-semibold text-primary bg-primary/10 rounded-full px-1.5 mt-0.5">
-                        {count}
-                      </span>
+                    {dots.length > 0 && (
+                      <div className="flex gap-0.5 mt-0.5 items-center">
+                        {dots.map((c, i) => (
+                          <span
+                            key={i}
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                        {count > dots.length && (
+                          <span className="text-[8px] font-semibold text-muted-foreground ml-0.5">
+                            +{count - dots.length}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 );
