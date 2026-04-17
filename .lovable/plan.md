@@ -1,59 +1,54 @@
 
-## הבעיה
-שתי לקוחות מצליחות לקבוע תור על אותה שעה במקביל. הטריגר `check_appointment_overlap` קיים אבל לא מסונכרן בין טרנזקציות מקבילות — שתי בקשות INSERT שרצות בו-זמנית עוברות את בדיקת ה-EXISTS לפני ש-COMMIT של אחת מהן הסתיים.
+## הבנת הבקשה
+במקום שלחיצה על "שינוי תאריך" תפתח רק לוח-שנה לבחירת יום, את רוצה שייפתח **היומן המלא של האדמין** (כפי שמופיע ב-`/admin` היום) — עם תצוגת היום המלאה (timeline + רשימת תורים), כדי שבעלת העסק תוכל:
+1. להיכנס ליום מסוים
+2. לראות את כל התורים והשעות הפנויות באותו יום
+3. לחזור אחורה ולעבור ליום אחר
+4. וכשמצאה את היום+השעה המתאימים — להעביר את התור לשם
 
-## הפתרון
-הוספת **Advisory Lock** ברמת התאריך בתוך הפונקציה `check_appointment_overlap()`. זה מבטיח שכל בקשת הזמנה לאותו תאריך תחכה בתור עד שהקודמת תסיים — וכך הבדיקה השנייה תראה את ההזמנה הראשונה ותיכשל כראוי.
+## איך זה ייראה
+לוחצים "שינוי תאריך" → נפתח דיאלוג מלא-מסך עם:
+- **התצוגה המקורית של AdminCalendar** (לוח חודשי עם נקודות צבעוניות + תצוגת היום הנבחר עם ה-timeline ורשימת התורים)
+- באנר עליון: "מעבירה תור של [שם לקוחה] · [טיפול] · [משך X דק']" + כפתור ביטול
+- ניווט בין הימים בדיוק כמו ביומן הרגיל (לחיצה על יום בחודש או חיצים)
+- בכל יום שנבחר: ליד כל **חלון פנוי** מתאים (שבו יש מספיק זמן לטיפול) יוצג כפתור **"העברה לכאן · HH:MM"**
+- לחיצה על הכפתור → מעדכנת `appointment_date` + `start_time` + `end_time` של התור הקיים, סוגרת את הדיאלוג, מציגה toast הצלחה
 
-### שינוי במסד הנתונים (מיגרציה)
-עדכון הפונקציה `check_appointment_overlap()`:
+## תכנית טכנית
 
-```sql
-CREATE OR REPLACE FUNCTION public.check_appointment_overlap()
-RETURNS trigger
-LANGUAGE plpgsql
-SET search_path TO 'public'
-AS $$
-BEGIN
-  IF NEW.booked_by_admin = true THEN
-    RETURN NEW;
-  END IF;
+### 1. חילוץ תצוגת היומן לרכיב משותף
+ב-`src/pages/admin/AdminCalendar.tsx` נחלץ את הלוגיקה והתצוגה של "לוח חודשי + תצוגת יום" לרכיב פנימי `<CalendarView />` שמקבל props:
+- `mode: 'browse' | 'reschedule'`
+- `rescheduleContext?: { appointmentId, durationMinutes, clientName, treatmentName }`
+- `onSlotPick?: (date, startTime, endTime) => void`
 
-  -- Serialize concurrent bookings on the same date
-  PERFORM pg_advisory_xact_lock(
-    hashtext('appointment_date_' || NEW.appointment_date::text)
-  );
+כך אותו רכיב משרת גם את התצוגה הרגילה וגם את דיאלוג ההעברה — בלי כפילות קוד.
 
-  IF EXISTS (
-    SELECT 1 FROM public.appointments
-    WHERE appointment_date = NEW.appointment_date
-      AND status = 'confirmed'
-      AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000')
-      AND (
-        (NEW.start_time >= start_time AND NEW.start_time < end_time)
-        OR (NEW.end_time > start_time AND NEW.end_time <= end_time)
-        OR (NEW.start_time <= start_time AND NEW.end_time >= end_time)
-      )
-  ) THEN
-    RAISE EXCEPTION 'Time slot is already booked';
-  END IF;
-  RETURN NEW;
-END;
-$$;
+### 2. חישוב חלונות פנויים ביום הנבחר (במצב reschedule)
+משתמש בלוגיקה הקיימת של חישוב slots (אותה לוגיקה שמופיעה ב-`ClientBooking.tsx` ובטיימליין של האדמין):
+- מביא את כל התורים המאושרים של היום
+- מחשב חלונות פנויים בהתאם לשעות העבודה
+- מסנן רק חלונות שאורכם ≥ `durationMinutes` של התור המועבר
+- **חשוב**: מתעלם מהתור המועבר עצמו (לפי `appointmentId`) כדי שניתן יהיה גם להזיז שעה בתוך אותו יום
+
+### 3. כפתור "העברה לכאן" בכל slot מתאים
+בתצוגת היום של מצב `reschedule` — ליד כל חלון פנוי מציגים שעה מומלצת (תחילת החלון) + כפתור ירוק "העברה לכאן".
+
+### 4. עדכון ה-DB
+```ts
+await supabase.from("appointments").update({
+  appointment_date: newDate,
+  start_time: newStart,
+  end_time: newEnd,
+  booked_by_admin: true, // לעקוף את trigger ה-overlap
+}).eq("id", appointmentId);
 ```
 
-### בנוסף — וידוא שהטריגר באמת מחובר
-בבדיקה ראיתי ש-`<db-triggers>` מציין "There are no triggers in the database" — מה שאומר שהפונקציה קיימת אבל **הטריגר עצמו לא מחובר לטבלה**! זה למעשה הסיבה האמיתית שכלום לא חוסם. צריך להוסיף:
+### 5. הסרת הדיאלוג הקיים של "לוח שנה גדול"
+מסירים את הקוד של `moveDialogOpen` הנוכחי (בחירת תאריך בלבד) ומחליפים אותו בדיאלוג החדש שמכיל את `<CalendarView mode="reschedule" />`.
 
-```sql
-DROP TRIGGER IF EXISTS check_appointment_overlap_trigger ON public.appointments;
-CREATE TRIGGER check_appointment_overlap_trigger
-  BEFORE INSERT OR UPDATE ON public.appointments
-  FOR EACH ROW
-  EXECUTE FUNCTION public.check_appointment_overlap();
-```
+## קבצים שיתעדכנו
+- `src/pages/admin/AdminCalendar.tsx` — refactor + הוספת מצב reschedule
 
 ## תוצאה
-- כל ניסיון הזמנה לאותו תאריך יסונכרן ברמת מסד הנתונים
-- הלקוחה השנייה תקבל את ההודעה "השעה הזו כבר נתפסה על ידי לקוחה אחרת" (הטיפול בצד הלקוח כבר קיים ב-`ClientBooking.tsx`)
-- בעלת העסק לא תוכל לקבל שני תורים על אותה שעה לעולם
+בעלת העסק תוכל "לטייל" בין הימים ביומן הרגיל שלה תוך כדי העברת תור, ולראות בכל יום בדיוק מה תפוס ומה פנוי — בדיוק כמו לקבוע תור חדש.
