@@ -1143,9 +1143,20 @@ export default function AdminCalendar() {
                   onChange={(e) => setEditForm((prev) => (prev ? { ...prev, notes: e.target.value } : null))}
                 />
               </div>
-              <Button className="w-full gradient-primary text-primary-foreground" onClick={handleEditSave}>
-                שמירה
-              </Button>
+              <div className="flex gap-2">
+                <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleEditSave}>
+                  שמירה
+                </Button>
+                {editingAppointment.status !== "cancelled" && (
+                  <Button
+                    variant="destructive"
+                    className="gap-1.5"
+                    onClick={() => setShowCancelConfirm(true)}
+                  >
+                    <Trash2 className="h-4 w-4" /> ביטול תור
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
