@@ -215,11 +215,15 @@ export default function AdminCalendar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, currentMonth]);
 
-  const fetchMonthCounts = async () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = format(new Date(year, month, 1), "yyyy-MM-dd");
-    const lastDay = format(new Date(year, month + 1, 0), "yyyy-MM-dd");
+  const fetchMonthCountsFor = async (
+    month: Date,
+    setCounts: (v: Record<string, number>) => void,
+    setColors: (v: Record<string, string[]>) => void,
+  ) => {
+    const year = month.getFullYear();
+    const m = month.getMonth();
+    const firstDay = format(new Date(year, m, 1), "yyyy-MM-dd");
+    const lastDay = format(new Date(year, m + 1, 0), "yyyy-MM-dd");
     const { data } = await supabase
       .from("appointments")
       .select("appointment_date, treatments(color)")
@@ -235,10 +239,12 @@ export default function AdminCalendar() {
         if (!colors[a.appointment_date]) colors[a.appointment_date] = [];
         colors[a.appointment_date].push(c);
       });
-      setMonthCounts(counts);
-      setMonthColors(colors);
+      setCounts(counts);
+      setColors(colors);
     }
   };
+
+  const fetchMonthCounts = () => fetchMonthCountsFor(currentMonth, setMonthCounts, setMonthColors);
 
   const fetchSettings = async () => {
     const { data } = await supabase
