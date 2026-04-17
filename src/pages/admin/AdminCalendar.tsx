@@ -98,6 +98,7 @@ export default function AdminCalendar() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showMoveDatePicker, setShowMoveDatePicker] = useState(false);
+  const [moveMonth, setMoveMonth] = useState<Date>(new Date());
 
   // Dialogs
   const [showBookDialog, setShowBookDialog] = useState(false);
