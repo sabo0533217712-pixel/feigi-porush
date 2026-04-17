@@ -432,7 +432,46 @@ export default function AdminCalendar() {
     }
   };
 
-  const [bookDuration, setBookDuration] = useState<number>(30);
+  // Cancel appointment (admin)
+  const handleAdminCancel = async () => {
+    if (!editingAppointment) return;
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status: "cancelled" })
+      .eq("id", editingAppointment.id);
+    if (error) {
+      toast.error("שגיאה בביטול התור");
+    } else {
+      toast.success("התור בוטל");
+      setShowCancelConfirm(false);
+      setShowEditDialog(false);
+      setEditingAppointment(null);
+      setEditForm(null);
+      fetchDayData();
+      fetchMonthCounts();
+    }
+  };
+
+  // Move appointment to a different date
+  const handleMoveDate = async (newDate: Date | undefined) => {
+    if (!newDate || !editingAppointment) return;
+    const newDateStr = format(newDate, "yyyy-MM-dd");
+    const { error } = await supabase
+      .from("appointments")
+      .update({ appointment_date: newDateStr, booked_by_admin: true })
+      .eq("id", editingAppointment.id);
+    if (error) {
+      toast.error("שגיאה בהעברת התור");
+    } else {
+      toast.success(`התור הועבר ל-${format(newDate, "d בMMMM yyyy", { locale: he })}`);
+      setShowMoveDatePicker(false);
+      setShowEditDialog(false);
+      setEditingAppointment(null);
+      setEditForm(null);
+      setSelectedDate(newDate);
+      fetchMonthCounts();
+    }
+  };
 
   const onTreatmentSelect = (treatmentId: string) => {
     const t = treatments.find((tr) => tr.id === treatmentId);
