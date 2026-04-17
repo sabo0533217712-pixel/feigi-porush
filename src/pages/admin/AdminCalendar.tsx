@@ -1079,24 +1079,16 @@ export default function AdminCalendar() {
                   >
                     <User className="h-4 w-4" /> יצירת קשר
                   </Button>
-                  <Popover open={showMoveDatePicker} onOpenChange={setShowMoveDatePicker}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <CalendarIcon className="h-4 w-4" /> שינוי תאריך
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="center">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={handleMoveDate}
-                        locale={he}
-                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setMoveMonth(selectedDate);
+                      setShowMoveDatePicker(true);
+                    }}
+                  >
+                    <CalendarIcon className="h-4 w-4" /> שינוי תאריך
+                  </Button>
                 </div>
               </div>
 
