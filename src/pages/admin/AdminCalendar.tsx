@@ -14,7 +14,9 @@ import { he } from "date-fns/locale";
 import { getHebrewDateShort, getHebrewDate } from "@/lib/hebrew-date";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks } from "lucide-react";
+import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface WaitlistEntry {
   id: string;
