@@ -466,24 +466,32 @@ export default function AdminCalendar() {
     }
   };
 
-  // Move appointment to a different date
-  const handleMoveDate = async (newDate: Date | undefined) => {
-    if (!newDate || !editingAppointment) return;
+  // Move appointment to a specific date + time slot
+  const handleMoveToSlot = async (newDate: Date, newStart: string, newEnd: string) => {
+    if (!editingAppointment) return;
     const newDateStr = format(newDate, "yyyy-MM-dd");
     const { error } = await supabase
       .from("appointments")
-      .update({ appointment_date: newDateStr, booked_by_admin: true })
+      .update({
+        appointment_date: newDateStr,
+        start_time: newStart,
+        end_time: newEnd,
+        booked_by_admin: true,
+      })
       .eq("id", editingAppointment.id);
     if (error) {
       toast.error("שגיאה בהעברת התור");
     } else {
-      toast.success(`התור הועבר ל-${format(newDate, "d בMMMM yyyy", { locale: he })}`);
+      toast.success(
+        `התור הועבר ל-${format(newDate, "d בMMMM yyyy", { locale: he })} בשעה ${newStart}`,
+      );
       setShowMoveDatePicker(false);
       setShowEditDialog(false);
       setEditingAppointment(null);
       setEditForm(null);
       setSelectedDate(newDate);
       fetchMonthCounts();
+      fetchDayData();
     }
   };
 
