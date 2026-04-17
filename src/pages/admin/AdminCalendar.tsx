@@ -1070,14 +1070,33 @@ export default function AdminCalendar() {
                   {format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })} •{" "}
                   {editingAppointment.start_time.substring(0, 5)}-{editingAppointment.end_time.substring(0, 5)}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-1"
-                  onClick={() => setShowClientInfo(editingAppointment)}
-                >
-                  <User className="h-4 w-4" /> יצירת קשר
-                </Button>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowClientInfo(editingAppointment)}
+                  >
+                    <User className="h-4 w-4" /> יצירת קשר
+                  </Button>
+                  <Popover open={showMoveDatePicker} onOpenChange={setShowMoveDatePicker}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <CalendarIcon className="h-4 w-4" /> שינוי תאריך
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="center">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={handleMoveDate}
+                        locale={he}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
