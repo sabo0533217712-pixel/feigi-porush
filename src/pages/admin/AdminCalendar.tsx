@@ -214,16 +214,21 @@ export default function AdminCalendar() {
     const lastDay = format(new Date(year, month + 1, 0), "yyyy-MM-dd");
     const { data } = await supabase
       .from("appointments")
-      .select("appointment_date")
+      .select("appointment_date, treatments(color)")
       .gte("appointment_date", firstDay)
       .lte("appointment_date", lastDay)
       .neq("status", "cancelled");
     if (data) {
       const counts: Record<string, number> = {};
-      data.forEach((a) => {
+      const colors: Record<string, string[]> = {};
+      data.forEach((a: any) => {
         counts[a.appointment_date] = (counts[a.appointment_date] || 0) + 1;
+        const c = a.treatments?.color || "hsl(var(--primary))";
+        if (!colors[a.appointment_date]) colors[a.appointment_date] = [];
+        colors[a.appointment_date].push(c);
       });
       setMonthCounts(counts);
+      setMonthColors(colors);
     }
   };
 
