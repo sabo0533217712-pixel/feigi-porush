@@ -94,7 +94,10 @@ export default function AdminCalendar() {
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [showTimeline, setShowTimeline] = useState(false);
   const [monthCounts, setMonthCounts] = useState<Record<string, number>>({});
+  const [monthColors, setMonthColors] = useState<Record<string, string[]>>({});
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showMoveDatePicker, setShowMoveDatePicker] = useState(false);
 
   // Dialogs
   const [showBookDialog, setShowBookDialog] = useState(false);
