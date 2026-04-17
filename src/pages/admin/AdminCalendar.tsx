@@ -14,7 +14,9 @@ import { he } from "date-fns/locale";
 import { getHebrewDateShort, getHebrewDate } from "@/lib/hebrew-date";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks } from "lucide-react";
+import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface WaitlistEntry {
   id: string;
@@ -92,7 +94,10 @@ export default function AdminCalendar() {
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [showTimeline, setShowTimeline] = useState(false);
   const [monthCounts, setMonthCounts] = useState<Record<string, number>>({});
+  const [monthColors, setMonthColors] = useState<Record<string, string[]>>({});
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showMoveDatePicker, setShowMoveDatePicker] = useState(false);
 
   // Dialogs
   const [showBookDialog, setShowBookDialog] = useState(false);
@@ -209,16 +214,21 @@ export default function AdminCalendar() {
     const lastDay = format(new Date(year, month + 1, 0), "yyyy-MM-dd");
     const { data } = await supabase
       .from("appointments")
-      .select("appointment_date")
+      .select("appointment_date, treatments(color)")
       .gte("appointment_date", firstDay)
       .lte("appointment_date", lastDay)
       .neq("status", "cancelled");
     if (data) {
       const counts: Record<string, number> = {};
-      data.forEach((a) => {
+      const colors: Record<string, string[]> = {};
+      data.forEach((a: any) => {
         counts[a.appointment_date] = (counts[a.appointment_date] || 0) + 1;
+        const c = a.treatments?.color || "hsl(var(--primary))";
+        if (!colors[a.appointment_date]) colors[a.appointment_date] = [];
+        colors[a.appointment_date].push(c);
       });
       setMonthCounts(counts);
+      setMonthColors(colors);
     }
   };
 
@@ -418,6 +428,47 @@ export default function AdminCalendar() {
       setShowEditDialog(false);
       setEditForm(null);
       fetchDayData();
+      fetchMonthCounts();
+    }
+  };
+
+  // Cancel appointment (admin)
+  const handleAdminCancel = async () => {
+    if (!editingAppointment) return;
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status: "cancelled" })
+      .eq("id", editingAppointment.id);
+    if (error) {
+      toast.error("שגיאה בביטול התור");
+    } else {
+      toast.success("התור בוטל");
+      setShowCancelConfirm(false);
+      setShowEditDialog(false);
+      setEditingAppointment(null);
+      setEditForm(null);
+      fetchDayData();
+      fetchMonthCounts();
+    }
+  };
+
+  // Move appointment to a different date
+  const handleMoveDate = async (newDate: Date | undefined) => {
+    if (!newDate || !editingAppointment) return;
+    const newDateStr = format(newDate, "yyyy-MM-dd");
+    const { error } = await supabase
+      .from("appointments")
+      .update({ appointment_date: newDateStr, booked_by_admin: true })
+      .eq("id", editingAppointment.id);
+    if (error) {
+      toast.error("שגיאה בהעברת התור");
+    } else {
+      toast.success(`התור הועבר ל-${format(newDate, "d בMMMM yyyy", { locale: he })}`);
+      setShowMoveDatePicker(false);
+      setShowEditDialog(false);
+      setEditingAppointment(null);
+      setEditForm(null);
+      setSelectedDate(newDate);
       fetchMonthCounts();
     }
   };
@@ -782,14 +833,27 @@ export default function AdminCalendar() {
               DayContent: ({ date }) => {
                 const dateStr = format(date, "yyyy-MM-dd");
                 const count = monthCounts[dateStr] || 0;
+                const colors = monthColors[dateStr] || [];
+                const dots = colors.slice(0, 4);
                 return (
                   <div className="flex flex-col items-center leading-tight">
                     <span className="text-sm font-medium">{date.getDate()}</span>
                     <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
-                    {count > 0 && (
-                      <span className="text-[9px] font-semibold text-primary bg-primary/10 rounded-full px-1.5 mt-0.5">
-                        {count}
-                      </span>
+                    {dots.length > 0 && (
+                      <div className="flex gap-0.5 mt-0.5 items-center">
+                        {dots.map((c, i) => (
+                          <span
+                            key={i}
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                        {count > dots.length && (
+                          <span className="text-[8px] font-semibold text-muted-foreground ml-0.5">
+                            +{count - dots.length}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 );
@@ -1006,14 +1070,33 @@ export default function AdminCalendar() {
                   {format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })} •{" "}
                   {editingAppointment.start_time.substring(0, 5)}-{editingAppointment.end_time.substring(0, 5)}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-1"
-                  onClick={() => setShowClientInfo(editingAppointment)}
-                >
-                  <User className="h-4 w-4" /> יצירת קשר
-                </Button>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowClientInfo(editingAppointment)}
+                  >
+                    <User className="h-4 w-4" /> יצירת קשר
+                  </Button>
+                  <Popover open={showMoveDatePicker} onOpenChange={setShowMoveDatePicker}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <CalendarIcon className="h-4 w-4" /> שינוי תאריך
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="center">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={handleMoveDate}
+                        locale={he}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -1060,9 +1143,20 @@ export default function AdminCalendar() {
                   onChange={(e) => setEditForm((prev) => (prev ? { ...prev, notes: e.target.value } : null))}
                 />
               </div>
-              <Button className="w-full gradient-primary text-primary-foreground" onClick={handleEditSave}>
-                שמירה
-              </Button>
+              <div className="flex gap-2">
+                <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleEditSave}>
+                  שמירה
+                </Button>
+                {editingAppointment.status !== "cancelled" && (
+                  <Button
+                    variant="destructive"
+                    className="gap-1.5"
+                    onClick={() => setShowCancelConfirm(true)}
+                  >
+                    <Trash2 className="h-4 w-4" /> ביטול תור
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
@@ -1320,6 +1414,28 @@ export default function AdminCalendar() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Confirmation */}
+      <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>ביטול תור</AlertDialogTitle>
+            <AlertDialogDescription>
+              האם את בטוחה שברצונך לבטל את התור של {editingAppointment?.profiles?.full_name || "הלקוחה"} בשעה{" "}
+              {editingAppointment?.start_time.substring(0, 5)}? פעולה זו תפנה את השעה ללקוחות אחרות.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>חזרה</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleAdminCancel}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              כן, בטלי את התור
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
