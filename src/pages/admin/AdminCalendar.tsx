@@ -466,24 +466,32 @@ export default function AdminCalendar() {
     }
   };
 
-  // Move appointment to a different date
-  const handleMoveDate = async (newDate: Date | undefined) => {
-    if (!newDate || !editingAppointment) return;
+  // Move appointment to a specific date + time slot
+  const handleMoveToSlot = async (newDate: Date, newStart: string, newEnd: string) => {
+    if (!editingAppointment) return;
     const newDateStr = format(newDate, "yyyy-MM-dd");
     const { error } = await supabase
       .from("appointments")
-      .update({ appointment_date: newDateStr, booked_by_admin: true })
+      .update({
+        appointment_date: newDateStr,
+        start_time: newStart,
+        end_time: newEnd,
+        booked_by_admin: true,
+      })
       .eq("id", editingAppointment.id);
     if (error) {
       toast.error("שגיאה בהעברת התור");
     } else {
-      toast.success(`התור הועבר ל-${format(newDate, "d בMMMM yyyy", { locale: he })}`);
+      toast.success(
+        `התור הועבר ל-${format(newDate, "d בMMMM yyyy", { locale: he })} בשעה ${newStart}`,
+      );
       setShowMoveDatePicker(false);
       setShowEditDialog(false);
       setEditingAppointment(null);
       setEditForm(null);
       setSelectedDate(newDate);
       fetchMonthCounts();
+      fetchDayData();
     }
   };
 
@@ -1168,78 +1176,30 @@ export default function AdminCalendar() {
         </DialogContent>
       </Dialog>
 
-      {/* Move Date Dialog — full calendar view */}
-      <Dialog open={showMoveDatePicker} onOpenChange={setShowMoveDatePicker}>
-        <DialogContent dir="rtl" className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      {/* Move Appointment Dialog — full calendar + day timeline view */}
+      <Dialog
+        open={showMoveDatePicker}
+        onOpenChange={(open) => {
+          setShowMoveDatePicker(open);
+        }}
+      >
+        <DialogContent dir="rtl" className="sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4">
           <DialogHeader>
-            <DialogTitle>בחירת תאריך חדש</DialogTitle>
+            <DialogTitle>העברת תור</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground -mt-2">
-            לחצי על תאריך כדי להעביר את התור אליו
-          </p>
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={handleMoveDate}
-            locale={he}
-            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-            onMonthChange={setMoveMonth}
-            className="pointer-events-auto w-full"
-            classNames={{
-              months: "flex flex-col w-full",
-              month: "space-y-4 w-full",
-              caption: "flex justify-center pt-2 relative items-center",
-              caption_label: "text-base font-semibold",
-              nav_button: cn(
-                "h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input",
-              ),
-              nav_button_previous: "absolute left-2",
-              nav_button_next: "absolute right-2",
-              table: "w-full border-collapse",
-              head_row: "flex w-full",
-              head_cell:
-                "text-muted-foreground rounded-md flex-1 h-10 font-medium text-sm flex items-center justify-center",
-              row: "flex w-full mt-1",
-              cell: "flex-1 h-14 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-              day: "h-14 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center rounded-md text-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              day_selected:
-                "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-              day_today: "bg-accent text-accent-foreground",
-              day_outside: "text-muted-foreground opacity-50",
-              day_disabled: "text-muted-foreground opacity-50",
-              day_hidden: "invisible",
-            }}
-            components={{
-              DayContent: ({ date }) => {
-                const dateStr = format(date, "yyyy-MM-dd");
-                const count = moveMonthCounts[dateStr] || 0;
-                const colors = moveMonthColors[dateStr] || [];
-                const dots = colors.slice(0, 4);
-                return (
-                  <div className="flex flex-col items-center leading-tight">
-                    <span className="text-sm font-medium">{date.getDate()}</span>
-                    <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
-                    {dots.length > 0 && (
-                      <div className="flex gap-0.5 mt-0.5 items-center">
-                        {dots.map((c, i) => (
-                          <span
-                            key={i}
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: c }}
-                          />
-                        ))}
-                        {count > dots.length && (
-                          <span className="text-[8px] font-semibold text-muted-foreground ml-0.5">
-                            +{count - dots.length}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              },
-            }}
-          />
+          {editingAppointment && (
+            <RescheduleView
+              key={editingAppointment.id}
+              appointment={editingAppointment}
+              initialDate={selectedDate}
+              settings={settings}
+              monthCounts={moveMonthCounts}
+              monthColors={moveMonthColors}
+              onMonthChange={setMoveMonth}
+              onMoveToSlot={handleMoveToSlot}
+              onCancel={() => setShowMoveDatePicker(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -1516,6 +1476,315 @@ export default function AdminCalendar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+// =============================================================
+// RescheduleView — full month calendar + day timeline with
+// "move here" buttons next to every free window.
+// =============================================================
+interface RescheduleViewProps {
+  appointment: Appointment;
+  initialDate: Date;
+  settings: BusinessSettings | null;
+  monthCounts: Record<string, number>;
+  monthColors: Record<string, string[]>;
+  onMonthChange: (d: Date) => void;
+  onMoveToSlot: (date: Date, start: string, end: string) => void;
+  onCancel: () => void;
+}
+
+interface DayApt {
+  id: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+}
+
+interface DayBlock {
+  id: string;
+  start_time: string;
+  end_time: string;
+}
+
+function RescheduleView({
+  appointment,
+  initialDate,
+  settings,
+  monthCounts,
+  monthColors,
+  onMonthChange,
+  onMoveToSlot,
+  onCancel,
+}: RescheduleViewProps) {
+  const [viewDate, setViewDate] = useState<Date>(initialDate);
+  const [dayApts, setDayApts] = useState<DayApt[]>([]);
+  const [dayBlocks, setDayBlocks] = useState<DayBlock[]>([]);
+
+  const movedDuration = useMemo(() => {
+    const [sh, sm] = appointment.start_time.substring(0, 5).split(":").map(Number);
+    const [eh, em] = appointment.end_time.substring(0, 5).split(":").map(Number);
+    return eh * 60 + em - (sh * 60 + sm);
+  }, [appointment]);
+
+  const daySchedule = useMemo(() => {
+    if (!settings)
+      return { startMin: 8 * 60, endMin: 20 * 60, breaks: [] as { start: string; end: string }[] };
+    const dow = viewDate.getDay();
+    const ds = settings.day_schedules?.[String(dow)];
+    const startTime = ds?.start || settings.start_time;
+    const endTime = ds?.end || settings.end_time;
+    let breaks = ds?.breaks || [];
+    if (breaks.length === 0 && settings.break_start && settings.break_end) {
+      breaks = [
+        { start: settings.break_start.substring(0, 5), end: settings.break_end.substring(0, 5) },
+      ];
+    }
+    const toMin = (t: string) => {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    };
+    return {
+      startMin: toMin(startTime.substring(0, 5)),
+      endMin: toMin(endTime.substring(0, 5)),
+      breaks,
+    };
+  }, [settings, viewDate]);
+
+  const isWorkingDay = useMemo(() => {
+    if (!settings) return true;
+    return settings.working_days.includes(viewDate.getDay());
+  }, [settings, viewDate]);
+
+  useEffect(() => {
+    const dateStr = format(viewDate, "yyyy-MM-dd");
+    let cancelled = false;
+    (async () => {
+      const [aptsRes, blocksRes] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select("id, start_time, end_time, status")
+          .eq("appointment_date", dateStr)
+          .neq("status", "cancelled"),
+        supabase.from("time_blocks").select("id, start_time, end_time").eq("block_date", dateStr),
+      ]);
+      if (cancelled) return;
+      setDayApts((aptsRes.data || []) as DayApt[]);
+      setDayBlocks((blocksRes.data || []) as DayBlock[]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [viewDate]);
+
+  const freeSlots = useMemo(() => {
+    if (!isWorkingDay) return [] as { start: string; end: string }[];
+    const toMin = (t: string) => {
+      const [h, m] = t.substring(0, 5).split(":").map(Number);
+      return h * 60 + m;
+    };
+    const fmt = (mins: number) =>
+      `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+
+    const busy: Array<[number, number]> = [];
+    dayApts.forEach((a) => {
+      if (a.id === appointment.id) return;
+      busy.push([toMin(a.start_time), toMin(a.end_time)]);
+    });
+    dayBlocks.forEach((b) => busy.push([toMin(b.start_time), toMin(b.end_time)]));
+    daySchedule.breaks.forEach((b) => busy.push([toMin(b.start), toMin(b.end)]));
+
+    busy.sort((a, b) => a[0] - b[0]);
+
+    const merged: Array<[number, number]> = [];
+    for (const [s, e] of busy) {
+      if (merged.length && s <= merged[merged.length - 1][1]) {
+        merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], e);
+      } else {
+        merged.push([s, e]);
+      }
+    }
+
+    const free: Array<[number, number]> = [];
+    let cursor = daySchedule.startMin;
+    for (const [s, e] of merged) {
+      if (s > cursor) free.push([cursor, Math.min(s, daySchedule.endMin)]);
+      cursor = Math.max(cursor, e);
+      if (cursor >= daySchedule.endMin) break;
+    }
+    if (cursor < daySchedule.endMin) free.push([cursor, daySchedule.endMin]);
+
+    const now = new Date();
+    const isToday =
+      viewDate.getFullYear() === now.getFullYear() &&
+      viewDate.getMonth() === now.getMonth() &&
+      viewDate.getDate() === now.getDate();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+
+    const step = 15;
+    const suggestions: { start: string; end: string }[] = [];
+    for (const [s, e] of free) {
+      if (e - s < movedDuration) continue;
+      let t = s;
+      while (t + movedDuration <= e) {
+        if (!isToday || t >= nowMin) {
+          suggestions.push({ start: fmt(t), end: fmt(t + movedDuration) });
+        }
+        t += step;
+      }
+    }
+    return suggestions;
+  }, [dayApts, dayBlocks, daySchedule, movedDuration, isWorkingDay, viewDate, appointment.id]);
+
+  const todayStart = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  return (
+    <div className="space-y-3">
+      {/* Banner */}
+      <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="font-semibold text-foreground">
+              מעבירה תור של {appointment.profiles?.full_name || "לקוחה"}
+            </p>
+            <p className="text-muted-foreground text-xs mt-0.5">
+              {appointment.treatments?.name} • {movedDuration} דק׳ • כעת:{" "}
+              {format(new Date(appointment.appointment_date), "d/M", { locale: he })}{" "}
+              {appointment.start_time.substring(0, 5)}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onCancel}>
+            ביטול
+          </Button>
+        </div>
+      </div>
+
+      {/* Month calendar */}
+      <Calendar
+        mode="single"
+        selected={viewDate}
+        onSelect={(d) => d && setViewDate(d)}
+        locale={he}
+        disabled={(date) => date < todayStart}
+        onMonthChange={onMonthChange}
+        className="pointer-events-auto w-full"
+        classNames={{
+          months: "flex flex-col w-full",
+          month: "space-y-3 w-full",
+          caption: "flex justify-center pt-2 relative items-center",
+          caption_label: "text-base font-semibold",
+          nav_button: cn(
+            "h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input",
+          ),
+          nav_button_previous: "absolute left-2",
+          nav_button_next: "absolute right-2",
+          table: "w-full border-collapse",
+          head_row: "flex w-full",
+          head_cell:
+            "text-muted-foreground rounded-md flex-1 h-8 font-medium text-xs flex items-center justify-center",
+          row: "flex w-full mt-1",
+          cell: "flex-1 h-12 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+          day: "h-12 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center rounded-md text-sm",
+          day_selected:
+            "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+          day_today: "bg-accent text-accent-foreground",
+          day_outside: "text-muted-foreground opacity-50",
+          day_disabled: "text-muted-foreground opacity-40",
+          day_hidden: "invisible",
+        }}
+        components={{
+          DayContent: ({ date }) => {
+            const dateStr = format(date, "yyyy-MM-dd");
+            const count = monthCounts[dateStr] || 0;
+            const colors = monthColors[dateStr] || [];
+            const dots = colors.slice(0, 4);
+            return (
+              <div className="flex flex-col items-center leading-tight">
+                <span className="text-sm font-medium">{date.getDate()}</span>
+                <span className="text-[9px] text-muted-foreground">{getHebrewDateShort(date)}</span>
+                {dots.length > 0 && (
+                  <div className="flex gap-0.5 mt-0.5 items-center">
+                    {dots.map((c, i) => (
+                      <span key={i} className="w-1 h-1 rounded-full" style={{ backgroundColor: c }} />
+                    ))}
+                    {count > dots.length && (
+                      <span className="text-[8px] font-semibold text-muted-foreground ml-0.5">
+                        +{count - dots.length}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          },
+        }}
+      />
+
+      {/* Day detail */}
+      <div className="border border-border rounded-lg p-3 space-y-3">
+        <div>
+          <h3 className="font-semibold text-sm">
+            {format(viewDate, "EEEE, d בMMMM yyyy", { locale: he })}
+          </h3>
+          <p className="text-[11px] text-muted-foreground">{getHebrewDate(viewDate)}</p>
+        </div>
+
+        {!isWorkingDay && (
+          <p className="text-sm text-muted-foreground text-center py-4">יום זה אינו יום עבודה</p>
+        )}
+
+        {isWorkingDay && (
+          <>
+            {dayApts.filter((a) => a.id !== appointment.id).length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">תורים קיימים ביום זה:</p>
+                {dayApts
+                  .filter((a) => a.id !== appointment.id)
+                  .sort((a, b) => a.start_time.localeCompare(b.start_time))
+                  .map((a) => (
+                    <div
+                      key={a.id}
+                      className="text-xs bg-muted/40 rounded px-2 py-1 font-mono text-muted-foreground"
+                    >
+                      {a.start_time.substring(0, 5)}–{a.end_time.substring(0, 5)} (תפוס)
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">
+                שעות פנויות לטיפול ({movedDuration} דק׳):
+              </p>
+              {freeSlots.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-3">
+                  אין חלונות פנויים מתאימים ביום זה
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-1.5 max-h-72 overflow-y-auto">
+                  {freeSlots.map((s) => (
+                    <Button
+                      key={`${s.start}-${s.end}`}
+                      size="sm"
+                      variant="outline"
+                      className="justify-between font-mono text-xs hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                      onClick={() => onMoveToSlot(viewDate, s.start, s.end)}
+                    >
+                      <span>{s.start}</span>
+                      <span className="text-[10px] opacity-70">העברה ←</span>
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
