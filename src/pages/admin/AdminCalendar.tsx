@@ -473,6 +473,8 @@ export default function AdminCalendar() {
     }
   };
 
+  const [bookDuration, setBookDuration] = useState<number>(30);
+
   const onTreatmentSelect = (treatmentId: string) => {
     const t = treatments.find((tr) => tr.id === treatmentId);
     if (t) {
