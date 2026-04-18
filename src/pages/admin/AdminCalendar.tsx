@@ -1206,11 +1206,18 @@ export default function AdminCalendar() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!showClientInfo} onOpenChange={() => setShowClientInfo(null)}>
-        <DialogContent dir="rtl" className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>פרטי לקוחה</DialogTitle>
-          </DialogHeader>
+      {/* Confirm-and-edit move dialog: shows from→to summary and lets the admin
+          fine-tune start/end before committing the move to the database. */}
+      <ConfirmMoveDialog
+        pendingMove={pendingMove}
+        editingAppointment={editingAppointment}
+        originalDate={selectedDate}
+        onCancel={() => setPendingMove(null)}
+        onConfirm={async (date, start, end) => {
+          await handleMoveToSlot(date, start, end);
+          setPendingMove(null);
+        }}
+      />
           {showClientInfo?.profiles &&
             (() => {
               const rawPhone = showClientInfo.profiles.phone?.trim() || "";
