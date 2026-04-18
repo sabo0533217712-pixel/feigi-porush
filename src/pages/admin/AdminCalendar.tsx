@@ -2141,3 +2141,130 @@ function ClickToMoveOverlay({
   );
 }
 
+// =============================================================
+// ConfirmMoveDialog — preview "from → to" + edit start/end times
+// before committing the move. Validates duration > 0 and end<=24:00.
+// =============================================================
+interface ConfirmMoveDialogProps {
+  pendingMove: { date: Date; start: string; end: string } | null;
+  editingAppointment: Appointment | null;
+  originalDate: Date;
+  onCancel: () => void;
+  onConfirm: (date: Date, start: string, end: string) => void | Promise<void>;
+}
+
+function ConfirmMoveDialog({
+  pendingMove,
+  editingAppointment,
+  originalDate,
+  onCancel,
+  onConfirm,
+}: ConfirmMoveDialogProps) {
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (pendingMove) {
+      setStart(pendingMove.start.substring(0, 5));
+      setEnd(pendingMove.end.substring(0, 5));
+    }
+  }, [pendingMove]);
+
+  const open = !!pendingMove && !!editingAppointment;
+  if (!open || !pendingMove || !editingAppointment) {
+    return (
+      <Dialog open={false} onOpenChange={(o) => !o && onCancel()}>
+        <DialogContent />
+      </Dialog>
+    );
+  }
+
+  const toMin = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const duration = toMin(end) - toMin(start);
+  const valid = /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end) && duration > 0;
+
+  const fromTxt = `${format(originalDate, "EEEE d/M", { locale: he })} · ${editingAppointment.start_time.substring(0, 5)}–${editingAppointment.end_time.substring(0, 5)}`;
+  const toTxt = `${format(pendingMove.date, "EEEE d/M", { locale: he })} · ${start}–${end}`;
+
+  const handleSubmit = async () => {
+    if (!valid) return;
+    setSubmitting(true);
+    try {
+      await onConfirm(pendingMove.date, start, end);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent dir="rtl" className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>אישור העברת תור</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{editingAppointment.profiles?.full_name || "לקוחה"}</span>
+              <span className="text-muted-foreground">· {editingAppointment.treatments?.name}</span>
+            </div>
+
+            <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs pt-1">
+              <span className="text-muted-foreground">מ:</span>
+              <span className="line-through text-muted-foreground">{fromTxt}</span>
+              <span className="text-muted-foreground font-semibold">ל:</span>
+              <span className="font-semibold text-primary">{toTxt}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="move-start" className="text-xs">שעת התחלה</Label>
+              <Input
+                id="move-start"
+                type="time"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+                dir="ltr"
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="move-end" className="text-xs">שעת סיום</Label>
+              <Input
+                id="move-end"
+                type="time"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+                dir="ltr"
+                className="font-mono"
+              />
+            </div>
+          </div>
+
+          {valid ? (
+            <p className="text-xs text-muted-foreground text-center">משך התור: {duration} דק׳</p>
+          ) : (
+            <p className="text-xs text-destructive text-center">שעת הסיום חייבת להיות אחרי שעת ההתחלה</p>
+          )}
+
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" onClick={onCancel} disabled={submitting}>
+              ביטול
+            </Button>
+            <Button onClick={handleSubmit} disabled={!valid || submitting}>
+              {submitting ? "מעבירה…" : "אישור והעברה"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
