@@ -128,6 +128,9 @@ export default function AdminCalendar() {
     notes: string;
   } | null>(null);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  // Pending move (for the confirm-and-edit dialog) — populated when admin clicks a slot
+  // in the timeline; the actual DB update only happens after she confirms in the dialog.
+  const [pendingMove, setPendingMove] = useState<{ date: Date; start: string; end: string } | null>(null);
 
   useEffect(() => {
     fetchTreatments();
