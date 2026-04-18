@@ -1937,21 +1937,15 @@ function DayTimeline({
                 </div>
               ))}
 
-              {freeWindows.map((w, i) => (
-                <button
-                  key={`free-${i}`}
-                  type="button"
-                  onClick={() => onMoveToSlot(w.start, computeEnd(w.start))}
-                  className="absolute right-16 left-4 rounded-md z-[2] flex items-center justify-center text-xs font-semibold border-2 border-dashed border-emerald-500/60 bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 transition-colors"
-                  style={{
-                    top: getTopOffset(w.start),
-                    height: getHeight(w.start, w.end),
-                  }}
-                  title={`העברה ל-${w.start} (${movedDuration} דק׳)`}
-                >
-                  פנוי {w.start}–{w.end} · לחצי להעברה
-                </button>
-              ))}
+              {/* Click-to-move overlay: click anywhere on the timeline to pick that exact time.
+                  Snaps to 5-min grid. Only allowed when the chosen start fits inside a free window. */}
+              <ClickToMoveOverlay
+                daySchedule={daySchedule}
+                hourHeight={HOUR_HEIGHT}
+                freeWindows={freeWindows}
+                movedDuration={movedDuration}
+                onPick={(start) => onMoveToSlot(start, computeEnd(start))}
+              />
 
               {(() => {
                 const toMin = (t: string) => {
@@ -1997,7 +1991,7 @@ function DayTimeline({
                   return (
                     <div
                       key={apt.id}
-                      className="absolute rounded-md z-[3] flex items-stretch overflow-hidden shadow-sm"
+                      className="absolute rounded-md z-[3] flex items-stretch overflow-hidden shadow-sm pointer-events-none"
                       style={{
                         top: getTopOffset(apt.start_time),
                         height: getHeight(apt.start_time, apt.end_time),
@@ -2030,28 +2024,104 @@ function DayTimeline({
             </div>
           </div>
 
-          {freeSlots.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">
-                שעות מומלצות ({movedDuration} דק׳):
-              </p>
-              <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto">
-                {freeSlots.map((s) => (
-                  <Button
-                    key={`${s.start}-${s.end}`}
-                    size="sm"
-                    variant="outline"
-                    className="font-mono text-xs hover:bg-emerald-500 hover:text-white hover:border-emerald-500"
-                    onClick={() => onMoveToSlot(s.start, s.end)}
-                  >
-                    {s.start}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
+          <p className="text-[11px] text-muted-foreground text-center">
+            לחצי על שעה כלשהי בטיימליין כדי להעביר את התור לאותה שעה ({movedDuration} דק׳)
+          </p>
         </>
       )}
     </div>
   );
 }
+
+// =============================================================
+// ClickToMoveOverlay — invisible interactive layer over the
+// timeline. Hovering shows a preview band at the snapped time;
+// clicking moves the appointment to that exact start.
+// =============================================================
+interface ClickToMoveOverlayProps {
+  daySchedule: { startHour: number; endHour: number; startMin: number; endMin: number; breaks: { start: string; end: string }[] };
+  hourHeight: number;
+  freeWindows: { start: string; end: string }[];
+  movedDuration: number;
+  onPick: (start: string) => void;
+}
+
+function ClickToMoveOverlay({
+  daySchedule,
+  hourHeight,
+  freeWindows,
+  movedDuration,
+  onPick,
+}: ClickToMoveOverlayProps) {
+  const [hoverMin, setHoverMin] = useState<number | null>(null);
+  const SNAP = 5;
+
+  const toMin = (t: string) => {
+    const [h, m] = t.substring(0, 5).split(":").map(Number);
+    return h * 60 + m;
+  };
+  const fmt = (mins: number) =>
+    `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+
+  const totalHeight = (daySchedule.endHour - daySchedule.startHour + 1) * hourHeight;
+
+  const yToMin = (y: number) => {
+    const minutesFromStart = (y / hourHeight) * 60;
+    const absMin = daySchedule.startHour * 60 + minutesFromStart;
+    return Math.round(absMin / SNAP) * SNAP;
+  };
+  const minToY = (m: number) => ((m - daySchedule.startHour * 60) / 60) * hourHeight;
+
+  const fitsInFreeWindow = (startMin: number) => {
+    const endMin = startMin + movedDuration;
+    if (startMin < daySchedule.startMin || endMin > daySchedule.endMin) return false;
+    return freeWindows.some((w) => {
+      const ws = toMin(w.start);
+      const we = toMin(w.end);
+      return startMin >= ws && endMin <= we;
+    });
+  };
+
+  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHoverMin(yToMin(e.clientY - rect.top));
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const start = yToMin(e.clientY - rect.top);
+    if (!fitsInFreeWindow(start)) return;
+    onPick(fmt(start));
+  };
+
+  const valid = hoverMin !== null && fitsInFreeWindow(hoverMin);
+
+  return (
+    <div
+      className="absolute right-16 left-4 top-0 z-[2] cursor-crosshair"
+      style={{ height: totalHeight }}
+      onMouseMove={handleMove}
+      onMouseLeave={() => setHoverMin(null)}
+      onClick={handleClick}
+    >
+      {hoverMin !== null && (
+        <div
+          className={`absolute left-0 right-0 rounded-md border-2 pointer-events-none flex items-center justify-center text-[11px] font-semibold transition-colors ${
+            valid
+              ? "border-primary bg-primary/15 text-primary"
+              : "border-destructive/50 bg-destructive/10 text-destructive"
+          }`}
+          style={{
+            top: minToY(hoverMin),
+            height: (movedDuration / 60) * hourHeight,
+          }}
+        >
+          {valid
+            ? `העברה ל-${fmt(hoverMin)}–${fmt(hoverMin + movedDuration)}`
+            : "לא פנוי"}
+        </div>
+      )}
+    </div>
+  );
+}
+
