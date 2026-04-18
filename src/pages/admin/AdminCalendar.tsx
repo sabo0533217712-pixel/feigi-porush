@@ -1183,9 +1183,9 @@ export default function AdminCalendar() {
           setShowMoveDatePicker(open);
         }}
       >
-        <DialogContent dir="rtl" className="sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4">
+        <DialogContent dir="rtl" className="sm:max-w-2xl max-h-[95vh] overflow-y-auto p-4">
           <DialogHeader>
-            <DialogTitle>העברת תור</DialogTitle>
+            <DialogTitle>העברת תור — בחרי יום ושעה</DialogTitle>
           </DialogHeader>
           {editingAppointment && (
             <RescheduleView
