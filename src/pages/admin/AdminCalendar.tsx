@@ -1218,6 +1218,12 @@ export default function AdminCalendar() {
           setPendingMove(null);
         }}
       />
+
+      <Dialog open={!!showClientInfo} onOpenChange={() => setShowClientInfo(null)}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>פרטי לקוחה</DialogTitle>
+          </DialogHeader>
           {showClientInfo?.profiles &&
             (() => {
               const rawPhone = showClientInfo.profiles.phone?.trim() || "";
