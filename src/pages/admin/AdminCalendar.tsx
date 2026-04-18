@@ -1500,12 +1500,16 @@ interface DayApt {
   start_time: string;
   end_time: string;
   status: string;
+  client_name?: string;
+  treatment_name?: string;
+  treatment_color?: string;
 }
 
 interface DayBlock {
   id: string;
   start_time: string;
   end_time: string;
+  notes?: string;
 }
 
 function RescheduleView({
@@ -1530,7 +1534,13 @@ function RescheduleView({
 
   const daySchedule = useMemo(() => {
     if (!settings)
-      return { startMin: 8 * 60, endMin: 20 * 60, breaks: [] as { start: string; end: string }[] };
+      return {
+        startMin: 8 * 60,
+        endMin: 20 * 60,
+        startHour: 8,
+        endHour: 20,
+        breaks: [] as { start: string; end: string }[],
+      };
     const dow = viewDate.getDay();
     const ds = settings.day_schedules?.[String(dow)];
     const startTime = ds?.start || settings.start_time;
@@ -1545,9 +1555,14 @@ function RescheduleView({
       const [h, m] = t.split(":").map(Number);
       return h * 60 + m;
     };
+    const startHour = parseInt(startTime.split(":")[0]);
+    const endRaw = endTime.split(":");
+    const endHour = parseInt(endRaw[0]) + (parseInt(endRaw[1]) > 0 ? 1 : 0);
     return {
       startMin: toMin(startTime.substring(0, 5)),
       endMin: toMin(endTime.substring(0, 5)),
+      startHour,
+      endHour,
       breaks,
     };
   }, [settings, viewDate]);
@@ -1564,13 +1579,34 @@ function RescheduleView({
       const [aptsRes, blocksRes] = await Promise.all([
         supabase
           .from("appointments")
-          .select("id, start_time, end_time, status")
+          .select("id, start_time, end_time, status, client_id, treatments(name, color)")
           .eq("appointment_date", dateStr)
           .neq("status", "cancelled"),
-        supabase.from("time_blocks").select("id, start_time, end_time").eq("block_date", dateStr),
+        supabase.from("time_blocks").select("id, start_time, end_time, notes").eq("block_date", dateStr),
       ]);
       if (cancelled) return;
-      setDayApts((aptsRes.data || []) as DayApt[]);
+      const rawApts = (aptsRes.data || []) as any[];
+      const clientIds = [...new Set(rawApts.map((a) => a.client_id))];
+      let profMap = new Map<string, any>();
+      if (clientIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", clientIds);
+        profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
+      }
+      if (cancelled) return;
+      setDayApts(
+        rawApts.map((a) => ({
+          id: a.id,
+          start_time: a.start_time,
+          end_time: a.end_time,
+          status: a.status,
+          client_name: profMap.get(a.client_id)?.full_name || "לקוחה",
+          treatment_name: a.treatments?.name || "",
+          treatment_color: a.treatments?.color || "hsl(var(--primary))",
+        })),
+      );
       setDayBlocks((blocksRes.data || []) as DayBlock[]);
     })();
     return () => {
