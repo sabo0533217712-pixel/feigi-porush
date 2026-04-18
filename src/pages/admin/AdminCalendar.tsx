@@ -1937,21 +1937,25 @@ function DayTimeline({
                 </div>
               ))}
 
-              {freeWindows.map((w, i) => (
-                <button
-                  key={`free-${i}`}
-                  type="button"
-                  onClick={() => onMoveToSlot(w.start, computeEnd(w.start))}
-                  className="absolute right-16 left-4 rounded-md z-[2] flex items-center justify-center text-xs font-semibold border-2 border-dashed border-emerald-500/60 bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 transition-colors"
-                  style={{
-                    top: getTopOffset(w.start),
-                    height: getHeight(w.start, w.end),
-                  }}
-                  title={`העברה ל-${w.start} (${movedDuration} דק׳)`}
-                >
-                  פנוי {w.start}–{w.end} · לחצי להעברה
-                </button>
-              ))}
+              {/* Click-to-move overlay: click anywhere on the timeline to pick that exact time.
+                  Snaps to 5-min grid. Only allowed when the chosen start fits inside a free window. */}
+              <ClickToMoveOverlay
+                daySchedule={daySchedule}
+                hourHeight={HOUR_HEIGHT}
+                freeWindows={freeWindows}
+                movedDuration={movedDuration}
+                onPick={(start) => onMoveToSlot(start, computeEnd(start))}
+              />
+            </div>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground text-center">
+            לחצי על שעה כלשהי בטיימליין כדי להעביר את התור לאותה שעה ({movedDuration} דק׳)
+          </p>
+
+          <div style={{ display: "none" }}>{/* placeholder to keep structure */}
+              {/* keep noop */}
+              {(() => null)()}
 
               {(() => {
                 const toMin = (t: string) => {
