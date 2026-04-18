@@ -1761,66 +1761,300 @@ function RescheduleView({
         }}
       />
 
-      {/* Day detail */}
-      <div className="border border-border rounded-lg p-3 space-y-3">
-        <div>
-          <h3 className="font-semibold text-sm">
-            {format(viewDate, "EEEE, d בMMMM yyyy", { locale: he })}
-          </h3>
-          <p className="text-[11px] text-muted-foreground">{getHebrewDate(viewDate)}</p>
-        </div>
+      {/* Day detail — full timeline like the main admin view */}
+      <DayTimeline
+        viewDate={viewDate}
+        isWorkingDay={isWorkingDay}
+        daySchedule={daySchedule}
+        dayApts={dayApts.filter((a) => a.id !== appointment.id)}
+        dayBlocks={dayBlocks}
+        freeSlots={freeSlots}
+        movedDuration={movedDuration}
+        onMoveToSlot={(start, end) => onMoveToSlot(viewDate, start, end)}
+      />
+    </div>
+  );
+}
 
-        {!isWorkingDay && (
-          <p className="text-sm text-muted-foreground text-center py-4">יום זה אינו יום עבודה</p>
-        )}
+// =============================================================
+// DayTimeline — visual timeline for the reschedule dialog,
+// mirroring the layout of the main admin timeline.
+// =============================================================
+interface DayTimelineProps {
+  viewDate: Date;
+  isWorkingDay: boolean;
+  daySchedule: {
+    startMin: number;
+    endMin: number;
+    startHour: number;
+    endHour: number;
+    breaks: { start: string; end: string }[];
+  };
+  dayApts: DayApt[];
+  dayBlocks: DayBlock[];
+  freeSlots: { start: string; end: string }[];
+  movedDuration: number;
+  onMoveToSlot: (start: string, end: string) => void;
+}
 
-        {isWorkingDay && (
-          <>
-            {dayApts.filter((a) => a.id !== appointment.id).length > 0 && (
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground">תורים קיימים ביום זה:</p>
-                {dayApts
-                  .filter((a) => a.id !== appointment.id)
-                  .sort((a, b) => a.start_time.localeCompare(b.start_time))
-                  .map((a) => (
+function DayTimeline({
+  viewDate,
+  isWorkingDay,
+  daySchedule,
+  dayApts,
+  dayBlocks,
+  freeSlots,
+  movedDuration,
+  onMoveToSlot,
+}: DayTimelineProps) {
+  const HOUR_HEIGHT = 120;
+  const timelineHours = useMemo(() => {
+    const hours: string[] = [];
+    for (let h = daySchedule.startHour; h <= daySchedule.endHour; h++) {
+      hours.push(`${String(h).padStart(2, "0")}:00`);
+    }
+    return hours;
+  }, [daySchedule]);
+
+  const getTopOffset = (time: string) => {
+    const [h, m] = time.substring(0, 5).split(":").map(Number);
+    const minutes = (h - daySchedule.startHour) * 60 + m;
+    return (minutes / 60) * HOUR_HEIGHT;
+  };
+  const getHeight = (startTime: string, endTime: string) => {
+    const [sh, sm] = startTime.substring(0, 5).split(":").map(Number);
+    const [eh, em] = endTime.substring(0, 5).split(":").map(Number);
+    const duration = eh * 60 + em - (sh * 60 + sm);
+    return Math.max((duration / 60) * HOUR_HEIGHT, 24);
+  };
+
+  const freeWindows = useMemo(() => {
+    if (!isWorkingDay) return [] as { start: string; end: string }[];
+    const toMin = (t: string) => {
+      const [h, m] = t.substring(0, 5).split(":").map(Number);
+      return h * 60 + m;
+    };
+    const fmt = (mins: number) =>
+      `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+    const busy: Array<[number, number]> = [];
+    dayApts.forEach((a) => busy.push([toMin(a.start_time), toMin(a.end_time)]));
+    dayBlocks.forEach((b) => busy.push([toMin(b.start_time), toMin(b.end_time)]));
+    daySchedule.breaks.forEach((b) => busy.push([toMin(b.start), toMin(b.end)]));
+    busy.sort((a, b) => a[0] - b[0]);
+    const merged: Array<[number, number]> = [];
+    for (const [s, e] of busy) {
+      if (merged.length && s <= merged[merged.length - 1][1]) {
+        merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], e);
+      } else {
+        merged.push([s, e]);
+      }
+    }
+    const out: { start: string; end: string }[] = [];
+    let cursor = daySchedule.startMin;
+    for (const [s, e] of merged) {
+      if (s > cursor && Math.min(s, daySchedule.endMin) - cursor >= movedDuration) {
+        out.push({ start: fmt(cursor), end: fmt(Math.min(s, daySchedule.endMin)) });
+      }
+      cursor = Math.max(cursor, e);
+      if (cursor >= daySchedule.endMin) break;
+    }
+    if (cursor < daySchedule.endMin && daySchedule.endMin - cursor >= movedDuration) {
+      out.push({ start: fmt(cursor), end: fmt(daySchedule.endMin) });
+    }
+    return out;
+  }, [dayApts, dayBlocks, daySchedule, isWorkingDay, movedDuration]);
+
+  const computeEnd = (start: string) => {
+    const [h, m] = start.split(":").map(Number);
+    const total = h * 60 + m + movedDuration;
+    return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="border border-border rounded-lg p-3 space-y-3">
+      <div>
+        <h3 className="font-semibold text-sm">
+          {format(viewDate, "EEEE, d בMMMM yyyy", { locale: he })}
+        </h3>
+        <p className="text-[11px] text-muted-foreground">{getHebrewDate(viewDate)}</p>
+      </div>
+
+      {!isWorkingDay ? (
+        <p className="text-sm text-muted-foreground text-center py-4">יום זה אינו יום עבודה</p>
+      ) : (
+        <>
+          <div className="relative overflow-y-auto max-h-[60vh] border border-border rounded-lg" dir="rtl">
+            <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
+              {timelineHours.map((hour, i) => (
+                <div
+                  key={hour}
+                  className="absolute w-full flex border-b border-border/50"
+                  style={{ top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }}
+                >
+                  <div
+                    className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-l border-border/50 font-mono"
+                    dir="ltr"
+                  >
+                    {hour}
+                  </div>
+                  <div className="flex-1" />
+                </div>
+              ))}
+
+              {daySchedule.breaks.map((brk, i) => (
+                <div
+                  key={`brk-${i}`}
+                  className="absolute left-0 right-16 pointer-events-none z-[1]"
+                  style={{
+                    top: getTopOffset(brk.start),
+                    height: getHeight(brk.start, brk.end),
+                    backgroundImage:
+                      "repeating-linear-gradient(45deg, transparent 0, transparent 5px, hsl(var(--muted-foreground) / 0.25) 5px, hsl(var(--muted-foreground) / 0.25) 7px)",
+                  }}
+                >
+                  <span className="text-[10px] font-medium text-muted-foreground bg-background/80 rounded px-1.5 py-0.5 mr-2 mt-1 inline-block">
+                    הפסקה
+                  </span>
+                </div>
+              ))}
+
+              {dayBlocks.map((block) => (
+                <div
+                  key={block.id}
+                  className="absolute right-16 left-4 rounded-md z-[2] flex items-center px-2 overflow-hidden"
+                  style={{
+                    top: getTopOffset(block.start_time),
+                    height: getHeight(block.start_time, block.end_time),
+                    backgroundImage:
+                      "repeating-linear-gradient(45deg, transparent 0, transparent 5px, hsl(var(--muted-foreground) / 0.25) 5px, hsl(var(--muted-foreground) / 0.25) 7px)",
+                    border: "1px dashed hsl(var(--muted-foreground) / 0.4)",
+                  }}
+                >
+                  <span className="text-xs text-muted-foreground truncate">
+                    🚫 {block.start_time.substring(0, 5)}-{block.end_time.substring(0, 5)}
+                    {block.notes && ` • ${block.notes}`}
+                  </span>
+                </div>
+              ))}
+
+              {freeWindows.map((w, i) => (
+                <button
+                  key={`free-${i}`}
+                  type="button"
+                  onClick={() => onMoveToSlot(w.start, computeEnd(w.start))}
+                  className="absolute right-16 left-4 rounded-md z-[2] flex items-center justify-center text-xs font-semibold border-2 border-dashed border-emerald-500/60 bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 transition-colors"
+                  style={{
+                    top: getTopOffset(w.start),
+                    height: getHeight(w.start, w.end),
+                  }}
+                  title={`העברה ל-${w.start} (${movedDuration} דק׳)`}
+                >
+                  פנוי {w.start}–{w.end} · לחצי להעברה
+                </button>
+              ))}
+
+              {(() => {
+                const toMin = (t: string) => {
+                  const [h, m] = t.substring(0, 5).split(":").map(Number);
+                  return h * 60 + m;
+                };
+                const sorted = [...dayApts].sort((a, b) => toMin(a.start_time) - toMin(b.start_time));
+                const cols: number[] = new Array(sorted.length).fill(0);
+                const maxCol: number[] = new Array(sorted.length).fill(0);
+                for (let i = 0; i < sorted.length; i++) {
+                  const usedCols = new Set<number>();
+                  for (let j = 0; j < i; j++) {
+                    if (
+                      toMin(sorted[j].end_time) > toMin(sorted[i].start_time) &&
+                      toMin(sorted[j].start_time) < toMin(sorted[i].end_time)
+                    ) {
+                      usedCols.add(cols[j]);
+                    }
+                  }
+                  let col = 0;
+                  while (usedCols.has(col)) col++;
+                  cols[i] = col;
+                }
+                for (let i = 0; i < sorted.length; i++) {
+                  let max = cols[i];
+                  for (let j = 0; j < sorted.length; j++) {
+                    if (
+                      i !== j &&
+                      toMin(sorted[j].end_time) > toMin(sorted[i].start_time) &&
+                      toMin(sorted[j].start_time) < toMin(sorted[i].end_time)
+                    ) {
+                      max = Math.max(max, cols[j]);
+                    }
+                  }
+                  maxCol[i] = max + 1;
+                }
+                return sorted.map((apt, idx) => {
+                  const color = apt.treatment_color || "hsl(var(--primary))";
+                  const totalCols = maxCol[idx];
+                  const col = cols[idx];
+                  const widthPercent = 100 / totalCols;
+                  const leftPercent = col * widthPercent;
+                  return (
                     <div
-                      key={a.id}
-                      className="text-xs bg-muted/40 rounded px-2 py-1 font-mono text-muted-foreground"
+                      key={apt.id}
+                      className="absolute rounded-md z-[3] flex items-stretch overflow-hidden shadow-sm"
+                      style={{
+                        top: getTopOffset(apt.start_time),
+                        height: getHeight(apt.start_time, apt.end_time),
+                        ...(totalCols === 1
+                          ? { right: "64px", left: "16px" }
+                          : {
+                              right: `calc(64px + (100% - 64px - 16px) * ${leftPercent / 100})`,
+                              width: `calc((100% - 64px - 16px) * ${widthPercent / 100})`,
+                            }),
+                      }}
                     >
-                      {a.start_time.substring(0, 5)}–{a.end_time.substring(0, 5)} (תפוס)
+                      <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
+                      <div
+                        className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-0.5 flex items-center min-w-0 overflow-hidden"
+                        style={{ borderLeftColor: color }}
+                      >
+                        <div className="flex flex-col gap-0 min-w-0 flex-1">
+                          <span className="text-[11px] font-semibold text-foreground truncate">
+                            {apt.client_name} - {apt.treatment_name}
+                          </span>
+                          <span className="text-[10px] font-mono text-muted-foreground">
+                            {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  ))}
-              </div>
-            )}
+                  );
+                });
+              })()}
+            </div>
+          </div>
 
+          {freeSlots.length > 0 && (
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground">
-                שעות פנויות לטיפול ({movedDuration} דק׳):
+                שעות מומלצות ({movedDuration} דק׳):
               </p>
-              {freeSlots.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-3">
-                  אין חלונות פנויים מתאימים ביום זה
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 gap-1.5 max-h-72 overflow-y-auto">
-                  {freeSlots.map((s) => (
-                    <Button
-                      key={`${s.start}-${s.end}`}
-                      size="sm"
-                      variant="outline"
-                      className="justify-between font-mono text-xs hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                      onClick={() => onMoveToSlot(viewDate, s.start, s.end)}
-                    >
-                      <span>{s.start}</span>
-                      <span className="text-[10px] opacity-70">העברה ←</span>
-                    </Button>
-                  ))}
-                </div>
-              )}
+              <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto">
+                {freeSlots.map((s) => (
+                  <Button
+                    key={`${s.start}-${s.end}`}
+                    size="sm"
+                    variant="outline"
+                    className="font-mono text-xs hover:bg-emerald-500 hover:text-white hover:border-emerald-500"
+                    onClick={() => onMoveToSlot(s.start, s.end)}
+                  >
+                    {s.start}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </>
-        )}
-      </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
     </div>
   );
 }
