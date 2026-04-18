@@ -1199,7 +1199,7 @@ export default function AdminCalendar() {
               monthCounts={moveMonthCounts}
               monthColors={moveMonthColors}
               onMonthChange={setMoveMonth}
-              onMoveToSlot={handleMoveToSlot}
+              onMoveToSlot={(date, start, end) => setPendingMove({ date, start, end })}
               onCancel={() => setShowMoveDatePicker(false)}
             />
           )}
