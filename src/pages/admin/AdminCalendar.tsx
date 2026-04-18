@@ -2055,6 +2055,3 @@ function DayTimeline({
     </div>
   );
 }
-    </div>
-  );
-}
