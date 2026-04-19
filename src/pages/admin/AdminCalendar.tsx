@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
-import { getHebrewDateShort, getHebrewDate } from "@/lib/hebrew-date";
+import { getHebrewDateShort, getHebrewDate, getHolidayInfo } from "@/lib/hebrew-date";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2 } from "lucide-react";
