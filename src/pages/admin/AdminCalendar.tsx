@@ -511,6 +511,7 @@ export default function AdminCalendar() {
   // Move appointment to a specific date + time slot
   const handleMoveToSlot = async (newDate: Date, newStart: string, newEnd: string) => {
     if (!editingAppointment) return;
+    const original = editingAppointment;
     const newDateStr = format(newDate, "yyyy-MM-dd");
     const { error } = await supabase
       .from("appointments")
@@ -520,13 +521,27 @@ export default function AdminCalendar() {
         end_time: newEnd,
         booked_by_admin: true,
       })
-      .eq("id", editingAppointment.id);
+      .eq("id", original.id);
     if (error) {
       toast.error("שגיאה בהעברת התור");
     } else {
       toast.success(
         `התור הועבר ל-${format(newDate, "d בMMMM yyyy", { locale: he })} בשעה ${newStart}`,
       );
+      supabase.functions
+        .invoke("notify-client", {
+          body: {
+            appointment_id: original.id,
+            event: "rescheduled",
+            actor: "admin",
+            previous: {
+              date_gregorian: original.appointment_date,
+              start_time: original.start_time,
+              end_time: original.end_time,
+            },
+          },
+        })
+        .catch((e) => console.error("notify-client failed:", e));
       setShowMoveDatePicker(false);
       setShowEditDialog(false);
       setEditingAppointment(null);
