@@ -1,4 +1,40 @@
 import { greg, abs2hebrew } from '@hebcal/hdate';
+import { HebrewCalendar, HDate, flags } from '@hebcal/core';
+
+export interface HolidayInfo {
+  name: string;
+  isMajor: boolean;
+  isErev: boolean;
+  isCholHamoed: boolean;
+}
+
+export function getHolidayInfo(date: Date): HolidayInfo | null {
+  try {
+    const hd = new HDate(date);
+    const events = HebrewCalendar.getHolidaysOnDate(hd, true) || [];
+    if (!events.length) return null;
+    // Prefer the most significant event (yom tov first)
+    const sorted = [...events].sort((a, b) => {
+      const aMajor = (a.getFlags() & flags.CHAG) ? 1 : 0;
+      const bMajor = (b.getFlags() & flags.CHAG) ? 1 : 0;
+      return bMajor - aMajor;
+    });
+    const ev = sorted[0];
+    const f = ev.getFlags();
+    const isMajor = !!(f & flags.CHAG);
+    const isErev = !!(f & flags.EREV);
+    const isCholHamoed = !!(f & flags.CHOL_HAMOED);
+    let name = '';
+    try {
+      name = ev.render('he-x-NoNikud') || ev.render('he') || ev.getDesc();
+    } catch {
+      name = ev.getDesc();
+    }
+    return { name, isMajor, isErev, isCholHamoed };
+  } catch {
+    return null;
+  }
+}
 
 const HEBREW_MONTHS = [
   '', 'ניסן', 'אייר', 'סיוון', 'תמוז', 'אב', 'אלול',
