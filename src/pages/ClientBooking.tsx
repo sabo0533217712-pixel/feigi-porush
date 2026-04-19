@@ -450,6 +450,16 @@ export default function ClientBooking() {
           }));
           await supabase.from("appointment_treatments").insert(treatmentRows);
         }
+        // Fire-and-forget notifications (do not block UI on failure)
+        supabase.functions
+          .invoke("notify-business", { body: { appointment_id: aptData.id } })
+          .catch((e) => console.error("notify-business failed:", e));
+        supabase.functions
+          .invoke("notify-client", {
+            body: { appointment_id: aptData.id, event: "created", actor: "client" },
+          })
+          .catch((e) => console.error("notify-client failed:", e));
+
         toast.success("התור נקבע בהצלחה! 🎉");
         setStep("treatment");
         setSelectedTreatments([]);
