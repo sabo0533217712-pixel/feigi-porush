@@ -7,6 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { format, addDays, isBefore, startOfDay } from "date-fns";
 import { he } from "date-fns/locale";
@@ -78,6 +79,7 @@ export default function ClientBooking() {
   const [showAllSlots, setShowAllSlots] = useState(false);
   const [showMoreDays, setShowMoreDays] = useState(false);
   const [moreDaySuggestions, setMoreDaySuggestions] = useState<{ date: Date; slots: string[] }[]>([]);
+  const [clientNote, setClientNote] = useState<string>("");
 
   const getDuration = (t: Treatment) => (t.is_variable_duration ? variableDurations[t.id] || 15 : t.duration_minutes);
   const totalDuration = selectedTreatments.reduce((sum, t) => sum + getDuration(t), 0);
@@ -427,6 +429,7 @@ export default function ClientBooking() {
           appointment_date: format(selectedDate, "yyyy-MM-dd"),
           start_time: selectedTime,
           end_time: endTime,
+          notes: clientNote.trim() || null,
         })
         .select("id")
         .single();
@@ -455,6 +458,7 @@ export default function ClientBooking() {
         setSelectedTreatments([]);
         setSelectedDate(undefined);
         setSelectedTime(null);
+        setClientNote("");
       }
     } finally {
       setLoading(false);
@@ -995,6 +999,20 @@ export default function ClientBooking() {
                 <p className="text-sm font-medium text-primary">
                   סה״כ: {totalDuration} דק׳ • ₪{totalPrice}
                 </p>
+                <div className="space-y-1.5 pt-2">
+                  <Label htmlFor="client-note" className="text-sm">
+                    הערה לבעלת העסק (אופציונלי)
+                  </Label>
+                  <Textarea
+                    id="client-note"
+                    value={clientNote}
+                    onChange={(e) => setClientNote(e.target.value)}
+                    placeholder="למשל: רגישות מסוימת, בקשה מיוחדת, או כל פרט שחשוב לדעת..."
+                    rows={3}
+                    maxLength={500}
+                    className="resize-none"
+                  />
+                </div>
                 <Button
                   className="w-full mt-3 gradient-primary text-primary-foreground"
                   onClick={() => {
