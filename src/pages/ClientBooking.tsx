@@ -999,6 +999,20 @@ export default function ClientBooking() {
                 <p className="text-sm font-medium text-primary">
                   סה״כ: {totalDuration} דק׳ • ₪{totalPrice}
                 </p>
+                <div className="space-y-1.5 pt-2">
+                  <Label htmlFor="client-note" className="text-sm">
+                    הערה לבעלת העסק (אופציונלי)
+                  </Label>
+                  <Textarea
+                    id="client-note"
+                    value={clientNote}
+                    onChange={(e) => setClientNote(e.target.value)}
+                    placeholder="למשל: רגישות מסוימת, בקשה מיוחדת, או כל פרט שחשוב לדעת..."
+                    rows={3}
+                    maxLength={500}
+                    className="resize-none"
+                  />
+                </div>
                 <Button
                   className="w-full mt-3 gradient-primary text-primary-foreground"
                   onClick={() => {
