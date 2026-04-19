@@ -458,6 +458,7 @@ export default function ClientBooking() {
         setSelectedTreatments([]);
         setSelectedDate(undefined);
         setSelectedTime(null);
+        setClientNote("");
       }
     } finally {
       setLoading(false);
