@@ -137,16 +137,23 @@ Deno.serve(async (req) => {
     const clientName = profile?.full_name ?? "";
     const clientPhone = profile?.phone ?? "";
     const phoneIntl = toInternationalPhone(clientPhone);
-    const treatmentName = treatment?.name ?? "";
+    const treatmentName = treatmentsSummary || treatment?.name || "";
     const notesText = apt.notes?.trim() ?? "";
 
     // Pre-built message for the business owner (plain text — they forward it)
+    const treatmentLinePlain = isMulti
+      ? `טיפולים (${treatmentsList.length}):\n${treatmentsListPlain}`
+      : `טיפול: ${treatmentName}`;
+    const treatmentBlockHtml = isMulti
+      ? `<p><strong>טיפולים (${treatmentsList.length}):</strong></p><ul style="margin:4px 0 8px 0;padding-right:20px;">${treatmentsListHtml}</ul>`
+      : `<p><strong>טיפול:</strong> ${treatmentName}</p>`;
+
     const message_plain =
       `נקבע תור חדש ✨\n` +
       `לקוחה: ${clientName}\n` +
       `טלפון: ${clientPhone}${phoneIntl ? ` (${phoneIntl})` : ""}\n` +
       `${profile?.email ? `אימייל: ${profile.email}\n` : ""}` +
-      `טיפול: ${treatmentName}\n` +
+      `${treatmentLinePlain}\n` +
       `יום ${dayName}, ${dateGregorian}${dateHebrew ? ` (${dateHebrew})` : ""}\n` +
       `שעה: ${startTime}-${endTime} (${duration_minutes} דקות)` +
       `${notesText ? `\nהערות מהלקוחה: ${notesText}` : ""}`;
@@ -156,8 +163,8 @@ Deno.serve(async (req) => {
       `<p><strong>נקבע תור חדש ✨</strong></p>` +
       `<p><strong>לקוחה:</strong> ${clientName}<br>` +
       `<strong>טלפון:</strong> ${clientPhone}${phoneIntl ? ` (${phoneIntl})` : ""}<br>` +
-      `${profile?.email ? `<strong>אימייל:</strong> ${profile.email}<br>` : ""}` +
-      `<strong>טיפול:</strong> ${treatmentName}</p>` +
+      `${profile?.email ? `<strong>אימייל:</strong> ${profile.email}` : ""}</p>` +
+      `${treatmentBlockHtml}` +
       `<p><strong>מועד:</strong> יום ${dayName}, ${dateGregorian}${dateHebrew ? ` (${dateHebrew})` : ""}<br>` +
       `<strong>שעה:</strong> ${startTime}-${endTime} (${duration_minutes} דקות)</p>` +
       `${notesText ? `<p><strong>הערות מהלקוחה:</strong><br>${notesText.replace(/\n/g, "<br>")}</p>` : ""}` +
@@ -182,6 +189,8 @@ Deno.serve(async (req) => {
         end_time: endTime,
         duration_minutes,
         treatment_name: treatmentName,
+        treatments: treatmentsList,
+        treatments_count: treatmentsList.length,
         notes: apt.notes ?? "",
       },
       message: {
