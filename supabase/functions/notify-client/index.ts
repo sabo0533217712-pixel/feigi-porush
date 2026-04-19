@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const [{ data: profile }, { data: treatment }, { data: settings }] = await Promise.all([
+    const [{ data: profile }, { data: treatment }, { data: settings }, { data: aptTreatments }] = await Promise.all([
       supabase
         .from("profiles")
         .select("full_name, phone, email, reminder_preference")
@@ -243,6 +243,10 @@ Deno.serve(async (req) => {
         .select("cancellation_hours")
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("appointment_treatments")
+        .select("treatment_id, duration_minutes, price, treatments(name)")
+        .eq("appointment_id", apt.id),
     ]);
 
     const [sh, sm] = apt.start_time.split(":").map(Number);
@@ -260,8 +264,25 @@ Deno.serve(async (req) => {
     const clientName = profile?.full_name ?? "";
     const clientPhone = profile?.phone ?? "";
     const phoneIntl = toInternationalPhone(clientPhone);
-    const treatmentName = treatment?.name ?? "";
     const cancellationHours = settings?.cancellation_hours ?? 24;
+
+    // Build treatments list — fallback to single treatment when no rows in appointment_treatments
+    type AT = { treatment_id: string; duration_minutes: number; price: number; treatments: { name: string } | null };
+    const rawList = (aptTreatments ?? []) as unknown as AT[];
+    const treatmentsList: TreatmentItem[] = rawList.length > 0
+      ? rawList.map((r) => ({
+          name: r.treatments?.name ?? "",
+          duration_minutes: r.duration_minutes,
+          price: Number(r.price ?? 0),
+        }))
+      : [{
+          name: treatment?.name ?? "",
+          duration_minutes: treatment?.duration_minutes ?? duration_minutes,
+          price: 0,
+        }];
+    const treatmentName = treatmentsList.length > 1
+      ? treatmentsList.map((t) => t.name).filter(Boolean).join(" + ")
+      : (treatment?.name ?? "");
 
     const previousBlock = previous
       ? {
@@ -281,6 +302,7 @@ Deno.serve(async (req) => {
       actor,
       clientName,
       treatmentName,
+      treatments: treatmentsList,
       dayName,
       dateGregorian,
       dateHebrew,
@@ -313,6 +335,8 @@ Deno.serve(async (req) => {
         end_time: endTime,
         duration_minutes,
         treatment_name: treatmentName,
+        treatments: treatmentsList,
+        treatments_count: treatmentsList.length,
         notes: apt.notes ?? "",
         ...(previousBlock ? { previous: previousBlock } : {}),
       },
