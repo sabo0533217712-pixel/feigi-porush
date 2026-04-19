@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const [{ data: profile }, { data: treatment }] = await Promise.all([
+    const [{ data: profile }, { data: treatment }, { data: aptTreatments }] = await Promise.all([
       supabase
         .from("profiles")
         .select("full_name, phone, email")
@@ -96,11 +96,38 @@ Deno.serve(async (req) => {
         .select("name, duration_minutes")
         .eq("id", apt.treatment_id)
         .maybeSingle(),
+      supabase
+        .from("appointment_treatments")
+        .select("treatment_id, duration_minutes, price, treatments(name)")
+        .eq("appointment_id", apt.id),
     ]);
 
     const [sh, sm] = apt.start_time.split(":").map(Number);
     const [eh, em] = apt.end_time.split(":").map(Number);
     const duration_minutes = eh * 60 + em - (sh * 60 + sm);
+
+    // Build treatments list — fallback to single treatment when no rows in appointment_treatments
+    type AT = { treatment_id: string; duration_minutes: number; price: number; treatments: { name: string } | null };
+    const rawList = (aptTreatments ?? []) as unknown as AT[];
+    const treatmentsList = rawList.length > 0
+      ? rawList.map((r) => ({
+          name: r.treatments?.name ?? "",
+          duration_minutes: r.duration_minutes,
+          price: Number(r.price ?? 0),
+        }))
+      : [{
+          name: treatment?.name ?? "",
+          duration_minutes: treatment?.duration_minutes ?? duration_minutes,
+          price: 0,
+        }];
+    const isMulti = treatmentsList.length > 1;
+    const treatmentsSummary = treatmentsList.map((t) => t.name).filter(Boolean).join(" + ");
+    const treatmentsListPlain = treatmentsList
+      .map((t) => `• ${t.name}${t.duration_minutes ? ` (${t.duration_minutes} דק׳)` : ""}`)
+      .join("\n");
+    const treatmentsListHtml = treatmentsList
+      .map((t) => `<li>${t.name}${t.duration_minutes ? ` <span style="color:#888;">(${t.duration_minutes} דק׳)</span>` : ""}</li>`)
+      .join("");
 
     const startTime = apt.start_time?.slice(0, 5) ?? apt.start_time;
     const endTime = apt.end_time?.slice(0, 5) ?? apt.end_time;
