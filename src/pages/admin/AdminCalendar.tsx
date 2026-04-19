@@ -1766,10 +1766,21 @@ function RescheduleView({
             const count = monthCounts[dateStr] || 0;
             const colors = monthColors[dateStr] || [];
             const dots = colors.slice(0, 4);
+            const holiday = getHolidayInfo(date);
             return (
-              <div className="flex flex-col items-center leading-tight">
+              <div className="flex flex-col items-center leading-tight w-full" title={holiday?.name}>
                 <span className="text-sm font-medium">{date.getDate()}</span>
                 <span className="text-[9px] text-muted-foreground">{getHebrewDateShort(date)}</span>
+                {holiday && (
+                  <span
+                    className={cn(
+                      "text-[8px] font-medium truncate max-w-full px-0.5 leading-tight",
+                      holiday.isMajor ? "text-amber-600 dark:text-amber-400" : "text-amber-700/70 dark:text-amber-500/70"
+                    )}
+                  >
+                    {holiday.name}
+                  </span>
+                )}
                 {dots.length > 0 && (
                   <div className="flex gap-0.5 mt-0.5 items-center">
                     {dots.map((c, i) => (
