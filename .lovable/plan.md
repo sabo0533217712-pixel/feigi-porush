@@ -1,54 +1,91 @@
 
-## הבנת הבקשה
-במקום שלחיצה על "שינוי תאריך" תפתח רק לוח-שנה לבחירת יום, את רוצה שייפתח **היומן המלא של האדמין** (כפי שמופיע ב-`/admin` היום) — עם תצוגת היום המלאה (timeline + רשימת תורים), כדי שבעלת העסק תוכל:
-1. להיכנס ליום מסוים
-2. לראות את כל התורים והשעות הפנויות באותו יום
-3. לחזור אחורה ולעבור ליום אחר
-4. וכשמצאה את היום+השעה המתאימים — להעביר את התור לשם
 
-## איך זה ייראה
-לוחצים "שינוי תאריך" → נפתח דיאלוג מלא-מסך עם:
-- **התצוגה המקורית של AdminCalendar** (לוח חודשי עם נקודות צבעוניות + תצוגת היום הנבחר עם ה-timeline ורשימת התורים)
-- באנר עליון: "מעבירה תור של [שם לקוחה] · [טיפול] · [משך X דק']" + כפתור ביטול
-- ניווט בין הימים בדיוק כמו ביומן הרגיל (לחיצה על יום בחודש או חיצים)
-- בכל יום שנבחר: ליד כל **חלון פנוי** מתאים (שבו יש מספיק זמן לטיפול) יוצג כפתור **"העברה לכאן · HH:MM"**
-- לחיצה על הכפתור → מעדכנת `appointment_date` + `start_time` + `end_time` של התור הקיים, סוגרת את הדיאלוג, מציגה toast הצלחה
+## הבקשה
+1. **תזכורות**: SMS → WhatsApp (הרשמה + פרופיל)
+2. **Webhook לבעלת העסק** (Make.com): נשלח רק בעת קביעת תור חדש על ידי לקוחה
+3. **Webhook ללקוחה** (Make.com): נשלח בכל אירוע — קביעה (לקוחה/אדמין), שינוי, ביטול — בפורמט JSON אחיד הכולל ערוץ נשלח (email/whatsapp לפי העדפה)
 
-## תכנית טכנית
+## ארכיטקטורה
+שני Edge Functions ייעודיים שנקראים מהפרונט אחרי כל פעולה רלוונטית:
 
-### 1. חילוץ תצוגת היומן לרכיב משותף
-ב-`src/pages/admin/AdminCalendar.tsx` נחלץ את הלוגיקה והתצוגה של "לוח חודשי + תצוגת יום" לרכיב פנימי `<CalendarView />` שמקבל props:
-- `mode: 'browse' | 'reschedule'`
-- `rescheduleContext?: { appointmentId, durationMinutes, clientName, treatmentName }`
-- `onSlotPick?: (date, startTime, endTime) => void`
-
-כך אותו רכיב משרת גם את התצוגה הרגילה וגם את דיאלוג ההעברה — בלי כפילות קוד.
-
-### 2. חישוב חלונות פנויים ביום הנבחר (במצב reschedule)
-משתמש בלוגיקה הקיימת של חישוב slots (אותה לוגיקה שמופיעה ב-`ClientBooking.tsx` ובטיימליין של האדמין):
-- מביא את כל התורים המאושרים של היום
-- מחשב חלונות פנויים בהתאם לשעות העבודה
-- מסנן רק חלונות שאורכם ≥ `durationMinutes` של התור המועבר
-- **חשוב**: מתעלם מהתור המועבר עצמו (לפי `appointmentId`) כדי שניתן יהיה גם להזיז שעה בתוך אותו יום
-
-### 3. כפתור "העברה לכאן" בכל slot מתאים
-בתצוגת היום של מצב `reschedule` — ליד כל חלון פנוי מציגים שעה מומלצת (תחילת החלון) + כפתור ירוק "העברה לכאן".
-
-### 4. עדכון ה-DB
-```ts
-await supabase.from("appointments").update({
-  appointment_date: newDate,
-  start_time: newStart,
-  end_time: newEnd,
-  booked_by_admin: true, // לעקוף את trigger ה-overlap
-}).eq("id", appointmentId);
+```text
+notify-business  →  https://hook.eu1.make.com/y1ydq0w5onkccb38lhk88yd5k50sukce
+notify-client    →  https://hook.eu1.make.com/5lldnxtw86mvk9d1a17o249wtt267v8u
 ```
 
-### 5. הסרת הדיאלוג הקיים של "לוח שנה גדול"
-מסירים את הקוד של `moveDialogOpen` הנוכחי (בחירת תאריך בלבד) ומחליפים אותו בדיאלוג החדש שמכיל את `<CalendarView mode="reschedule" />`.
+**למה Edge Functions ולא קריאה ישירה מהדפדפן?**
+- מסתיר את כתובת הוובוק מהקליינט
+- מאפשר טעינת פרטי לקוחה/טיפול מלאים מצד-שרת (גם כשאדמין פועל על תור של מישהו אחר)
+- בונה תאריך עברי + מקבץ הכל ל-JSON אחיד
 
-## קבצים שיתעדכנו
-- `src/pages/admin/AdminCalendar.tsx` — refactor + הוספת מצב reschedule
+## מבנה JSON אחיד (לשני הוובוקים)
 
-## תוצאה
-בעלת העסק תוכל "לטייל" בין הימים ביומן הרגיל שלה תוך כדי העברת תור, ולראות בכל יום בדיוק מה תפוס ומה פנוי — בדיוק כמו לקבוע תור חדש.
+```json
+{
+  "event": "appointment_created",            // created | rescheduled | cancelled
+  "title": "נקבע לך תור בהצלחה",             // כותרת בעברית מתאימה לאירוע
+  "actor": "client",                          // client | admin (מי ביצע את הפעולה)
+  "channel": "whatsapp",                      // email | whatsapp (ל-notify-client בלבד; לפי reminder_preference)
+  "client": {
+    "full_name": "...",
+    "phone": "...",
+    "email": "..."
+  },
+  "appointment": {
+    "id": "uuid",
+    "date_gregorian": "2026-04-22",
+    "date_hebrew": "ה׳ באייר תשפ״ו",
+    "start_time": "10:00",
+    "end_time": "10:45",
+    "duration_minutes": 45,
+    "treatment_name": "פנים מלא",
+    "notes": "...",
+    "previous": {                             // יופיע רק ב-rescheduled
+      "date_gregorian": "...",
+      "date_hebrew": "...",
+      "start_time": "...",
+      "end_time": "..."
+    }
+  }
+}
+```
+
+## מטריצת אירועים → וובוקים
+
+| מי פעל | פעולה | notify-business | notify-client |
+|---|---|---|---|
+| לקוחה | קביעת תור | ✅ "נקבע תור בהצלחה" | ✅ "התור נקבע בהצלחה" |
+| אדמין | קביעת תור | — | ✅ "נקבע לך תור בהצלחה" |
+| אדמין | שינוי תור (תאריך/שעה) | — | ✅ "תור שלך עודכן" + previous |
+| אדמין | ביטול תור | — | ✅ "תור שלך בוטל" |
+
+## כותרות מדויקות
+- `client_created` → "התור נקבע בהצלחה"
+- `admin_created` → "נקבע לך תור בהצלחה"
+- `admin_rescheduled` → "התור שלך הועבר למועד חדש"
+- `admin_cancelled` → "התור שלך בוטל"
+- (ל-notify-business) → "נקבע תור בהצלחה"
+
+## קבצים שיתעדכנו / יווצרו
+
+### חדשים
+- `supabase/functions/notify-business/index.ts` — מקבל `appointment_id`, טוען מה-DB את כל הפרטים (לקוחה + טיפול), בונה JSON, שולח ל-Make
+- `supabase/functions/notify-client/index.ts` — מקבל `appointment_id` + `event` + `actor` + `previous?`, טוען פרטי לקוחה והעדפת תזכורות (email/whatsapp), שולח ל-Make
+- `supabase/config.toml` — הגדרת `verify_jwt = false` עבור שתי הפונקציות (קריאה פנימית מהקליינט עם ה-anon key מספיקה; ולידציה של appointment_id מצד-שרת)
+
+### עדכונים
+- `src/pages/ClientBooking.tsx` — אחרי `handleBook` מוצלח: לקרוא ל-`notify-business` + `notify-client` עם `event: "created", actor: "client"`
+- `src/pages/admin/AdminCalendar.tsx`:
+  - אחרי קביעת תור (שורה ~387): `notify-client` עם `actor: "admin", event: "created"`
+  - אחרי `handleEditSave` (שורה ~444): אם השעה/התאריך השתנו → `notify-client` עם `event: "rescheduled"` + previous
+  - אחרי `handleAdminCancel` (שורה ~462): `notify-client` עם `event: "cancelled"`
+  - אחרי `handleMoveToSlot` (שורה ~485): `notify-client` עם `event: "rescheduled"` + previous
+- `src/pages/ClientProfile.tsx` (שורות 136-140): שינוי תווית "SMS" → "WhatsApp", value `sms` → `whatsapp`, אייקון → `MessageCircle`
+- `src/hooks/useAuth.tsx` (signUp): הוספת `reminder_preference: 'whatsapp'` ל-meta OR עדכון `handle_new_user` trigger
+- **מיגרציה**: עדכון `handle_new_user` כך שתשבץ `reminder_preference = 'whatsapp'` כברירת מחדל לרשומות פרופיל חדשות; וכן עדכון רשומות קיימות שערכן 'sms' → 'whatsapp'
+
+## הערות טכניות
+- שתי הפונקציות יעבדו ללא JWT (`verify_jwt = false`) — קריאה אנונימית מותרת. הן מקבלות רק `appointment_id` ושולפות מה-DB עם `service_role`, כך שהקליינט לא מזריק נתונים רגישים.
+- כשלון בשליחת וובוק לא יחסום את הפעולה ב-UI (נשתמש ב-`.catch(console.error)` ולא ב-`await` חוסם, או נציג טוסט אזהרה רך).
+- התאריך העברי נבנה בפונקציה עם `@hebcal/hdate` — נשכפל את הלוגיקה הקיימת מ-`src/lib/hebrew-date.ts` בתוך ה-Edge Function (אין import חוצה גבולות).
+
