@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format, addDays, isBefore, startOfDay } from "date-fns";
 import { he } from "date-fns/locale";
-import { getHebrewDateShort } from "@/lib/hebrew-date";
+import { getHebrewDateShort, isBookingBlockedDay, getHolidayInfo } from "@/lib/hebrew-date";
 import { Clock, Sparkles, ChevronLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
