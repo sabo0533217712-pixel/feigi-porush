@@ -429,6 +429,7 @@ export default function ClientBooking() {
           appointment_date: format(selectedDate, "yyyy-MM-dd"),
           start_time: selectedTime,
           end_time: endTime,
+          notes: clientNote.trim() || null,
         })
         .select("id")
         .single();
