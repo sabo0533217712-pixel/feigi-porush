@@ -732,8 +732,15 @@ export default function ClientBooking() {
               disabled={(date) =>
                 isBefore(date, startOfDay(new Date())) ||
                 !isWorkingDay(date) ||
+                isBookingBlockedDay(date) ||
                 isBefore(addDays(new Date(), settings?.advance_booking_days ?? 30), date)
               }
+              modifiers={{
+                holiday: (date) => !!getHolidayInfo(date),
+              }}
+              modifiersClassNames={{
+                holiday: "text-amber-600 font-semibold",
+              }}
               locale={he}
               className="p-3 pointer-events-auto"
               classNames={{
