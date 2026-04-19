@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        data: { full_name: fullName, phone },
+        data: { full_name: fullName, phone, reminder_preference: 'whatsapp' },
         emailRedirectTo: window.location.origin,
       },
     });

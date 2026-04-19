@@ -376,18 +376,29 @@ export default function AdminCalendar() {
       toast.error("נא לבחור לקוחה וטיפול");
       return;
     }
-    const { error } = await supabase.from("appointments").insert({
-      client_id: bookForm.client_id,
-      treatment_id: bookForm.treatment_id,
-      appointment_date: format(selectedDate, "yyyy-MM-dd"),
-      start_time: bookForm.start_time,
-      end_time: bookForm.end_time,
-      notes: bookForm.notes || null,
-      booked_by_admin: true,
-    });
+    const { data: inserted, error } = await supabase
+      .from("appointments")
+      .insert({
+        client_id: bookForm.client_id,
+        treatment_id: bookForm.treatment_id,
+        appointment_date: format(selectedDate, "yyyy-MM-dd"),
+        start_time: bookForm.start_time,
+        end_time: bookForm.end_time,
+        notes: bookForm.notes || null,
+        booked_by_admin: true,
+      })
+      .select("id")
+      .single();
     if (error) toast.error("שגיאה בקביעת תור");
     else {
       toast.success("התור נקבע בהצלחה");
+      if (inserted?.id) {
+        supabase.functions
+          .invoke("notify-client", {
+            body: { appointment_id: inserted.id, event: "created", actor: "admin" },
+          })
+          .catch((e) => console.error("notify-client failed:", e));
+      }
       if (selectedWaitlistId) {
         await supabase.from("waitlist").update({ status: "booked" }).eq("id", selectedWaitlistId);
         setSelectedWaitlistId(null);
@@ -430,6 +441,7 @@ export default function AdminCalendar() {
   // Edit appointment
   const handleEditSave = async () => {
     if (!editForm) return;
+    const original = editingAppointment;
     const { error } = await supabase
       .from("appointments")
       .update({
@@ -442,6 +454,27 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה בעדכון");
     else {
       toast.success("התור עודכן");
+      // Detect time-change reschedule (date stays same in this dialog)
+      const timeChanged =
+        original &&
+        (original.start_time !== editForm.start_time ||
+          original.end_time !== editForm.end_time);
+      if (timeChanged && original) {
+        supabase.functions
+          .invoke("notify-client", {
+            body: {
+              appointment_id: editForm.id,
+              event: "rescheduled",
+              actor: "admin",
+              previous: {
+                date_gregorian: original.appointment_date,
+                start_time: original.start_time,
+                end_time: original.end_time,
+              },
+            },
+          })
+          .catch((e) => console.error("notify-client failed:", e));
+      }
       setShowEditDialog(false);
       setEditForm(null);
       fetchDayData();
@@ -452,14 +485,20 @@ export default function AdminCalendar() {
   // Cancel appointment (admin)
   const handleAdminCancel = async () => {
     if (!editingAppointment) return;
+    const cancelledId = editingAppointment.id;
     const { error } = await supabase
       .from("appointments")
       .update({ status: "cancelled" })
-      .eq("id", editingAppointment.id);
+      .eq("id", cancelledId);
     if (error) {
       toast.error("שגיאה בביטול התור");
     } else {
       toast.success("התור בוטל");
+      supabase.functions
+        .invoke("notify-client", {
+          body: { appointment_id: cancelledId, event: "cancelled", actor: "admin" },
+        })
+        .catch((e) => console.error("notify-client failed:", e));
       setShowCancelConfirm(false);
       setShowEditDialog(false);
       setEditingAppointment(null);
@@ -472,6 +511,7 @@ export default function AdminCalendar() {
   // Move appointment to a specific date + time slot
   const handleMoveToSlot = async (newDate: Date, newStart: string, newEnd: string) => {
     if (!editingAppointment) return;
+    const original = editingAppointment;
     const newDateStr = format(newDate, "yyyy-MM-dd");
     const { error } = await supabase
       .from("appointments")
@@ -481,13 +521,27 @@ export default function AdminCalendar() {
         end_time: newEnd,
         booked_by_admin: true,
       })
-      .eq("id", editingAppointment.id);
+      .eq("id", original.id);
     if (error) {
       toast.error("שגיאה בהעברת התור");
     } else {
       toast.success(
         `התור הועבר ל-${format(newDate, "d בMMMM yyyy", { locale: he })} בשעה ${newStart}`,
       );
+      supabase.functions
+        .invoke("notify-client", {
+          body: {
+            appointment_id: original.id,
+            event: "rescheduled",
+            actor: "admin",
+            previous: {
+              date_gregorian: original.appointment_date,
+              start_time: original.start_time,
+              end_time: original.end_time,
+            },
+          },
+        })
+        .catch((e) => console.error("notify-client failed:", e));
       setShowMoveDatePicker(false);
       setShowEditDialog(false);
       setEditingAppointment(null);
