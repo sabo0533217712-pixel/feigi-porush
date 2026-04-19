@@ -122,20 +122,12 @@ export default function ClientBooking() {
     if (!selectedDate) return;
     const channel = supabase
       .channel(`client-booking-realtime-${format(selectedDate, "yyyy-MM-dd")}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "appointments" },
-        () => {
-          fetchBookedSlots(selectedDate);
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "time_blocks" },
-        () => {
-          fetchBookedSlots(selectedDate);
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "appointments" }, () => {
+        fetchBookedSlots(selectedDate);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "time_blocks" }, () => {
+        fetchBookedSlots(selectedDate);
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -259,16 +251,21 @@ export default function ClientBooking() {
       const [h, m] = s.split(":").map(Number);
       return h * 60 + m;
     };
-    const fromMin = (n: number) =>
-      `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
+    const fromMin = (n: number) => `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
 
     const dayStart = toMin(startTime);
     const dayEnd = toMin(endTime);
 
     // Build list of busy intervals (bookings + breaks + blocks)
     const busy: { start: number; end: number }[] = [
-      ...bookedSlots.map((b) => ({ start: toMin(b.start_time.substring(0, 5)), end: toMin(b.end_time.substring(0, 5)) })),
-      ...blockedSlots.map((b) => ({ start: toMin(b.start_time.substring(0, 5)), end: toMin(b.end_time.substring(0, 5)) })),
+      ...bookedSlots.map((b) => ({
+        start: toMin(b.start_time.substring(0, 5)),
+        end: toMin(b.end_time.substring(0, 5)),
+      })),
+      ...blockedSlots.map((b) => ({
+        start: toMin(b.start_time.substring(0, 5)),
+        end: toMin(b.end_time.substring(0, 5)),
+      })),
       ...breaks.map((b) => ({ start: toMin(b.start), end: toMin(b.end) })),
     ].sort((a, b) => a.start - b.start);
 
@@ -1007,7 +1004,7 @@ export default function ClientBooking() {
                     id="client-note"
                     value={clientNote}
                     onChange={(e) => setClientNote(e.target.value)}
-                    placeholder="למשל: רגישות מסוימת, בקשה מיוחדת, או כל פרט שחשוב לדעת..."
+                    placeholder=" הערה"
                     rows={3}
                     maxLength={500}
                     className="resize-none"
