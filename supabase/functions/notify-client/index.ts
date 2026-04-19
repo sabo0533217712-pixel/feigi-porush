@@ -61,11 +61,18 @@ function buildTitle(event: EventType, actor: Actor): string {
   return "עדכון לגבי התור שלך";
 }
 
+interface TreatmentItem {
+  name: string;
+  duration_minutes: number;
+  price: number;
+}
+
 interface MessageContext {
   event: EventType;
   actor: Actor;
   clientName: string;
   treatmentName: string;
+  treatments: TreatmentItem[];
   dayName: string;
   dateGregorian: string;
   dateHebrew: string;
@@ -75,27 +82,62 @@ interface MessageContext {
   previousLine?: string; // pre-formatted "מהמועד הקודם..." line, plain text
 }
 
+function treatmentLabelPlain(ctx: MessageContext): string {
+  if (ctx.treatments.length > 1) {
+    const list = ctx.treatments
+      .map((t) => `• ${t.name}${t.duration_minutes ? ` (${t.duration_minutes} דק׳)` : ""}`)
+      .join("\n");
+    return `הטיפולים הכלולים בתור (${ctx.treatments.length}):\n${list}`;
+  }
+  return `טיפול: "${ctx.treatmentName}"`;
+}
+
+function treatmentLabelHtml(ctx: MessageContext): string {
+  if (ctx.treatments.length > 1) {
+    const items = ctx.treatments
+      .map((t) => `<li>${t.name}${t.duration_minutes ? ` <span style="color:#888;">(${t.duration_minutes} דק׳)</span>` : ""}</li>`)
+      .join("");
+    return `<p><strong>הטיפולים הכלולים בתור (${ctx.treatments.length}):</strong></p><ul style="margin:4px 0 8px 0;padding-right:20px;">${items}</ul>`;
+  }
+  return `<p><strong>טיפול:</strong> "${ctx.treatmentName}"</p>`;
+}
+
 function buildPlainMessage(ctx: MessageContext): string {
   const greeting = `שלום ${ctx.clientName},`;
   const slot = `יום ${ctx.dayName} ${ctx.dateGregorian}${ctx.dateHebrew ? ` (${ctx.dateHebrew})` : ""} בשעה ${ctx.startTime}`;
+  const isMulti = ctx.treatments.length > 1;
+  const treatmentLine = treatmentLabelPlain(ctx);
   let body = "";
 
   if (ctx.event === "created") {
-    body =
-      `${greeting}\n` +
-      `נקבע לך תור לטיפול "${ctx.treatmentName}" ב${slot}.\n` +
-      `שימי לב: ניתן לבטל את התור עד ${ctx.cancellationHours} שעות לפני מועדו.`;
+    body = isMulti
+      ? `${greeting}\n` +
+        `נקבע לך תור ב${slot}.\n` +
+        `${treatmentLine}\n` +
+        `שימי לב: ניתן לבטל את התור עד ${ctx.cancellationHours} שעות לפני מועדו.`
+      : `${greeting}\n` +
+        `נקבע לך תור לטיפול "${ctx.treatmentName}" ב${slot}.\n` +
+        `שימי לב: ניתן לבטל את התור עד ${ctx.cancellationHours} שעות לפני מועדו.`;
   } else if (ctx.event === "rescheduled") {
-    body =
-      `${greeting}\n` +
-      `התור שלך לטיפול "${ctx.treatmentName}" הועבר.\n` +
-      (ctx.previousLine ? `${ctx.previousLine}\n` : "") +
-      `המועד החדש: ${slot}.`;
+    body = isMulti
+      ? `${greeting}\n` +
+        `התור שלך הועבר.\n` +
+        `${treatmentLine}\n` +
+        (ctx.previousLine ? `${ctx.previousLine}\n` : "") +
+        `המועד החדש: ${slot}.`
+      : `${greeting}\n` +
+        `התור שלך לטיפול "${ctx.treatmentName}" הועבר.\n` +
+        (ctx.previousLine ? `${ctx.previousLine}\n` : "") +
+        `המועד החדש: ${slot}.`;
   } else if (ctx.event === "cancelled") {
-    body =
-      `${greeting}\n` +
-      `התור שלך לטיפול "${ctx.treatmentName}" שהיה אמור להתקיים ב${slot} בוטל.\n` +
-      `לקביעת תור חדש ניתן להיכנס למערכת.`;
+    body = isMulti
+      ? `${greeting}\n` +
+        `התור שלך שהיה אמור להתקיים ב${slot} בוטל.\n` +
+        `${treatmentLine}\n` +
+        `לקביעת תור חדש ניתן להיכנס למערכת.`
+      : `${greeting}\n` +
+        `התור שלך לטיפול "${ctx.treatmentName}" שהיה אמור להתקיים ב${slot} בוטל.\n` +
+        `לקביעת תור חדש ניתן להיכנס למערכת.`;
   }
   return body;
 }
@@ -103,14 +145,17 @@ function buildPlainMessage(ctx: MessageContext): string {
 function buildHtmlMessage(ctx: MessageContext): string {
   const greeting = `שלום ${ctx.clientName},`;
   const slotHtml = `יום <strong>${ctx.dayName}</strong> ${ctx.dateGregorian}${ctx.dateHebrew ? ` (${ctx.dateHebrew})` : ""} בשעה <strong>${ctx.startTime}</strong>`;
+  const isMulti = ctx.treatments.length > 1;
+  const treatmentBlock = treatmentLabelHtml(ctx);
   const wrap = (inner: string) =>
     `<div dir="rtl" style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#333;max-width:600px;">${inner}</div>`;
 
   if (ctx.event === "created") {
     return wrap(
       `<p>${greeting}</p>` +
-      `<p>נקבע לך תור לטיפול <strong>"${ctx.treatmentName}"</strong>,<br>` +
-      `${slotHtml}.</p>` +
+      (isMulti
+        ? `<p>נקבע לך תור ב-${slotHtml}.</p>${treatmentBlock}`
+        : `<p>נקבע לך תור לטיפול <strong>"${ctx.treatmentName}"</strong>,<br>${slotHtml}.</p>`) +
       `<p style="background:#fff7ed;border-right:3px solid #f59e0b;padding:10px 14px;border-radius:6px;">` +
       `שימי לב: ניתן לבטל את התור עד <strong>${ctx.cancellationHours} שעות</strong> לפני מועדו.` +
       `</p>`,
@@ -119,7 +164,9 @@ function buildHtmlMessage(ctx: MessageContext): string {
   if (ctx.event === "rescheduled") {
     return wrap(
       `<p>${greeting}</p>` +
-      `<p>התור שלך לטיפול <strong>"${ctx.treatmentName}"</strong> הועבר למועד חדש.</p>` +
+      (isMulti
+        ? `<p>התור שלך הועבר למועד חדש.</p>${treatmentBlock}`
+        : `<p>התור שלך לטיפול <strong>"${ctx.treatmentName}"</strong> הועבר למועד חדש.</p>`) +
       (ctx.previousLine
         ? `<p style="color:#888;text-decoration:line-through;">${ctx.previousLine}</p>`
         : "") +
@@ -129,7 +176,9 @@ function buildHtmlMessage(ctx: MessageContext): string {
   if (ctx.event === "cancelled") {
     return wrap(
       `<p>${greeting}</p>` +
-      `<p>התור שלך לטיפול <strong>"${ctx.treatmentName}"</strong> שהיה אמור להתקיים ${slotHtml} <strong>בוטל</strong>.</p>` +
+      (isMulti
+        ? `<p>התור שלך שהיה אמור להתקיים ${slotHtml} <strong>בוטל</strong>.</p>${treatmentBlock}`
+        : `<p>התור שלך לטיפול <strong>"${ctx.treatmentName}"</strong> שהיה אמור להתקיים ${slotHtml} <strong>בוטל</strong>.</p>`) +
       `<p>לקביעת תור חדש ניתן להיכנס למערכת.</p>`,
     );
   }
@@ -178,7 +227,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const [{ data: profile }, { data: treatment }, { data: settings }] = await Promise.all([
+    const [{ data: profile }, { data: treatment }, { data: settings }, { data: aptTreatments }] = await Promise.all([
       supabase
         .from("profiles")
         .select("full_name, phone, email, reminder_preference")
@@ -194,6 +243,10 @@ Deno.serve(async (req) => {
         .select("cancellation_hours")
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("appointment_treatments")
+        .select("treatment_id, duration_minutes, price, treatments(name)")
+        .eq("appointment_id", apt.id),
     ]);
 
     const [sh, sm] = apt.start_time.split(":").map(Number);
@@ -211,8 +264,25 @@ Deno.serve(async (req) => {
     const clientName = profile?.full_name ?? "";
     const clientPhone = profile?.phone ?? "";
     const phoneIntl = toInternationalPhone(clientPhone);
-    const treatmentName = treatment?.name ?? "";
     const cancellationHours = settings?.cancellation_hours ?? 24;
+
+    // Build treatments list — fallback to single treatment when no rows in appointment_treatments
+    type AT = { treatment_id: string; duration_minutes: number; price: number; treatments: { name: string } | null };
+    const rawList = (aptTreatments ?? []) as unknown as AT[];
+    const treatmentsList: TreatmentItem[] = rawList.length > 0
+      ? rawList.map((r) => ({
+          name: r.treatments?.name ?? "",
+          duration_minutes: r.duration_minutes,
+          price: Number(r.price ?? 0),
+        }))
+      : [{
+          name: treatment?.name ?? "",
+          duration_minutes: treatment?.duration_minutes ?? duration_minutes,
+          price: 0,
+        }];
+    const treatmentName = treatmentsList.length > 1
+      ? treatmentsList.map((t) => t.name).filter(Boolean).join(" + ")
+      : (treatment?.name ?? "");
 
     const previousBlock = previous
       ? {
@@ -232,6 +302,7 @@ Deno.serve(async (req) => {
       actor,
       clientName,
       treatmentName,
+      treatments: treatmentsList,
       dayName,
       dateGregorian,
       dateHebrew,
@@ -264,6 +335,8 @@ Deno.serve(async (req) => {
         end_time: endTime,
         duration_minutes,
         treatment_name: treatmentName,
+        treatments: treatmentsList,
+        treatments_count: treatmentsList.length,
         notes: apt.notes ?? "",
         ...(previousBlock ? { previous: previousBlock } : {}),
       },
