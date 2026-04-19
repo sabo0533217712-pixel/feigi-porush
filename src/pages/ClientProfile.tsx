@@ -7,14 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Save, User, Mail, Phone, Bell } from 'lucide-react';
+import { Save, User, Mail, Phone, Bell, MessageCircle } from 'lucide-react';
 
 export default function ClientProfile() {
   const { user } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [reminderPref, setReminderPref] = useState('email');
+  const [reminderPref, setReminderPref] = useState('whatsapp');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -32,7 +32,9 @@ export default function ClientProfile() {
       setFullName(data.full_name || '');
       setEmail(data.email || '');
       setPhone(data.phone || '');
-      setReminderPref(data.reminder_preference || 'email');
+      // Migrate legacy 'sms' → 'whatsapp' on the fly
+      const pref = data.reminder_preference === 'sms' ? 'whatsapp' : (data.reminder_preference || 'whatsapp');
+      setReminderPref(pref);
     }
     setLoading(false);
   };
@@ -133,10 +135,10 @@ export default function ClientProfile() {
               </Label>
             </div>
             <div className="flex items-center gap-3">
-              <RadioGroupItem value="sms" id="pref-sms" />
-              <Label htmlFor="pref-sms" className="flex items-center gap-2 cursor-pointer">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                SMS
+              <RadioGroupItem value="whatsapp" id="pref-whatsapp" />
+              <Label htmlFor="pref-whatsapp" className="flex items-center gap-2 cursor-pointer">
+                <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                WhatsApp
               </Label>
             </div>
           </RadioGroup>

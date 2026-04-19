@@ -1,1 +1,7 @@
 project_id = "mqajiohlswemeukguahm"
+
+[functions.notify-business]
+verify_jwt = false
+
+[functions.notify-client]
+verify_jwt = false
