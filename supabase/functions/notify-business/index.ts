@@ -4,12 +4,10 @@ import { HDate } from "https://esm.sh/@hebcal/core@5.4.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const WEBHOOK_URL =
-  "https://hook.eu1.make.com/y1ydq0w5onkccb38lhk88yd5k50sukce";
+const WEBHOOK_URL = "https://hook.eu1.make.com/y1ydq0w5onkccb38lhk88yd5k50sukce";
 
 const HEBREW_DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
@@ -46,9 +44,9 @@ function toInternationalPhone(raw: string | null | undefined): string {
   if (!raw) return "";
   const digits = raw.replace(/\D/g, "");
   if (!digits) return "";
-  if (digits.startsWith("972")) return `+${digits}`;
-  if (digits.startsWith("0")) return `+972${digits.slice(1)}`;
-  return `+${digits}`;
+  if (digits.startsWith("972")) return `${digits}@c.us`;
+  if (digits.startsWith("0")) return `972${digits.slice(1)}@c.us`;
+  return `${digits}@c.us`;
 }
 
 Deno.serve(async (req) => {
@@ -60,16 +58,13 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const appointment_id = body?.appointment_id;
     if (!appointment_id || typeof appointment_id !== "string") {
-      return new Response(
-        JSON.stringify({ error: "appointment_id is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "appointment_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const { data: apt, error: aptErr } = await supabase
       .from("appointments")
@@ -86,16 +81,8 @@ Deno.serve(async (req) => {
     }
 
     const [{ data: profile }, { data: treatment }, { data: aptTreatments }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("full_name, phone, email")
-        .eq("user_id", apt.client_id)
-        .maybeSingle(),
-      supabase
-        .from("treatments")
-        .select("name, duration_minutes")
-        .eq("id", apt.treatment_id)
-        .maybeSingle(),
+      supabase.from("profiles").select("full_name, phone, email").eq("user_id", apt.client_id).maybeSingle(),
+      supabase.from("treatments").select("name, duration_minutes").eq("id", apt.treatment_id).maybeSingle(),
       supabase
         .from("appointment_treatments")
         .select("treatment_id, duration_minutes, price, treatments(name)")
@@ -109,24 +96,33 @@ Deno.serve(async (req) => {
     // Build treatments list — fallback to single treatment when no rows in appointment_treatments
     type AT = { treatment_id: string; duration_minutes: number; price: number; treatments: { name: string } | null };
     const rawList = (aptTreatments ?? []) as unknown as AT[];
-    const treatmentsList = rawList.length > 0
-      ? rawList.map((r) => ({
-          name: r.treatments?.name ?? "",
-          duration_minutes: r.duration_minutes,
-          price: Number(r.price ?? 0),
-        }))
-      : [{
-          name: treatment?.name ?? "",
-          duration_minutes: treatment?.duration_minutes ?? duration_minutes,
-          price: 0,
-        }];
+    const treatmentsList =
+      rawList.length > 0
+        ? rawList.map((r) => ({
+            name: r.treatments?.name ?? "",
+            duration_minutes: r.duration_minutes,
+            price: Number(r.price ?? 0),
+          }))
+        : [
+            {
+              name: treatment?.name ?? "",
+              duration_minutes: treatment?.duration_minutes ?? duration_minutes,
+              price: 0,
+            },
+          ];
     const isMulti = treatmentsList.length > 1;
-    const treatmentsSummary = treatmentsList.map((t) => t.name).filter(Boolean).join(" + ");
+    const treatmentsSummary = treatmentsList
+      .map((t) => t.name)
+      .filter(Boolean)
+      .join(" + ");
     const treatmentsListPlain = treatmentsList
       .map((t) => `• ${t.name}${t.duration_minutes ? ` (${t.duration_minutes} דק׳)` : ""}`)
       .join("\n");
     const treatmentsListHtml = treatmentsList
-      .map((t) => `<li>${t.name}${t.duration_minutes ? ` <span style="color:#888;">(${t.duration_minutes} דק׳)</span>` : ""}</li>`)
+      .map(
+        (t) =>
+          `<li>${t.name}${t.duration_minutes ? ` <span style="color:#888;">(${t.duration_minutes} דק׳)</span>` : ""}</li>`,
+      )
       .join("");
 
     const startTime = apt.start_time?.slice(0, 5) ?? apt.start_time;
@@ -214,9 +210,9 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("notify-business error:", err);
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
