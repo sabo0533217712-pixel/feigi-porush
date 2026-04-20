@@ -285,6 +285,27 @@ export type Database = {
         }
         Relationships: []
       }
+      reminder_log: {
+        Row: {
+          appointment_id: string
+          payload: Json | null
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          appointment_id: string
+          payload?: Json | null
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          appointment_id?: string
+          payload?: Json | null
+          sent_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       time_blocks: {
         Row: {
           block_date: string
