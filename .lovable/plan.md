@@ -1,91 +1,81 @@
 
 
-## הבקשה
-1. **תזכורות**: SMS → WhatsApp (הרשמה + פרופיל)
-2. **Webhook לבעלת העסק** (Make.com): נשלח רק בעת קביעת תור חדש על ידי לקוחה
-3. **Webhook ללקוחה** (Make.com): נשלח בכל אירוע — קביעה (לקוחה/אדמין), שינוי, ביטול — בפורמט JSON אחיד הכולל ערוץ נשלח (email/whatsapp לפי העדפה)
+## עדכון לוגיקת תזמון תזכורות — טיפול בחגים רצופים
 
-## ארכיטקטורה
-שני Edge Functions ייעודיים שנקראים מהפרונט אחרי כל פעולה רלוונטית:
+### החוק המעודכן (כללי, מטפל בכל המקרים)
+
+נחשב `reminderDay` ו-`reminderHour` לפי שלושה שלבים:
+
+**1. סיווג התור:**
+- `appointment_blocked` = `isShabbatOrHoliday(appointmentDate)` (שבת או יום חג חוסם — לא ערב חג, לא חוה״מ)
+- `appointment_day_after_blocked` = היום הקודם הוא שבת/חג
+- `regular` = אף אחד מהנ״ל
+
+**2. נקודת התחלה ושעה:**
+
+| סוג תור | יום בסיס לתזכורת | שעת בסיס |
+|---|---|---|
+| `regular` | יום אחד לפני | אותה שעה כמו התור |
+| `appointment_blocked` | יומיים לפני | 20:00 |
+| `appointment_day_after_blocked` | יומיים לפני | 12:00 |
+
+**3. התאמה אחורה (חדש — הפתרון לחגים רצופים):**
 
 ```text
-notify-business  →  https://hook.eu1.make.com/y1ydq0w5onkccb38lhk88yd5k50sukce
-notify-client    →  https://hook.eu1.make.com/5lldnxtw86mvk9d1a17o249wtt267v8u
-```
-
-**למה Edge Functions ולא קריאה ישירה מהדפדפן?**
-- מסתיר את כתובת הוובוק מהקליינט
-- מאפשר טעינת פרטי לקוחה/טיפול מלאים מצד-שרת (גם כשאדמין פועל על תור של מישהו אחר)
-- בונה תאריך עברי + מקבץ הכל ל-JSON אחיד
-
-## מבנה JSON אחיד (לשני הוובוקים)
-
-```json
-{
-  "event": "appointment_created",            // created | rescheduled | cancelled
-  "title": "נקבע לך תור בהצלחה",             // כותרת בעברית מתאימה לאירוע
-  "actor": "client",                          // client | admin (מי ביצע את הפעולה)
-  "channel": "whatsapp",                      // email | whatsapp (ל-notify-client בלבד; לפי reminder_preference)
-  "client": {
-    "full_name": "...",
-    "phone": "...",
-    "email": "..."
-  },
-  "appointment": {
-    "id": "uuid",
-    "date_gregorian": "2026-04-22",
-    "date_hebrew": "ה׳ באייר תשפ״ו",
-    "start_time": "10:00",
-    "end_time": "10:45",
-    "duration_minutes": 45,
-    "treatment_name": "פנים מלא",
-    "notes": "...",
-    "previous": {                             // יופיע רק ב-rescheduled
-      "date_gregorian": "...",
-      "date_hebrew": "...",
-      "start_time": "...",
-      "end_time": "..."
-    }
-  }
+while (isShabbatOrHoliday(reminderDay)) {
+  reminderDay = reminderDay - 1 day
 }
 ```
 
-## מטריצת אירועים → וובוקים
+כלומר: אם יום התזכורת המחושב נופל על שבת או יום חג חוסם, נסיג אותו יום אחד אחורה, ונחזור על זה עד שנגי
 
-| מי פעל | פעולה | notify-business | notify-client |
-|---|---|---|---|
-| לקוחה | קביעת תור | ✅ "נקבע תור בהצלחה" | ✅ "התור נקבע בהצלחה" |
-| אדמין | קביעת תור | — | ✅ "נקבע לך תור בהצלחה" |
-| אדמין | שינוי תור (תאריך/שעה) | — | ✅ "תור שלך עודכן" + previous |
-| אדמין | ביטול תור | — | ✅ "תור שלך בוטל" |
+<lov-plan>
 
-## כותרות מדויקות
-- `client_created` → "התור נקבע בהצלחה"
-- `admin_created` → "נקבע לך תור בהצלחה"
-- `admin_rescheduled` → "התור שלך הועבר למועד חדש"
-- `admin_cancelled` → "התור שלך בוטל"
-- (ל-notify-business) → "נקבע תור בהצלחה"
+## עדכון לוגיקת תזמון תזכורות — טיפול בחגים רצופים
 
-## קבצים שיתעדכנו / יווצרו
+### החוק המעודכן (כללי, מטפל בכל המקרים)
 
-### חדשים
-- `supabase/functions/notify-business/index.ts` — מקבל `appointment_id`, טוען מה-DB את כל הפרטים (לקוחה + טיפול), בונה JSON, שולח ל-Make
-- `supabase/functions/notify-client/index.ts` — מקבל `appointment_id` + `event` + `actor` + `previous?`, טוען פרטי לקוחה והעדפת תזכורות (email/whatsapp), שולח ל-Make
-- `supabase/config.toml` — הגדרת `verify_jwt = false` עבור שתי הפונקציות (קריאה פנימית מהקליינט עם ה-anon key מספיקה; ולידציה של appointment_id מצד-שרת)
+נחשב `reminderDay` ו-`reminderHour` לפי שלושה שלבים:
 
-### עדכונים
-- `src/pages/ClientBooking.tsx` — אחרי `handleBook` מוצלח: לקרוא ל-`notify-business` + `notify-client` עם `event: "created", actor: "client"`
-- `src/pages/admin/AdminCalendar.tsx`:
-  - אחרי קביעת תור (שורה ~387): `notify-client` עם `actor: "admin", event: "created"`
-  - אחרי `handleEditSave` (שורה ~444): אם השעה/התאריך השתנו → `notify-client` עם `event: "rescheduled"` + previous
-  - אחרי `handleAdminCancel` (שורה ~462): `notify-client` עם `event: "cancelled"`
-  - אחרי `handleMoveToSlot` (שורה ~485): `notify-client` עם `event: "rescheduled"` + previous
-- `src/pages/ClientProfile.tsx` (שורות 136-140): שינוי תווית "SMS" → "WhatsApp", value `sms` → `whatsapp`, אייקון → `MessageCircle`
-- `src/hooks/useAuth.tsx` (signUp): הוספת `reminder_preference: 'whatsapp'` ל-meta OR עדכון `handle_new_user` trigger
-- **מיגרציה**: עדכון `handle_new_user` כך שתשבץ `reminder_preference = 'whatsapp'` כברירת מחדל לרשומות פרופיל חדשות; וכן עדכון רשומות קיימות שערכן 'sms' → 'whatsapp'
+**1. סיווג התור:**
+- `appointment_blocked` = `isShabbatOrHoliday(appointmentDate)` (שבת או יום חג חוסם)
+- `appointment_day_after_blocked` = היום הקודם הוא שבת/חג
+- `regular` = אף אחד מהנ״ל
 
-## הערות טכניות
-- שתי הפונקציות יעבדו ללא JWT (`verify_jwt = false`) — קריאה אנונימית מותרת. הן מקבלות רק `appointment_id` ושולפות מה-DB עם `service_role`, כך שהקליינט לא מזריק נתונים רגישים.
-- כשלון בשליחת וובוק לא יחסום את הפעולה ב-UI (נשתמש ב-`.catch(console.error)` ולא ב-`await` חוסם, או נציג טוסט אזהרה רך).
-- התאריך העברי נבנה בפונקציה עם `@hebcal/hdate` — נשכפל את הלוגיקה הקיימת מ-`src/lib/hebrew-date.ts` בתוך ה-Edge Function (אין import חוצה גבולות).
+**2. נקודת התחלה ושעה:**
+
+| סוג תור | יום בסיס לתזכורת | שעת בסיס |
+|---|---|---|
+| `regular` | יום אחד לפני | אותה שעה כמו התור |
+| `appointment_blocked` | יומיים לפני | 20:00 |
+| `appointment_day_after_blocked` | יומיים לפני | 12:00 |
+
+**3. התאמה אחורה (חדש — הפתרון לחגים רצופים):**
+
+```text
+while (isShabbatOrHoliday(reminderDay)) {
+  reminderDay = reminderDay - 1 day
+}
+// השעה נשמרת (20:00 או 12:00 בהתאם לסיווג המקורי)
+```
+
+אם יום התזכורת עצמו נופל על שבת/חג, נסיג אותו אחורה יום-יום עד שמגיעים ליום חול. השעה לא משתנה.
+
+**דוגמה — ראש השנה (חמישי-שישי) + שבת:**
+- תור ביום ראשון אחרי שבת → `day_after_blocked`, בסיס = יום שישי 12:00 → שישי = שבת? לא, אבל שבת בפועל? כן → נסיג ליום חמישי → חמישי = ר״ה? כן → נסיג ליום רביעי → רביעי = רגיל ✅ → תזכורת ביום רביעי בשעה 12:00
+
+**דוגמה — תור בשבת + חג ביום ראשון:**
+- תור בשבת → `blocked`, בסיס = יום חמישי 20:00 → חמישי = רגיל ✅ → תזכורת ביום חמישי 20:00
+
+### שינויים
+
+**קובץ אחד בלבד:**
+- `supabase/functions/send-reminders/index.ts` — עדכון פונקציית חישוב `reminderAt`:
+  - אחרי חישוב `reminderDay` הראשוני, הוספת לולאת `while` שבודקת `isSaturday(reminderDay) || isBlockedHoliday(reminderDay)` ומסיגה יום אחד אם כן
+  - הגבלת הלולאה ל-7 איטרציות מקסימום (הגנה מפני לולאה אינסופית — במציאות אין מצב כזה)
+
+### הערות
+- `isBlockedHoliday` משתמשת באותה רשימת `BOOKING_BLOCKED_DESCS` שכבר קיימת בפונקציה (מ-`@hebcal/core`)
+- שבת נבדקת לפי `getDay() === 6`
+- אין שינוי בטבלאות, אין שינוי ב-UI, אין שינוי בשאר הפונקציות
 
