@@ -4,12 +4,10 @@ import { HDate } from "https://esm.sh/@hebcal/core@5.4.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const WEBHOOK_URL =
-  "https://hook.eu1.make.com/5lldnxtw86mvk9d1a17o249wtt267v8u";
+const WEBHOOK_URL = "https://hook.eu1.make.com/5lldnxtw86mvk9d1a17o249wtt267v8u";
 
 type EventType = "created" | "rescheduled" | "cancelled";
 type Actor = "client" | "admin";
@@ -95,7 +93,10 @@ function treatmentLabelPlain(ctx: MessageContext): string {
 function treatmentLabelHtml(ctx: MessageContext): string {
   if (ctx.treatments.length > 1) {
     const items = ctx.treatments
-      .map((t) => `<li>${t.name}${t.duration_minutes ? ` <span style="color:#888;">(${t.duration_minutes} דק׳)</span>` : ""}</li>`)
+      .map(
+        (t) =>
+          `<li>${t.name}${t.duration_minutes ? ` <span style="color:#888;">(${t.duration_minutes} דק׳)</span>` : ""}</li>`,
+      )
       .join("");
     return `<p><strong>הטיפולים הכלולים בתור (${ctx.treatments.length}):</strong></p><ul style="margin:4px 0 8px 0;padding-right:20px;">${items}</ul>`;
   }
@@ -116,7 +117,7 @@ function buildPlainMessage(ctx: MessageContext): string {
         `${treatmentLine}\n` +
         `שימי לב: ניתן לבטל את התור עד ${ctx.cancellationHours} שעות לפני מועדו.`
       : `${greeting}\n` +
-        `נקבע לך תור לטיפול "${ctx.treatmentName}" ב${slot}.\n` +
+        `נקבע לך תור לטיפול ${ctx.treatmentName} ב${slot}.\n` +
         `שימי לב: ניתן לבטל את התור עד ${ctx.cancellationHours} שעות לפני מועדו.`;
   } else if (ctx.event === "rescheduled") {
     body = isMulti
@@ -126,7 +127,7 @@ function buildPlainMessage(ctx: MessageContext): string {
         (ctx.previousLine ? `${ctx.previousLine}\n` : "") +
         `המועד החדש: ${slot}.`
       : `${greeting}\n` +
-        `התור שלך לטיפול "${ctx.treatmentName}" הועבר.\n` +
+        `התור שלך לטיפול ${ctx.treatmentName} הועבר.\n` +
         (ctx.previousLine ? `${ctx.previousLine}\n` : "") +
         `המועד החדש: ${slot}.`;
   } else if (ctx.event === "cancelled") {
@@ -136,7 +137,7 @@ function buildPlainMessage(ctx: MessageContext): string {
         `${treatmentLine}\n` +
         `לקביעת תור חדש ניתן להיכנס למערכת.`
       : `${greeting}\n` +
-        `התור שלך לטיפול "${ctx.treatmentName}" שהיה אמור להתקיים ב${slot} בוטל.\n` +
+        `התור שלך לטיפול ${ctx.treatmentName} שהיה אמור להתקיים ב${slot} בוטל.\n` +
         `לקביעת תור חדש ניתן להיכנס למערכת.`;
   }
   return body;
@@ -153,33 +154,31 @@ function buildHtmlMessage(ctx: MessageContext): string {
   if (ctx.event === "created") {
     return wrap(
       `<p>${greeting}</p>` +
-      (isMulti
-        ? `<p>נקבע לך תור ב-${slotHtml}.</p>${treatmentBlock}`
-        : `<p>נקבע לך תור לטיפול <strong>"${ctx.treatmentName}"</strong>,<br>${slotHtml}.</p>`) +
-      `<p style="background:#fff7ed;border-right:3px solid #f59e0b;padding:10px 14px;border-radius:6px;">` +
-      `שימי לב: ניתן לבטל את התור עד <strong>${ctx.cancellationHours} שעות</strong> לפני מועדו.` +
-      `</p>`,
+        (isMulti
+          ? `<p>נקבע לך תור ב-${slotHtml}.</p>${treatmentBlock}`
+          : `<p>נקבע לך תור לטיפול <strong>${ctx.treatmentName}</strong>,<br>${slotHtml}.</p>`) +
+        `<p style="background:#fff7ed;border-right:3px solid #f59e0b;padding:10px 14px;border-radius:6px;">` +
+        `שימי לב: ניתן לבטל את התור עד <strong>${ctx.cancellationHours} שעות</strong> לפני מועדו.` +
+        `</p>`,
     );
   }
   if (ctx.event === "rescheduled") {
     return wrap(
       `<p>${greeting}</p>` +
-      (isMulti
-        ? `<p>התור שלך הועבר למועד חדש.</p>${treatmentBlock}`
-        : `<p>התור שלך לטיפול <strong>"${ctx.treatmentName}"</strong> הועבר למועד חדש.</p>`) +
-      (ctx.previousLine
-        ? `<p style="color:#888;text-decoration:line-through;">${ctx.previousLine}</p>`
-        : "") +
-      `<p><strong>המועד החדש:</strong><br>${slotHtml}.</p>`,
+        (isMulti
+          ? `<p>התור שלך הועבר למועד חדש.</p>${treatmentBlock}`
+          : `<p>התור שלך לטיפול <strong>${ctx.treatmentName}</strong> הועבר למועד חדש.</p>`) +
+        (ctx.previousLine ? `<p style="color:#888;text-decoration:line-through;">${ctx.previousLine}</p>` : "") +
+        `<p><strong>המועד החדש:</strong><br>${slotHtml}.</p>`,
     );
   }
   if (ctx.event === "cancelled") {
     return wrap(
       `<p>${greeting}</p>` +
-      (isMulti
-        ? `<p>התור שלך שהיה אמור להתקיים ${slotHtml} <strong>בוטל</strong>.</p>${treatmentBlock}`
-        : `<p>התור שלך לטיפול <strong>"${ctx.treatmentName}"</strong> שהיה אמור להתקיים ${slotHtml} <strong>בוטל</strong>.</p>`) +
-      `<p>לקביעת תור חדש ניתן להיכנס למערכת.</p>`,
+        (isMulti
+          ? `<p>התור שלך שהיה אמור להתקיים ${slotHtml} <strong>בוטל</strong>.</p>${treatmentBlock}`
+          : `<p>התור שלך לטיפול <strong>${ctx.treatmentName}</strong> שהיה אמור להתקיים ${slotHtml} <strong>בוטל</strong>.</p>`) +
+        `<p>לקביעת תור חדש ניתן להיכנס למערכת.</p>`,
     );
   }
   return wrap(`<p>${greeting}</p>`);
@@ -195,23 +194,22 @@ Deno.serve(async (req) => {
     const appointment_id: string | undefined = body?.appointment_id;
     const event: EventType | undefined = body?.event;
     const actor: Actor | undefined = body?.actor;
-    const previous: {
-      date_gregorian?: string;
-      start_time?: string;
-      end_time?: string;
-    } | undefined = body?.previous;
+    const previous:
+      | {
+          date_gregorian?: string;
+          start_time?: string;
+          end_time?: string;
+        }
+      | undefined = body?.previous;
 
     if (!appointment_id || !event || !actor) {
-      return new Response(
-        JSON.stringify({ error: "appointment_id, event and actor are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "appointment_id, event and actor are required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const { data: apt, error: aptErr } = await supabase
       .from("appointments")
@@ -233,16 +231,8 @@ Deno.serve(async (req) => {
         .select("full_name, phone, email, reminder_preference")
         .eq("user_id", apt.client_id)
         .maybeSingle(),
-      supabase
-        .from("treatments")
-        .select("name, duration_minutes")
-        .eq("id", apt.treatment_id)
-        .maybeSingle(),
-      supabase
-        .from("business_settings")
-        .select("cancellation_hours")
-        .limit(1)
-        .maybeSingle(),
+      supabase.from("treatments").select("name, duration_minutes").eq("id", apt.treatment_id).maybeSingle(),
+      supabase.from("business_settings").select("cancellation_hours").limit(1).maybeSingle(),
       supabase
         .from("appointment_treatments")
         .select("treatment_id, duration_minutes, price, treatments(name)")
@@ -269,20 +259,27 @@ Deno.serve(async (req) => {
     // Build treatments list — fallback to single treatment when no rows in appointment_treatments
     type AT = { treatment_id: string; duration_minutes: number; price: number; treatments: { name: string } | null };
     const rawList = (aptTreatments ?? []) as unknown as AT[];
-    const treatmentsList: TreatmentItem[] = rawList.length > 0
-      ? rawList.map((r) => ({
-          name: r.treatments?.name ?? "",
-          duration_minutes: r.duration_minutes,
-          price: Number(r.price ?? 0),
-        }))
-      : [{
-          name: treatment?.name ?? "",
-          duration_minutes: treatment?.duration_minutes ?? duration_minutes,
-          price: 0,
-        }];
-    const treatmentName = treatmentsList.length > 1
-      ? treatmentsList.map((t) => t.name).filter(Boolean).join(" + ")
-      : (treatment?.name ?? "");
+    const treatmentsList: TreatmentItem[] =
+      rawList.length > 0
+        ? rawList.map((r) => ({
+            name: r.treatments?.name ?? "",
+            duration_minutes: r.duration_minutes,
+            price: Number(r.price ?? 0),
+          }))
+        : [
+            {
+              name: treatment?.name ?? "",
+              duration_minutes: treatment?.duration_minutes ?? duration_minutes,
+              price: 0,
+            },
+          ];
+    const treatmentName =
+      treatmentsList.length > 1
+        ? treatmentsList
+            .map((t) => t.name)
+            .filter(Boolean)
+            .join(" + ")
+        : (treatment?.name ?? "");
 
     const previousBlock = previous
       ? {
@@ -362,9 +359,9 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("notify-client error:", err);
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
