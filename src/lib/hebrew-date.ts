@@ -38,9 +38,11 @@ const ALLOWED_DESCS = new Set<string>([
   'Tzom Gedaliah', 'Asara B\'Tevet', 'Tzom Tammuz',
   // Modern (requested)
   'Yom HaAtzma\'ut',
+  'Yom HaZikaron',
 ]);
 
 // Days that block clients from booking appointments.
+// NOTE: Yom HaAtzma'ut and Yom HaZikaron are intentionally NOT blocked — treated as regular days.
 const BOOKING_BLOCKED_DESCS = new Set<string>([
   // Yom Tov (full festival days where work is forbidden)
   'Pesach I', 'Pesach II', 'Pesach VII', 'Pesach VIII',
@@ -50,8 +52,6 @@ const BOOKING_BLOCKED_DESCS = new Set<string>([
   'Yom Kippur',
   // Fasts
   'Tish\'a B\'Av', 'Tzom Gedaliah', 'Asara B\'Tevet', 'Tzom Tammuz',
-  // National holiday
-  'Yom HaAtzma\'ut',
 ]);
 
 export function getHolidayInfo(date: Date): HolidayInfo | null {
