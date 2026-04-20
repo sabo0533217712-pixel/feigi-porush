@@ -15,6 +15,7 @@ const WEBHOOK_URL =
 const HEBREW_DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
 // Days that block booking (same list as src/lib/hebrew-date.ts)
+// NOTE: Yom HaAtzma'ut and Yom HaZikaron are NOT blocked — treated as regular days for reminders.
 const BOOKING_BLOCKED_DESCS = new Set<string>([
   "Pesach I", "Pesach II", "Pesach VII", "Pesach VIII",
   "Shavuot", "Shavuot I", "Shavuot II",
@@ -22,7 +23,6 @@ const BOOKING_BLOCKED_DESCS = new Set<string>([
   "Rosh Hashana", "Rosh Hashana I", "Rosh Hashana II",
   "Yom Kippur",
   "Tish'a B'Av", "Tzom Gedaliah", "Asara B'Tevet", "Tzom Tammuz",
-  "Yom HaAtzma'ut",
 ]);
 
 function isBlockedHoliday(date: Date): boolean {
