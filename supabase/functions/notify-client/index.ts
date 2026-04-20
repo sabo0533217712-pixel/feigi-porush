@@ -46,9 +46,9 @@ function toInternationalPhone(raw: string | null | undefined): string {
   if (!raw) return "";
   const digits = raw.replace(/\D/g, "");
   if (!digits) return "";
-  if (digits.startsWith("972")) return `+${digits}`;
-  if (digits.startsWith("0")) return `+972${digits.slice(1)}`;
-  return `+${digits}`;
+  if (digits.startsWith("972")) return `${digits}@c.us`;
+  if (digits.startsWith("0")) return `972${digits.slice(1)}@c.us`;
+  return `${digits}@c.us`;
 }
 
 function buildTitle(event: EventType, actor: Actor): string {
