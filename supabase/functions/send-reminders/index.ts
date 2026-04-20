@@ -5,24 +5,35 @@ import { HDate, HebrewCalendar, flags } from "https://esm.sh/@hebcal/core@5.4.7"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const WEBHOOK_URL =
-  "https://hook.eu1.make.com/wk5igpo7c9kyfpjbc769mu109cpb9hu8";
+const WEBHOOK_URL = "https://hook.eu1.make.com/wk5igpo7c9kyfpjbc769mu109cpb9hu8";
 
 const HEBREW_DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
 // Days that block booking (same list as src/lib/hebrew-date.ts)
 // NOTE: Yom HaAtzma'ut and Yom HaZikaron are NOT blocked — treated as regular days for reminders.
 const BOOKING_BLOCKED_DESCS = new Set<string>([
-  "Pesach I", "Pesach II", "Pesach VII", "Pesach VIII",
-  "Shavuot", "Shavuot I", "Shavuot II",
-  "Sukkot I", "Sukkot II", "Shmini Atzeret", "Simchat Torah",
-  "Rosh Hashana", "Rosh Hashana I", "Rosh Hashana II",
+  "Pesach I",
+  "Pesach II",
+  "Pesach VII",
+  "Pesach VIII",
+  "Shavuot",
+  "Shavuot I",
+  "Shavuot II",
+  "Sukkot I",
+  "Sukkot II",
+  "Shmini Atzeret",
+  "Simchat Torah",
+  "Rosh Hashana",
+  "Rosh Hashana I",
+  "Rosh Hashana II",
   "Yom Kippur",
-  "Tish'a B'Av", "Tzom Gedaliah", "Asara B'Tevet", "Tzom Tammuz",
+  "Tish'a B'Av",
+  "Tzom Gedaliah",
+  "Asara B'Tevet",
+  "Tzom Tammuz",
 ]);
 
 function isBlockedHoliday(date: Date): boolean {
@@ -71,9 +82,9 @@ function toInternationalPhone(raw: string | null | undefined): string {
   if (!raw) return "";
   const digits = raw.replace(/\D/g, "");
   if (!digits) return "";
-  if (digits.startsWith("972")) return `+${digits}`;
-  if (digits.startsWith("0")) return `+972${digits.slice(1)}`;
-  return `+${digits}`;
+  if (digits.startsWith("972")) return `${digits}@c.us`;
+  if (digits.startsWith("0")) return `972${digits.slice(1)}@c.us`;
+  return `${digits}@c.us`;
 }
 
 // Parse YYYY-MM-DD to local Date (avoid timezone offset)
@@ -114,7 +125,11 @@ function nowInIsrael(): { year: number; month: number; day: number; hour: number
   const hour = get("hour");
   const minute = get("minute");
   return {
-    year, month, day, hour, minute,
+    year,
+    month,
+    day,
+    hour,
+    minute,
     dateYMD: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
   };
 }
@@ -125,7 +140,7 @@ function minutesOfDay(hour: number, minute: number): number {
 }
 
 interface ReminderSchedule {
-  reminderDate: Date;   // day (midnight local)
+  reminderDate: Date; // day (midnight local)
   reminderHour: number; // 0-23
   reminderMinute: number; // 0-59
 }
@@ -194,9 +209,7 @@ function buildPlainMessage(ctx: MsgCtx): string {
   const isMulti = ctx.treatments.length > 1;
   const treatmentLine = isMulti
     ? `הטיפולים הכלולים בתור (${ctx.treatments.length}):\n` +
-      ctx.treatments
-        .map((t) => `• ${t.name}${t.duration_minutes ? ` (${t.duration_minutes} דק׳)` : ""}`)
-        .join("\n")
+      ctx.treatments.map((t) => `• ${t.name}${t.duration_minutes ? ` (${t.duration_minutes} דק׳)` : ""}`).join("\n")
     : `טיפול: "${ctx.treatmentName}"`;
   return (
     `${greeting}\n` +
@@ -212,11 +225,12 @@ function buildHtmlMessage(ctx: MsgCtx): string {
   const slotHtml = `${whenWord}יום <strong>${ctx.dayName}</strong> ${ctx.dateGregorian}${ctx.dateHebrew ? ` (${ctx.dateHebrew})` : ""} בשעה <strong>${ctx.startTime}</strong>`;
   const isMulti = ctx.treatments.length > 1;
   const treatmentBlock = isMulti
-    ? `<p><strong>הטיפולים הכלולים בתור (${ctx.treatments.length}):</strong></p><ul style="margin:4px 0 8px 0;padding-right:20px;">${
-        ctx.treatments
-          .map((t) => `<li>${t.name}${t.duration_minutes ? ` <span style="color:#888;">(${t.duration_minutes} דק׳)</span>` : ""}</li>`)
-          .join("")
-      }</ul>`
+    ? `<p><strong>הטיפולים הכלולים בתור (${ctx.treatments.length}):</strong></p><ul style="margin:4px 0 8px 0;padding-right:20px;">${ctx.treatments
+        .map(
+          (t) =>
+            `<li>${t.name}${t.duration_minutes ? ` <span style="color:#888;">(${t.duration_minutes} דק׳)</span>` : ""}</li>`,
+        )
+        .join("")}</ul>`
     : `<p><strong>טיפול:</strong> "${ctx.treatmentName}"</p>`;
   return (
     `<div dir="rtl" style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#333;max-width:600px;">` +
@@ -236,10 +250,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const il = nowInIsrael();
     const nowMinutes = minutesOfDay(il.hour, il.minute);
@@ -250,9 +261,7 @@ Deno.serve(async (req) => {
     // We filter to any appointment_date between today and today+7 to keep the set small,
     // then compute reminder time per-appointment and match by current window.
     const todayYMD = il.dateYMD;
-    const sevenDaysLater = formatYMD(
-      addDays(new Date(il.year, il.month - 1, il.day), 7),
-    );
+    const sevenDaysLater = formatYMD(addDays(new Date(il.year, il.month - 1, il.day), 7));
 
     const { data: upcoming, error: apErr } = await supabase
       .from("appointments")
@@ -284,7 +293,11 @@ Deno.serve(async (req) => {
     const sentSet = new Set((alreadySent ?? []).map((r) => r.appointment_id));
 
     // Build due list: those whose reminder time falls in the current window
-    type Due = { apt: typeof upcoming[number]; schedule: ReminderSchedule; classification: "regular" | "blocked" | "day_after" };
+    type Due = {
+      apt: (typeof upcoming)[number];
+      schedule: ReminderSchedule;
+      classification: "regular" | "blocked" | "day_after";
+    };
     const due: Due[] = [];
 
     for (const apt of upcoming) {
@@ -339,11 +352,7 @@ Deno.serve(async (req) => {
           .select("full_name, phone, email, reminder_preference")
           .eq("user_id", apt.client_id)
           .maybeSingle(),
-        supabase
-          .from("treatments")
-          .select("name, duration_minutes")
-          .eq("id", apt.treatment_id)
-          .maybeSingle(),
+        supabase.from("treatments").select("name, duration_minutes").eq("id", apt.treatment_id).maybeSingle(),
         supabase
           .from("appointment_treatments")
           .select("treatment_id, duration_minutes, price, treatments(name)")
@@ -366,20 +375,27 @@ Deno.serve(async (req) => {
 
       type AT = { treatment_id: string; duration_minutes: number; price: number; treatments: { name: string } | null };
       const rawList = (aptTreatments ?? []) as unknown as AT[];
-      const treatmentsList: TreatmentItem[] = rawList.length > 0
-        ? rawList.map((r) => ({
-            name: r.treatments?.name ?? "",
-            duration_minutes: r.duration_minutes,
-            price: Number(r.price ?? 0),
-          }))
-        : [{
-            name: treatment?.name ?? "",
-            duration_minutes: treatment?.duration_minutes ?? duration_minutes,
-            price: 0,
-          }];
-      const treatmentName = treatmentsList.length > 1
-        ? treatmentsList.map((t) => t.name).filter(Boolean).join(" + ")
-        : (treatment?.name ?? "");
+      const treatmentsList: TreatmentItem[] =
+        rawList.length > 0
+          ? rawList.map((r) => ({
+              name: r.treatments?.name ?? "",
+              duration_minutes: r.duration_minutes,
+              price: Number(r.price ?? 0),
+            }))
+          : [
+              {
+                name: treatment?.name ?? "",
+                duration_minutes: treatment?.duration_minutes ?? duration_minutes,
+                price: 0,
+              },
+            ];
+      const treatmentName =
+        treatmentsList.length > 1
+          ? treatmentsList
+              .map((t) => t.name)
+              .filter(Boolean)
+              .join(" + ")
+          : (treatment?.name ?? "");
 
       const msgCtx: MsgCtx = {
         clientName,
@@ -463,9 +479,9 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("send-reminders error:", err);
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
