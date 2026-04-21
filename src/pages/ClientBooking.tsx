@@ -73,7 +73,7 @@ export default function ClientBooking() {
   const [bookedSlots, setBookedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"treatment" | "date" | "time">("treatment");
+  const [step, setStep] = useState<"treatment" | "date" | "time" | "success">("treatment");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [preferredTime, setPreferredTime] = useState<string>("10:00");
   const [showAllSlots, setShowAllSlots] = useState(false);
@@ -461,11 +461,7 @@ export default function ClientBooking() {
           .catch((e) => console.error("notify-client failed:", e));
 
         toast.success("התור נקבע בהצלחה! 🎉");
-        setStep("treatment");
-        setSelectedTreatments([]);
-        setSelectedDate(undefined);
-        setSelectedTime(null);
-        setClientNote("");
+        setStep("success");
       }
     } finally {
       setLoading(false);
