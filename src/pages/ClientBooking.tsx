@@ -573,12 +573,11 @@ export default function ClientBooking() {
         <p className="text-muted-foreground mt-1">בחרי טיפולים, תאריך ושעה</p>
       </div>
 
-      {/* Steps indicator */}
-      <div className="flex items-center justify-center gap-2">
+      {step !== "success" && <div className="flex items-center justify-center gap-2">
         {["טיפולים", "תאריך", "שעה"].map((label, i) => {
-          const stepNames = ["treatment", "date", "time"] as const;
+          const stepNames: Array<"treatment" | "date" | "time"> = ["treatment", "date", "time"];
           const isActive = step === stepNames[i];
-          const isDone = stepNames.indexOf(step) > i;
+          const isDone = stepNames.indexOf(step as any) > i;
           return (
             <div key={label} className="flex items-center gap-2">
               <div
