@@ -9,6 +9,16 @@ import { format, parseISO, isBefore, startOfDay, differenceInHours } from 'date-
 import { he } from 'date-fns/locale';
 import { getHebrewDateShort } from '@/lib/hebrew-date';
 import { Calendar, Clock, X, AlertCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Appointment {
   id: string;
@@ -31,6 +41,7 @@ export default function MyAppointments() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelId, setCancelId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) fetchAppointments();
@@ -63,8 +74,9 @@ export default function MyAppointments() {
     return { allowed: true };
   };
 
-  const handleCancel = async (id: string) => {
-    const { error } = await (supabase.rpc as any)('cancel_my_appointment', { _appointment_id: id });
+  const confirmCancel = async () => {
+    if (!cancelId) return;
+    const { error } = await (supabase.rpc as any)('cancel_my_appointment', { _appointment_id: cancelId });
     if (error) {
       const msg = error.message || '';
       if (msg.includes('Cancellation window')) {
@@ -76,6 +88,7 @@ export default function MyAppointments() {
       toast.success('התור בוטל');
       fetchAppointments();
     }
+    setCancelId(null);
   };
 
   const upcoming = appointments.filter(a => a.status === 'confirmed' && !isBefore(parseISO(a.appointment_date), startOfDay(new Date())));
