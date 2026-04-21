@@ -1032,6 +1032,38 @@ export default function ClientBooking() {
           </CardContent>
         </Card>
       )}
+
+      {/* Step 4: Success */}
+      {step === "success" && (
+        <Card className="shadow-card text-center">
+          <CardContent className="p-8 space-y-4">
+            <div className="text-5xl">🎉</div>
+            <h2 className="text-2xl font-display font-bold text-foreground">התור נקבע בהצלחה!</h2>
+            <p className="text-muted-foreground">
+              {selectedTreatments.map(t => t.name).join(", ")}
+            </p>
+            {selectedDate && (
+              <p className="text-muted-foreground">
+                {format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })} • {selectedTime}
+              </p>
+            )}
+            <div className="flex flex-col gap-2 pt-4">
+              <Button onClick={() => {
+                setStep("treatment");
+                setSelectedTreatments([]);
+                setSelectedDate(undefined);
+                setSelectedTime(null);
+                setClientNote("");
+              }}>
+                קביעת תור נוסף
+              </Button>
+              <Button variant="outline" asChild>
+                <a href="/my-appointments">צפייה בתורים שלי</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
