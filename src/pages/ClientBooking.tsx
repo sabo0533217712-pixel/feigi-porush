@@ -604,7 +604,7 @@ export default function ClientBooking() {
             </div>
           );
         })}
-      </div>
+      </div>}
 
       {/* Step 1: Treatment Multi-Select */}
       {step === "treatment" && (
