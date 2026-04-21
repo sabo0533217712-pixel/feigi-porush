@@ -114,7 +114,7 @@ export default function MyAppointments() {
                     <AppointmentCard
                       key={apt.id}
                       appointment={apt}
-                      onCancel={handleCancel}
+                      onCancel={(id) => setCancelId(id)}
                       cancelStatus={cancelStatus}
                     />
                   );
@@ -131,7 +131,7 @@ export default function MyAppointments() {
                   <AppointmentCard
                     key={apt.id}
                     appointment={apt}
-                    onCancel={handleCancel}
+                    onCancel={(id) => setCancelId(id)}
                     cancelStatus={{ allowed: false }}
                   />
                 ))}
@@ -140,6 +140,18 @@ export default function MyAppointments() {
           )}
         </>
       )}
+      <AlertDialog open={!!cancelId} onOpenChange={(open) => !open && setCancelId(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>ביטול תור</AlertDialogTitle>
+            <AlertDialogDescription>את בטוחה שברצונך לבטל את התור?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel>לא, השאירי</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">כן, בטלי</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
