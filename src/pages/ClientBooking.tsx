@@ -73,7 +73,7 @@ export default function ClientBooking() {
   const [bookedSlots, setBookedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"treatment" | "date" | "time">("treatment");
+  const [step, setStep] = useState<"treatment" | "date" | "time" | "success">("treatment");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [preferredTime, setPreferredTime] = useState<string>("10:00");
   const [showAllSlots, setShowAllSlots] = useState(false);
@@ -461,11 +461,7 @@ export default function ClientBooking() {
           .catch((e) => console.error("notify-client failed:", e));
 
         toast.success("התור נקבע בהצלחה! 🎉");
-        setStep("treatment");
-        setSelectedTreatments([]);
-        setSelectedDate(undefined);
-        setSelectedTime(null);
-        setClientNote("");
+        setStep("success");
       }
     } finally {
       setLoading(false);
@@ -577,12 +573,11 @@ export default function ClientBooking() {
         <p className="text-muted-foreground mt-1">בחרי טיפולים, תאריך ושעה</p>
       </div>
 
-      {/* Steps indicator */}
-      <div className="flex items-center justify-center gap-2">
+      {step !== "success" && <div className="flex items-center justify-center gap-2">
         {["טיפולים", "תאריך", "שעה"].map((label, i) => {
-          const stepNames = ["treatment", "date", "time"] as const;
+          const stepNames: Array<"treatment" | "date" | "time"> = ["treatment", "date", "time"];
           const isActive = step === stepNames[i];
-          const isDone = stepNames.indexOf(step) > i;
+          const isDone = stepNames.indexOf(step as any) > i;
           return (
             <div key={label} className="flex items-center gap-2">
               <div
@@ -609,7 +604,7 @@ export default function ClientBooking() {
             </div>
           );
         })}
-      </div>
+      </div>}
 
       {/* Step 1: Treatment Multi-Select */}
       {step === "treatment" && (
@@ -1034,6 +1029,38 @@ export default function ClientBooking() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 4: Success */}
+      {step === "success" && (
+        <Card className="shadow-card text-center">
+          <CardContent className="p-8 space-y-4">
+            <div className="text-5xl">🎉</div>
+            <h2 className="text-2xl font-display font-bold text-foreground">התור נקבע בהצלחה!</h2>
+            <p className="text-muted-foreground">
+              {selectedTreatments.map(t => t.name).join(", ")}
+            </p>
+            {selectedDate && (
+              <p className="text-muted-foreground">
+                {format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })} • {selectedTime}
+              </p>
+            )}
+            <div className="flex flex-col gap-2 pt-4">
+              <Button onClick={() => {
+                setStep("treatment");
+                setSelectedTreatments([]);
+                setSelectedDate(undefined);
+                setSelectedTime(null);
+                setClientNote("");
+              }}>
+                קביעת תור נוסף
+              </Button>
+              <Button variant="outline" asChild>
+                <a href="/my-appointments">צפייה בתורים שלי</a>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

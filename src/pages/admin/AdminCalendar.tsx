@@ -1529,6 +1529,22 @@ export default function AdminCalendar() {
                   >
                     <Plus className="h-3.5 w-3.5" /> בחירה לתור
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs gap-1 text-destructive hover:text-destructive"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const { error } = await supabase.from("waitlist").delete().eq("id", entry.id);
+                      if (error) toast.error("שגיאה במחיקה");
+                      else {
+                        toast.success("נמחק מרשימת ההמתנה");
+                        fetchWaitlist();
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> מחיקה
+                  </Button>
                 </div>
               </div>
             ))}

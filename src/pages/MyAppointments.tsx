@@ -9,6 +9,16 @@ import { format, parseISO, isBefore, startOfDay, differenceInHours } from 'date-
 import { he } from 'date-fns/locale';
 import { getHebrewDateShort } from '@/lib/hebrew-date';
 import { Calendar, Clock, X, AlertCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Appointment {
   id: string;
@@ -31,6 +41,7 @@ export default function MyAppointments() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelId, setCancelId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) fetchAppointments();
@@ -63,8 +74,9 @@ export default function MyAppointments() {
     return { allowed: true };
   };
 
-  const handleCancel = async (id: string) => {
-    const { error } = await (supabase.rpc as any)('cancel_my_appointment', { _appointment_id: id });
+  const confirmCancel = async () => {
+    if (!cancelId) return;
+    const { error } = await (supabase.rpc as any)('cancel_my_appointment', { _appointment_id: cancelId });
     if (error) {
       const msg = error.message || '';
       if (msg.includes('Cancellation window')) {
@@ -76,6 +88,7 @@ export default function MyAppointments() {
       toast.success('התור בוטל');
       fetchAppointments();
     }
+    setCancelId(null);
   };
 
   const upcoming = appointments.filter(a => a.status === 'confirmed' && !isBefore(parseISO(a.appointment_date), startOfDay(new Date())));
@@ -101,7 +114,7 @@ export default function MyAppointments() {
                     <AppointmentCard
                       key={apt.id}
                       appointment={apt}
-                      onCancel={handleCancel}
+                      onCancel={(id) => setCancelId(id)}
                       cancelStatus={cancelStatus}
                     />
                   );
@@ -118,7 +131,7 @@ export default function MyAppointments() {
                   <AppointmentCard
                     key={apt.id}
                     appointment={apt}
-                    onCancel={handleCancel}
+                    onCancel={(id) => setCancelId(id)}
                     cancelStatus={{ allowed: false }}
                   />
                 ))}
@@ -127,6 +140,18 @@ export default function MyAppointments() {
           )}
         </>
       )}
+      <AlertDialog open={!!cancelId} onOpenChange={(open) => !open && setCancelId(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>ביטול תור</AlertDialogTitle>
+            <AlertDialogDescription>את בטוחה שברצונך לבטל את התור?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel>לא, השאירי</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">כן, בטלי</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
