@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { format, addDays, isBefore, startOfDay } from "date-fns";
 import { he } from "date-fns/locale";
 import { getHebrewDateShort, isBookingBlockedDay, getHolidayInfo } from "@/lib/hebrew-date";
+import { useHolidaySettings } from "@/hooks/useHolidaySettings";
 import { Clock, Sparkles, ChevronLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +66,7 @@ interface SlotSuggestion {
 
 export default function ClientBooking() {
   const { user } = useAuth();
+  const holidaySettings = useHolidaySettings();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [selectedTreatments, setSelectedTreatments] = useState<Treatment[]>([]);
@@ -740,11 +742,11 @@ export default function ClientBooking() {
               disabled={(date) =>
                 isBefore(date, startOfDay(new Date())) ||
                 !isWorkingDay(date) ||
-                isBookingBlockedDay(date) ||
+                isBookingBlockedDay(date, holidaySettings) ||
                 isBefore(addDays(new Date(), settings?.advance_booking_days ?? 30), date)
               }
               modifiers={{
-                holiday: (date) => !!getHolidayInfo(date),
+                holiday: (date) => !!getHolidayInfo(date, holidaySettings),
               }}
               modifiersClassNames={{
                 holiday: "text-amber-600 font-semibold",
