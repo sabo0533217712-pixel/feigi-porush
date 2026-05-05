@@ -626,6 +626,9 @@ export default function ClientBooking() {
                         <Checkbox checked={!!isSelected} className="pointer-events-none" />
                         <div>
                           <h3 className="font-medium text-foreground">{t.name}</h3>
+                          {t.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
+                          )}
                           <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                             {t.is_variable_duration ? (
                               <span className="text-xs bg-accent px-2 py-0.5 rounded">משך גמיש</span>
@@ -646,7 +649,7 @@ export default function ClientBooking() {
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color || "#6366f1" }} />
                         {t.is_variable_duration ? (
-                          <span className="text-sm text-muted-foreground">תמחור לפי דקות</span>
+                          <span className="text-sm text-muted-foreground">תמחור לפי טווח</span>
                         ) : (
                           <span className="text-lg font-semibold text-primary">₪{t.price}</span>
                         )}
