@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 interface Treatment {
   id: string;
   name: string;
+  description: string;
   duration_minutes: number;
   price: number;
   category: string;
@@ -28,7 +29,7 @@ interface Treatment {
 interface PriceTier {
   min_minutes: number;
   max_minutes: number;
-  price_per_minute: number;
+  total_price: number;
 }
 
 interface DayBreak {
@@ -87,12 +88,10 @@ export default function ClientBooking() {
   const calculateTierPrice = (treatmentId: string, minutes: number): number => {
     const tiers = priceTiers[treatmentId];
     if (!tiers || tiers.length === 0) return 0;
-    // Find the matching tier
     const tier = tiers.find((t) => minutes >= t.min_minutes && minutes <= t.max_minutes);
-    if (tier) return Math.round(tier.price_per_minute * minutes);
-    // If no exact match, use the last tier
+    if (tier) return tier.total_price;
     const lastTier = tiers[tiers.length - 1];
-    return Math.round(lastTier.price_per_minute * minutes);
+    return lastTier.total_price;
   };
 
   const getPrice = (t: Treatment): number => {
@@ -135,7 +134,7 @@ export default function ClientBooking() {
   }, [selectedDate]);
 
   const fetchTreatments = async () => {
-    const { data } = await supabase.from("treatments").select("*").eq("is_active", true);
+    const { data } = await supabase.from("treatments").select("*").eq("is_active", true).order("display_order").order("created_at");
     if (data) {
       setTreatments(data as Treatment[]);
       // Fetch price tiers for all variable duration treatments
