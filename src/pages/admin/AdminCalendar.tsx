@@ -1621,6 +1621,7 @@ function RescheduleView({
   onMoveToSlot,
   onCancel,
 }: RescheduleViewProps) {
+  const holidaySettings = useHolidaySettings();
   const [viewDate, setViewDate] = useState<Date>(initialDate);
   const [dayApts, setDayApts] = useState<DayApt[]>([]);
   const [dayBlocks, setDayBlocks] = useState<DayBlock[]>([]);
