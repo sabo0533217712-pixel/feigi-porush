@@ -133,13 +133,13 @@ interface ReminderSchedule {
 
 // Given an appointment, compute when to send the reminder (Israel local time).
 // Returns null if no valid reminder day could be found within 7 lookback steps.
-function computeReminderTime(aptDateStr: string, aptStartTime: string): ReminderSchedule | null {
+function computeReminderTime(aptDateStr: string, aptStartTime: string, blockedSet: Set<string>): ReminderSchedule | null {
   const aptDate = parseDate(aptDateStr);
   const [sh, sm] = aptStartTime.split(":").map(Number);
 
-  const aptBlocked = isShabbatOrHoliday(aptDate);
+  const aptBlocked = isShabbatOrHoliday(aptDate, blockedSet);
   const prevDay = addDays(aptDate, -1);
-  const dayAfterBlocked = !aptBlocked && isShabbatOrHoliday(prevDay);
+  const dayAfterBlocked = !aptBlocked && isShabbatOrHoliday(prevDay, blockedSet);
 
   let reminderDate: Date;
   let reminderHour: number;
@@ -159,13 +159,12 @@ function computeReminderTime(aptDateStr: string, aptStartTime: string): Reminder
     reminderMinute = sm;
   }
 
-  // Shift back until we land on a non-shabbat/holiday day
   let guard = 0;
-  while (isShabbatOrHoliday(reminderDate) && guard < 7) {
+  while (isShabbatOrHoliday(reminderDate, blockedSet) && guard < 7) {
     reminderDate = addDays(reminderDate, -1);
     guard++;
   }
-  if (isShabbatOrHoliday(reminderDate)) return null;
+  if (isShabbatOrHoliday(reminderDate, blockedSet)) return null;
 
   return { reminderDate, reminderHour, reminderMinute };
 }
