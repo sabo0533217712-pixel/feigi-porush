@@ -12,12 +12,14 @@ import { toast } from "sonner";
 import { format, addDays, isBefore, startOfDay } from "date-fns";
 import { he } from "date-fns/locale";
 import { getHebrewDateShort, isBookingBlockedDay, getHolidayInfo } from "@/lib/hebrew-date";
+import { useHolidaySettings } from "@/hooks/useHolidaySettings";
 import { Clock, Sparkles, ChevronLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Treatment {
   id: string;
   name: string;
+  description: string;
   duration_minutes: number;
   price: number;
   category: string;
@@ -28,7 +30,7 @@ interface Treatment {
 interface PriceTier {
   min_minutes: number;
   max_minutes: number;
-  price_per_minute: number;
+  total_price: number;
 }
 
 interface DayBreak {
@@ -64,6 +66,7 @@ interface SlotSuggestion {
 
 export default function ClientBooking() {
   const { user } = useAuth();
+  const holidaySettings = useHolidaySettings();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [selectedTreatments, setSelectedTreatments] = useState<Treatment[]>([]);
@@ -87,12 +90,10 @@ export default function ClientBooking() {
   const calculateTierPrice = (treatmentId: string, minutes: number): number => {
     const tiers = priceTiers[treatmentId];
     if (!tiers || tiers.length === 0) return 0;
-    // Find the matching tier
     const tier = tiers.find((t) => minutes >= t.min_minutes && minutes <= t.max_minutes);
-    if (tier) return Math.round(tier.price_per_minute * minutes);
-    // If no exact match, use the last tier
+    if (tier) return tier.total_price;
     const lastTier = tiers[tiers.length - 1];
-    return Math.round(lastTier.price_per_minute * minutes);
+    return lastTier.total_price;
   };
 
   const getPrice = (t: Treatment): number => {
@@ -135,7 +136,7 @@ export default function ClientBooking() {
   }, [selectedDate]);
 
   const fetchTreatments = async () => {
-    const { data } = await supabase.from("treatments").select("*").eq("is_active", true);
+    const { data } = await supabase.from("treatments").select("*").eq("is_active", true).order("display_order").order("created_at");
     if (data) {
       setTreatments(data as Treatment[]);
       // Fetch price tiers for all variable duration treatments
@@ -627,6 +628,9 @@ export default function ClientBooking() {
                         <Checkbox checked={!!isSelected} className="pointer-events-none" />
                         <div>
                           <h3 className="font-medium text-foreground">{t.name}</h3>
+                          {t.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
+                          )}
                           <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                             {t.is_variable_duration ? (
                               <span className="text-xs bg-accent px-2 py-0.5 rounded">משך גמיש</span>
@@ -647,7 +651,7 @@ export default function ClientBooking() {
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color || "#6366f1" }} />
                         {t.is_variable_duration ? (
-                          <span className="text-sm text-muted-foreground">תמחור לפי דקות</span>
+                          <span className="text-sm text-muted-foreground">תמחור לפי טווח</span>
                         ) : (
                           <span className="text-lg font-semibold text-primary">₪{t.price}</span>
                         )}
@@ -657,7 +661,7 @@ export default function ClientBooking() {
                     {isSelected && t.is_variable_duration && (
                       <div className="mt-3 pt-3 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-3">
-                          <Label className="text-sm whitespace-nowrap">משך זמן:</Label>
+                          <Label className="text-sm whitespace-nowrap">בחרי טווח:</Label>
                           <select
                             value={variableDurations[t.id] || ""}
                             onChange={(e) =>
@@ -666,11 +670,11 @@ export default function ClientBooking() {
                             className="border border-input rounded-md px-3 py-1.5 text-sm bg-background flex-1"
                           >
                             <option value="" disabled>
-                              בחרי משך זמן
+                              בחרי טווח זמן
                             </option>
-                            {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map((min) => (
-                              <option key={min} value={min}>
-                                {min} דקות
+                            {(priceTiers[t.id] || []).map((tier, idx) => (
+                              <option key={idx} value={tier.max_minutes}>
+                                {tier.min_minutes}-{tier.max_minutes} דק׳ • ₪{tier.total_price}
                               </option>
                             ))}
                           </select>
@@ -738,11 +742,11 @@ export default function ClientBooking() {
               disabled={(date) =>
                 isBefore(date, startOfDay(new Date())) ||
                 !isWorkingDay(date) ||
-                isBookingBlockedDay(date) ||
+                isBookingBlockedDay(date, holidaySettings) ||
                 isBefore(addDays(new Date(), settings?.advance_booking_days ?? 30), date)
               }
               modifiers={{
-                holiday: (date) => !!getHolidayInfo(date),
+                holiday: (date) => !!getHolidayInfo(date, holidaySettings),
               }}
               modifiersClassNames={{
                 holiday: "text-amber-600 font-semibold",

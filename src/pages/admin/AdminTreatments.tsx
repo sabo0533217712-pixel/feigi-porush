@@ -7,7 +7,24 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, Pencil, Clock, Trash2, X } from 'lucide-react';
+import { Plus, Pencil, Clock, Trash2, X, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Treatment {
   id: string;
@@ -25,7 +42,7 @@ interface PriceTier {
   id?: string;
   min_minutes: number;
   max_minutes: number;
-  price_per_minute: number;
+  total_price: number;
 }
 
 const DEFAULT_COLORS = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF', '#E1BAFF', '#FFBAE1', '#D4BAFF'];
@@ -45,7 +62,7 @@ export default function AdminTreatments() {
   }, []);
 
   const fetchTreatments = async () => {
-    const { data } = await supabase.from('treatments').select('*').order('created_at');
+    const { data } = await supabase.from('treatments').select('*').order('display_order').order('created_at');
     if (data) setTreatments(data as Treatment[]);
   };
 
@@ -55,7 +72,7 @@ export default function AdminTreatments() {
       .select('*')
       .eq('treatment_id', treatmentId)
       .order('min_minutes');
-    if (data) setPriceTiers(data as PriceTier[]);
+    if (data) setPriceTiers(data as unknown as PriceTier[]);
   };
 
   const handleSave = async () => {
@@ -90,7 +107,7 @@ export default function AdminTreatments() {
           treatment_id: treatmentId!,
           min_minutes: t.min_minutes,
           max_minutes: t.max_minutes,
-          price_per_minute: t.price_per_minute,
+          total_price: t.total_price,
         }));
         await supabase.from('treatment_price_tiers').insert(rows);
       }
@@ -138,7 +155,7 @@ export default function AdminTreatments() {
 
   const addTier = () => {
     const lastMax = priceTiers.length > 0 ? priceTiers[priceTiers.length - 1].max_minutes : 0;
-    setPriceTiers([...priceTiers, { min_minutes: lastMax, max_minutes: lastMax + 10, price_per_minute: 0 }]);
+    setPriceTiers([...priceTiers, { min_minutes: lastMax, max_minutes: lastMax + 10, total_price: 0 }]);
   };
 
   const updateTier = (index: number, field: keyof PriceTier, value: number) => {
@@ -147,6 +164,27 @@ export default function AdminTreatments() {
 
   const removeTier = (index: number) => {
     setPriceTiers(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = treatments.findIndex(t => t.id === active.id);
+    const newIndex = treatments.findIndex(t => t.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const newOrder = arrayMove(treatments, oldIndex, newIndex);
+    setTreatments(newOrder);
+    // Persist order
+    await Promise.all(
+      newOrder.map((t, idx) =>
+        supabase.from('treatments').update({ display_order: idx }).eq('id', t.id),
+      ),
+    );
   };
 
   return (
@@ -232,7 +270,7 @@ export default function AdminTreatments() {
                       טווח חדש
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">הגדירי טווחי דקות ומחיר לדקה עבור כל טווח</p>
+                  <p className="text-xs text-muted-foreground">הגדירי טווחי דקות ומחיר סופי לכל טווח</p>
                   {priceTiers.map((tier, i) => (
                     <div key={i} className="flex items-end gap-2 bg-accent/30 rounded-md p-2">
                       <div className="flex-1 space-y-1">
@@ -256,13 +294,13 @@ export default function AdminTreatments() {
                         />
                       </div>
                       <div className="flex-1 space-y-1">
-                        <Label className="text-xs">₪ לדקה</Label>
+                        <Label className="text-xs">מחיר סה״כ (₪)</Label>
                         <Input
                           type="number"
                           min={0}
                           step={0.5}
-                          value={tier.price_per_minute}
-                          onChange={e => updateTier(i, 'price_per_minute', Number(e.target.value))}
+                          value={tier.total_price}
+                          onChange={e => updateTier(i, 'total_price', Number(e.target.value))}
                           className="h-8 text-sm"
                         />
                       </div>
@@ -283,39 +321,79 @@ export default function AdminTreatments() {
         </Dialog>
       </div>
 
-      <div className="grid gap-3">
-        {treatments.map(t => (
-          <Card key={t.id} className={`shadow-card transition-opacity ${!t.is_active ? 'opacity-50' : ''}`}>
-            <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: t.color || '#6366f1' }} />
-                <div>
-                  <h3 className="font-medium text-foreground">{t.name}</h3>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                    {t.is_variable_duration
-                      ? <span className="text-xs bg-accent px-2 py-0.5 rounded flex items-center gap-1"><Clock className="h-3 w-3" />משך גמיש • תמחור לפי דקות</span>
-                      : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
-                    }
-                    {!t.is_variable_duration && <span>₪{t.price}</span>}
-                  </div>
-                </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={treatments.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          <div className="grid gap-3">
+            {treatments.map(t => (
+              <SortableTreatmentCard
+                key={t.id}
+                treatment={t}
+                onToggle={toggleActive}
+                onEdit={openEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+            {treatments.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">עדיין לא הוגדרו טיפולים</p>
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}
+
+interface SortableTreatmentCardProps {
+  treatment: Treatment;
+  onToggle: (t: Treatment) => void;
+  onEdit: (t: Treatment) => void;
+  onDelete: (id: string) => void;
+}
+
+function SortableTreatmentCard({ treatment: t, onToggle, onEdit, onDelete }: SortableTreatmentCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: t.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card className={`shadow-card transition-opacity ${!t.is_active ? 'opacity-50' : ''}`}>
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+              aria-label="גרור לסידור"
+            >
+              <GripVertical className="h-5 w-5" />
+            </button>
+            <div className="w-3 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: t.color || '#6366f1' }} />
+            <div>
+              <h3 className="font-medium text-foreground">{t.name}</h3>
+              <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                {t.is_variable_duration
+                  ? <span className="text-xs bg-accent px-2 py-0.5 rounded flex items-center gap-1"><Clock className="h-3 w-3" />משך גמיש • תמחור לפי טווח</span>
+                  : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
+                }
+                {!t.is_variable_duration && <span>₪{t.price}</span>}
               </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={t.is_active} onCheckedChange={() => toggleActive(t)} />
-                <Button variant="ghost" size="icon" onClick={() => openEdit(t)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)} className="text-destructive">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {treatments.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">עדיין לא הוגדרו טיפולים</p>
-        )}
-      </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={t.is_active} onCheckedChange={() => onToggle(t)} />
+            <Button variant="ghost" size="icon" onClick={() => onEdit(t)}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => onDelete(t.id)} className="text-destructive">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

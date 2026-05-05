@@ -12,42 +12,28 @@ const WEBHOOK_URL = "https://hook.eu1.make.com/wk5igpo7c9kyfpjbc769mu109cpb9hu8"
 
 const HEBREW_DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
-// Days that block booking (same list as src/lib/hebrew-date.ts)
-// NOTE: Yom HaAtzma'ut and Yom HaZikaron are NOT blocked — treated as regular days for reminders.
-const BOOKING_BLOCKED_DESCS = new Set<string>([
-  "Pesach I",
-  "Pesach II",
-  "Pesach VII",
-  "Pesach VIII",
-  "Shavuot",
-  "Shavuot I",
-  "Shavuot II",
-  "Sukkot I",
-  "Sukkot II",
-  "Shmini Atzeret",
-  "Simchat Torah",
-  "Rosh Hashana",
-  "Rosh Hashana I",
-  "Rosh Hashana II",
+// Default blocked-holiday set used as a fallback if DB hasn't been seeded.
+const DEFAULT_BLOCKED_DESCS = new Set<string>([
+  "Pesach I", "Pesach II", "Pesach VII", "Pesach VIII",
+  "Shavuot", "Shavuot I", "Shavuot II",
+  "Sukkot I", "Sukkot II", "Shmini Atzeret", "Simchat Torah",
+  "Rosh Hashana", "Rosh Hashana I", "Rosh Hashana II",
   "Yom Kippur",
-  "Tish'a B'Av",
-  "Tzom Gedaliah",
-  "Asara B'Tevet",
-  "Tzom Tammuz",
+  "Tish'a B'Av", "Tzom Gedaliah", "Asara B'Tevet", "Tzom Tammuz",
 ]);
 
-function isBlockedHoliday(date: Date): boolean {
+function isBlockedHoliday(date: Date, blockedSet: Set<string>): boolean {
   try {
     const hd = new HDate(date);
     const events = HebrewCalendar.getHolidaysOnDate(hd, true) || [];
-    return events.some((ev) => BOOKING_BLOCKED_DESCS.has(ev.getDesc()));
+    return events.some((ev) => blockedSet.has(ev.getDesc()));
   } catch {
     return false;
   }
 }
 
-function isShabbatOrHoliday(date: Date): boolean {
-  return date.getDay() === 6 || isBlockedHoliday(date);
+function isShabbatOrHoliday(date: Date, blockedSet: Set<string>): boolean {
+  return date.getDay() === 6 || isBlockedHoliday(date, blockedSet);
 }
 
 function buildHebrewDate(dateStr: string): string {
@@ -147,13 +133,13 @@ interface ReminderSchedule {
 
 // Given an appointment, compute when to send the reminder (Israel local time).
 // Returns null if no valid reminder day could be found within 7 lookback steps.
-function computeReminderTime(aptDateStr: string, aptStartTime: string): ReminderSchedule | null {
+function computeReminderTime(aptDateStr: string, aptStartTime: string, blockedSet: Set<string>): ReminderSchedule | null {
   const aptDate = parseDate(aptDateStr);
   const [sh, sm] = aptStartTime.split(":").map(Number);
 
-  const aptBlocked = isShabbatOrHoliday(aptDate);
+  const aptBlocked = isShabbatOrHoliday(aptDate, blockedSet);
   const prevDay = addDays(aptDate, -1);
-  const dayAfterBlocked = !aptBlocked && isShabbatOrHoliday(prevDay);
+  const dayAfterBlocked = !aptBlocked && isShabbatOrHoliday(prevDay, blockedSet);
 
   let reminderDate: Date;
   let reminderHour: number;
@@ -173,13 +159,12 @@ function computeReminderTime(aptDateStr: string, aptStartTime: string): Reminder
     reminderMinute = sm;
   }
 
-  // Shift back until we land on a non-shabbat/holiday day
   let guard = 0;
-  while (isShabbatOrHoliday(reminderDate) && guard < 7) {
+  while (isShabbatOrHoliday(reminderDate, blockedSet) && guard < 7) {
     reminderDate = addDays(reminderDate, -1);
     guard++;
   }
-  if (isShabbatOrHoliday(reminderDate)) return null;
+  if (isShabbatOrHoliday(reminderDate, blockedSet)) return null;
 
   return { reminderDate, reminderHour, reminderMinute };
 }
@@ -300,15 +285,23 @@ Deno.serve(async (req) => {
     };
     const due: Due[] = [];
 
+    // Load blocked-holiday set from DB (fall back to defaults if empty)
+    const { data: hsRows } = await supabase
+      .from("holiday_settings")
+      .select("holiday_desc, blocks_booking");
+    const blockedSet = hsRows && hsRows.length > 0
+      ? new Set<string>(hsRows.filter((r: any) => r.blocks_booking).map((r: any) => r.holiday_desc))
+      : DEFAULT_BLOCKED_DESCS;
+
     for (const apt of upcoming) {
       if (sentSet.has(apt.id)) continue;
-      const schedule = computeReminderTime(apt.appointment_date, apt.start_time);
+      const schedule = computeReminderTime(apt.appointment_date, apt.start_time, blockedSet);
       if (!schedule) continue;
 
       // Classify for message context
       const aptDate = parseDate(apt.appointment_date);
-      const aptBlocked = isShabbatOrHoliday(aptDate);
-      const dayAfter = !aptBlocked && isShabbatOrHoliday(addDays(aptDate, -1));
+      const aptBlocked = isShabbatOrHoliday(aptDate, blockedSet);
+      const dayAfter = !aptBlocked && isShabbatOrHoliday(addDays(aptDate, -1), blockedSet);
       const classification: Due["classification"] = aptBlocked ? "blocked" : dayAfter ? "day_after" : "regular";
 
       // Compare schedule date+time vs. current Israel time

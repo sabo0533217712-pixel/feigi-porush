@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { getHebrewDateShort, getHebrewDate, getHolidayInfo } from "@/lib/hebrew-date";
+import { useHolidaySettings } from "@/hooks/useHolidaySettings";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2 } from "lucide-react";
@@ -86,6 +87,7 @@ interface BusinessSettings {
 }
 
 export default function AdminCalendar() {
+  const holidaySettings = useHolidaySettings();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
@@ -914,7 +916,7 @@ export default function AdminCalendar() {
                 const count = monthCounts[dateStr] || 0;
                 const colors = monthColors[dateStr] || [];
                 const dots = colors.slice(0, 4);
-                const holiday = getHolidayInfo(date);
+                const holiday = getHolidayInfo(date, holidaySettings);
                 return (
                   <div className="flex flex-col items-center leading-tight w-full" title={holiday?.name}>
                     <span className="text-sm font-medium">{date.getDate()}</span>
@@ -1619,6 +1621,7 @@ function RescheduleView({
   onMoveToSlot,
   onCancel,
 }: RescheduleViewProps) {
+  const holidaySettings = useHolidaySettings();
   const [viewDate, setViewDate] = useState<Date>(initialDate);
   const [dayApts, setDayApts] = useState<DayApt[]>([]);
   const [dayBlocks, setDayBlocks] = useState<DayBlock[]>([]);
@@ -1836,7 +1839,7 @@ function RescheduleView({
             const count = monthCounts[dateStr] || 0;
             const colors = monthColors[dateStr] || [];
             const dots = colors.slice(0, 4);
-            const holiday = getHolidayInfo(date);
+            const holiday = getHolidayInfo(date, holidaySettings);
             return (
               <div className="flex flex-col items-center leading-tight w-full" title={holiday?.name}>
                 <span className="text-sm font-medium">{date.getDate()}</span>
