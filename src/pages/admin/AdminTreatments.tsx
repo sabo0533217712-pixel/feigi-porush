@@ -300,39 +300,24 @@ export default function AdminTreatments() {
         </Dialog>
       </div>
 
-      <div className="grid gap-3">
-        {treatments.map(t => (
-          <Card key={t.id} className={`shadow-card transition-opacity ${!t.is_active ? 'opacity-50' : ''}`}>
-            <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: t.color || '#6366f1' }} />
-                <div>
-                  <h3 className="font-medium text-foreground">{t.name}</h3>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                    {t.is_variable_duration
-                      ? <span className="text-xs bg-accent px-2 py-0.5 rounded flex items-center gap-1"><Clock className="h-3 w-3" />משך גמיש • תמחור לפי דקות</span>
-                      : <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{t.duration_minutes} דק׳</span>
-                    }
-                    {!t.is_variable_duration && <span>₪{t.price}</span>}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={t.is_active} onCheckedChange={() => toggleActive(t)} />
-                <Button variant="ghost" size="icon" onClick={() => openEdit(t)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)} className="text-destructive">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {treatments.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">עדיין לא הוגדרו טיפולים</p>
-        )}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={treatments.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          <div className="grid gap-3">
+            {treatments.map(t => (
+              <SortableTreatmentCard
+                key={t.id}
+                treatment={t}
+                onToggle={toggleActive}
+                onEdit={openEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+            {treatments.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">עדיין לא הוגדרו טיפולים</p>
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
