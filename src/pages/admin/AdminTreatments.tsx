@@ -42,7 +42,7 @@ interface PriceTier {
   id?: string;
   min_minutes: number;
   max_minutes: number;
-  price_per_minute: number;
+  total_price: number;
 }
 
 const DEFAULT_COLORS = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF', '#E1BAFF', '#FFBAE1', '#D4BAFF'];
@@ -62,7 +62,7 @@ export default function AdminTreatments() {
   }, []);
 
   const fetchTreatments = async () => {
-    const { data } = await supabase.from('treatments').select('*').order('created_at');
+    const { data } = await supabase.from('treatments').select('*').order('display_order').order('created_at');
     if (data) setTreatments(data as Treatment[]);
   };
 
@@ -72,7 +72,7 @@ export default function AdminTreatments() {
       .select('*')
       .eq('treatment_id', treatmentId)
       .order('min_minutes');
-    if (data) setPriceTiers(data as PriceTier[]);
+    if (data) setPriceTiers(data as unknown as PriceTier[]);
   };
 
   const handleSave = async () => {
@@ -107,7 +107,7 @@ export default function AdminTreatments() {
           treatment_id: treatmentId!,
           min_minutes: t.min_minutes,
           max_minutes: t.max_minutes,
-          price_per_minute: t.price_per_minute,
+          total_price: t.total_price,
         }));
         await supabase.from('treatment_price_tiers').insert(rows);
       }
@@ -155,7 +155,7 @@ export default function AdminTreatments() {
 
   const addTier = () => {
     const lastMax = priceTiers.length > 0 ? priceTiers[priceTiers.length - 1].max_minutes : 0;
-    setPriceTiers([...priceTiers, { min_minutes: lastMax, max_minutes: lastMax + 10, price_per_minute: 0 }]);
+    setPriceTiers([...priceTiers, { min_minutes: lastMax, max_minutes: lastMax + 10, total_price: 0 }]);
   };
 
   const updateTier = (index: number, field: keyof PriceTier, value: number) => {
