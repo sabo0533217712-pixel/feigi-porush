@@ -12,42 +12,28 @@ const WEBHOOK_URL = "https://hook.eu1.make.com/wk5igpo7c9kyfpjbc769mu109cpb9hu8"
 
 const HEBREW_DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
-// Days that block booking (same list as src/lib/hebrew-date.ts)
-// NOTE: Yom HaAtzma'ut and Yom HaZikaron are NOT blocked — treated as regular days for reminders.
-const BOOKING_BLOCKED_DESCS = new Set<string>([
-  "Pesach I",
-  "Pesach II",
-  "Pesach VII",
-  "Pesach VIII",
-  "Shavuot",
-  "Shavuot I",
-  "Shavuot II",
-  "Sukkot I",
-  "Sukkot II",
-  "Shmini Atzeret",
-  "Simchat Torah",
-  "Rosh Hashana",
-  "Rosh Hashana I",
-  "Rosh Hashana II",
+// Default blocked-holiday set used as a fallback if DB hasn't been seeded.
+const DEFAULT_BLOCKED_DESCS = new Set<string>([
+  "Pesach I", "Pesach II", "Pesach VII", "Pesach VIII",
+  "Shavuot", "Shavuot I", "Shavuot II",
+  "Sukkot I", "Sukkot II", "Shmini Atzeret", "Simchat Torah",
+  "Rosh Hashana", "Rosh Hashana I", "Rosh Hashana II",
   "Yom Kippur",
-  "Tish'a B'Av",
-  "Tzom Gedaliah",
-  "Asara B'Tevet",
-  "Tzom Tammuz",
+  "Tish'a B'Av", "Tzom Gedaliah", "Asara B'Tevet", "Tzom Tammuz",
 ]);
 
-function isBlockedHoliday(date: Date): boolean {
+function isBlockedHoliday(date: Date, blockedSet: Set<string>): boolean {
   try {
     const hd = new HDate(date);
     const events = HebrewCalendar.getHolidaysOnDate(hd, true) || [];
-    return events.some((ev) => BOOKING_BLOCKED_DESCS.has(ev.getDesc()));
+    return events.some((ev) => blockedSet.has(ev.getDesc()));
   } catch {
     return false;
   }
 }
 
-function isShabbatOrHoliday(date: Date): boolean {
-  return date.getDay() === 6 || isBlockedHoliday(date);
+function isShabbatOrHoliday(date: Date, blockedSet: Set<string>): boolean {
+  return date.getDay() === 6 || isBlockedHoliday(date, blockedSet);
 }
 
 function buildHebrewDate(dateStr: string): string {
