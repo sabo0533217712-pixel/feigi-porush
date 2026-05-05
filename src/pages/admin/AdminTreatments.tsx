@@ -166,6 +166,27 @@ export default function AdminTreatments() {
     setPriceTiers(prev => prev.filter((_, i) => i !== index));
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = treatments.findIndex(t => t.id === active.id);
+    const newIndex = treatments.findIndex(t => t.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const newOrder = arrayMove(treatments, oldIndex, newIndex);
+    setTreatments(newOrder);
+    // Persist order
+    await Promise.all(
+      newOrder.map((t, idx) =>
+        supabase.from('treatments').update({ display_order: idx }).eq('id', t.id),
+      ),
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
