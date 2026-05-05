@@ -249,7 +249,7 @@ export default function AdminTreatments() {
                       טווח חדש
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">הגדירי טווחי דקות ומחיר לדקה עבור כל טווח</p>
+                  <p className="text-xs text-muted-foreground">הגדירי טווחי דקות ומחיר סופי לכל טווח</p>
                   {priceTiers.map((tier, i) => (
                     <div key={i} className="flex items-end gap-2 bg-accent/30 rounded-md p-2">
                       <div className="flex-1 space-y-1">
@@ -273,13 +273,13 @@ export default function AdminTreatments() {
                         />
                       </div>
                       <div className="flex-1 space-y-1">
-                        <Label className="text-xs">₪ לדקה</Label>
+                        <Label className="text-xs">מחיר סה״כ (₪)</Label>
                         <Input
                           type="number"
                           min={0}
                           step={0.5}
-                          value={tier.price_per_minute}
-                          onChange={e => updateTier(i, 'price_per_minute', Number(e.target.value))}
+                          value={tier.total_price}
+                          onChange={e => updateTier(i, 'total_price', Number(e.target.value))}
                           className="h-8 text-sm"
                         />
                       </div>
