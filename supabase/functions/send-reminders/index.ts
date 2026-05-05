@@ -285,15 +285,23 @@ Deno.serve(async (req) => {
     };
     const due: Due[] = [];
 
+    // Load blocked-holiday set from DB (fall back to defaults if empty)
+    const { data: hsRows } = await supabase
+      .from("holiday_settings")
+      .select("holiday_desc, blocks_booking");
+    const blockedSet = hsRows && hsRows.length > 0
+      ? new Set<string>(hsRows.filter((r: any) => r.blocks_booking).map((r: any) => r.holiday_desc))
+      : DEFAULT_BLOCKED_DESCS;
+
     for (const apt of upcoming) {
       if (sentSet.has(apt.id)) continue;
-      const schedule = computeReminderTime(apt.appointment_date, apt.start_time);
+      const schedule = computeReminderTime(apt.appointment_date, apt.start_time, blockedSet);
       if (!schedule) continue;
 
       // Classify for message context
       const aptDate = parseDate(apt.appointment_date);
-      const aptBlocked = isShabbatOrHoliday(aptDate);
-      const dayAfter = !aptBlocked && isShabbatOrHoliday(addDays(aptDate, -1));
+      const aptBlocked = isShabbatOrHoliday(aptDate, blockedSet);
+      const dayAfter = !aptBlocked && isShabbatOrHoliday(addDays(aptDate, -1), blockedSet);
       const classification: Due["classification"] = aptBlocked ? "blocked" : dayAfter ? "day_after" : "regular";
 
       // Compare schedule date+time vs. current Israel time
