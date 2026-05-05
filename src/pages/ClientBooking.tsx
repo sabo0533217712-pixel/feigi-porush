@@ -659,7 +659,7 @@ export default function ClientBooking() {
                     {isSelected && t.is_variable_duration && (
                       <div className="mt-3 pt-3 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-3">
-                          <Label className="text-sm whitespace-nowrap">משך זמן:</Label>
+                          <Label className="text-sm whitespace-nowrap">בחרי טווח:</Label>
                           <select
                             value={variableDurations[t.id] || ""}
                             onChange={(e) =>
@@ -668,11 +668,11 @@ export default function ClientBooking() {
                             className="border border-input rounded-md px-3 py-1.5 text-sm bg-background flex-1"
                           >
                             <option value="" disabled>
-                              בחרי משך זמן
+                              בחרי טווח זמן
                             </option>
-                            {Array.from({ length: 24 }, (_, i) => (i + 1) * 5).map((min) => (
-                              <option key={min} value={min}>
-                                {min} דקות
+                            {(priceTiers[t.id] || []).map((tier, idx) => (
+                              <option key={idx} value={tier.max_minutes}>
+                                {tier.min_minutes}-{tier.max_minutes} דק׳ • ₪{tier.total_price}
                               </option>
                             ))}
                           </select>
