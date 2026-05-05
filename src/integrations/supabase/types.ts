@@ -175,6 +175,36 @@ export type Database = {
         }
         Relationships: []
       }
+      holiday_settings: {
+        Row: {
+          blocks_booking: boolean
+          category: string
+          created_at: string
+          display_name: string
+          holiday_desc: string
+          show_in_calendar: boolean
+          updated_at: string
+        }
+        Insert: {
+          blocks_booking?: boolean
+          category?: string
+          created_at?: string
+          display_name?: string
+          holiday_desc: string
+          show_in_calendar?: boolean
+          updated_at?: string
+        }
+        Update: {
+          blocks_booking?: boolean
+          category?: string
+          created_at?: string
+          display_name?: string
+          holiday_desc?: string
+          show_in_calendar?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_log: {
         Row: {
           appointment_id: string | null
@@ -339,7 +369,7 @@ export type Database = {
           id: string
           max_minutes: number
           min_minutes: number
-          price_per_minute: number
+          total_price: number
           treatment_id: string
         }
         Insert: {
@@ -347,7 +377,7 @@ export type Database = {
           id?: string
           max_minutes: number
           min_minutes?: number
-          price_per_minute?: number
+          total_price?: number
           treatment_id: string
         }
         Update: {
@@ -355,7 +385,7 @@ export type Database = {
           id?: string
           max_minutes?: number
           min_minutes?: number
-          price_per_minute?: number
+          total_price?: number
           treatment_id?: string
         }
         Relationships: [
@@ -374,6 +404,7 @@ export type Database = {
           color: string | null
           created_at: string
           description: string | null
+          display_order: number
           duration_minutes: number
           id: string
           is_active: boolean
@@ -387,6 +418,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          display_order?: number
           duration_minutes?: number
           id?: string
           is_active?: boolean
@@ -400,6 +432,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          display_order?: number
           duration_minutes?: number
           id?: string
           is_active?: boolean
@@ -496,6 +529,16 @@ export type Database = {
         Returns: {
           end_time: string
           start_time: string
+        }[]
+      }
+      get_holiday_settings: {
+        Args: never
+        Returns: {
+          blocks_booking: boolean
+          category: string
+          display_name: string
+          holiday_desc: string
+          show_in_calendar: boolean
         }[]
       }
       get_public_business_settings: {
