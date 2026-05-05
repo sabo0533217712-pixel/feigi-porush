@@ -519,6 +519,8 @@ export default function AdminSettings() {
         </CardContent>
       </Card>
 
+      <HolidaySettings />
+
       <Button className="w-full gradient-primary text-primary-foreground" onClick={handleSave} disabled={loading}>
         {loading ? "שומר..." : "שמירת הגדרות"}
       </Button>
