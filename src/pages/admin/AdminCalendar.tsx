@@ -87,6 +87,7 @@ interface BusinessSettings {
 }
 
 export default function AdminCalendar() {
+  const holidaySettings = useHolidaySettings();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
@@ -915,7 +916,7 @@ export default function AdminCalendar() {
                 const count = monthCounts[dateStr] || 0;
                 const colors = monthColors[dateStr] || [];
                 const dots = colors.slice(0, 4);
-                const holiday = getHolidayInfo(date);
+                const holiday = getHolidayInfo(date, holidaySettings);
                 return (
                   <div className="flex flex-col items-center leading-tight w-full" title={holiday?.name}>
                     <span className="text-sm font-medium">{date.getDate()}</span>
@@ -1837,7 +1838,7 @@ function RescheduleView({
             const count = monthCounts[dateStr] || 0;
             const colors = monthColors[dateStr] || [];
             const dots = colors.slice(0, 4);
-            const holiday = getHolidayInfo(date);
+            const holiday = getHolidayInfo(date, holidaySettings);
             return (
               <div className="flex flex-col items-center leading-tight w-full" title={holiday?.name}>
                 <span className="text-sm font-medium">{date.getDate()}</span>
