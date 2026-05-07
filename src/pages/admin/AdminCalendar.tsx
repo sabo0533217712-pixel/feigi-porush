@@ -15,8 +15,9 @@ import { getHebrewDateShort, getHebrewDate, getHolidayInfo } from "@/lib/hebrew-
 import { useHolidaySettings } from "@/hooks/useHolidaySettings";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2 } from "lucide-react";
+import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2, Search, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface WaitlistEntry {
@@ -65,6 +66,14 @@ interface Profile {
 interface TimeBlock {
   id: string;
   block_date: string;
+  start_time: string;
+  end_time: string;
+  notes: string;
+}
+
+interface ExtraShift {
+  id: string;
+  shift_date: string;
   start_time: string;
   end_time: string;
   notes: string;
@@ -122,6 +131,10 @@ export default function AdminCalendar() {
     notes: "",
   });
   const [blockForm, setBlockForm] = useState({ start_time: "09:00", end_time: "10:00", notes: "" });
+  const [extraShifts, setExtraShifts] = useState<ExtraShift[]>([]);
+  const [showShiftDialog, setShowShiftDialog] = useState(false);
+  const [shiftForm, setShiftForm] = useState({ start_time: "19:00", end_time: "22:00", notes: "" });
+  const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [editForm, setEditForm] = useState<{
     id: string;
     start_time: string;
@@ -303,13 +316,14 @@ export default function AdminCalendar() {
 
   const fetchDayData = async () => {
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const [aptsRes, blocksRes] = await Promise.all([
+    const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
       supabase
         .from("appointments")
         .select("*, treatments(name, color)")
         .eq("appointment_date", dateStr)
         .order("start_time"),
       supabase.from("time_blocks").select("*").eq("block_date", dateStr).order("start_time"),
+      supabase.from("extra_shifts").select("*").eq("shift_date", dateStr).order("start_time"),
     ]);
 
     if (aptsRes.data && aptsRes.data.length > 0) {
@@ -327,6 +341,7 @@ export default function AdminCalendar() {
     }
 
     setTimeBlocks((blocksRes.data || []) as unknown as TimeBlock[]);
+    setExtraShifts((shiftsRes.data || []) as unknown as ExtraShift[]);
   };
 
   // Get day hours from settings
@@ -341,12 +356,18 @@ export default function AdminCalendar() {
     if (breaks.length === 0 && settings.break_start && settings.break_end) {
       breaks = [{ start: settings.break_start.substring(0, 5), end: settings.break_end.substring(0, 5) }];
     }
-    return {
-      startHour: parseInt(startTime.split(":")[0]),
-      endHour: parseInt(endTime.split(":")[0]) + (parseInt(endTime.split(":")[1]) > 0 ? 1 : 0),
-      breaks,
-    };
-  }, [settings, selectedDate]);
+    let startHour = parseInt(startTime.split(":")[0]);
+    let endHour = parseInt(endTime.split(":")[0]) + (parseInt(endTime.split(":")[1]) > 0 ? 1 : 0);
+    // Extend to cover extra shifts
+    extraShifts.forEach((s) => {
+      const sH = parseInt(s.start_time.split(":")[0]);
+      const eRaw = s.end_time.split(":");
+      const eH = parseInt(eRaw[0]) + (parseInt(eRaw[1]) > 0 ? 1 : 0);
+      if (sH < startHour) startHour = sH;
+      if (eH > endHour) endHour = eH;
+    });
+    return { startHour, endHour, breaks };
+  }, [settings, selectedDate, extraShifts]);
 
   const timelineHours = useMemo(() => {
     const hours: string[] = [];
@@ -436,6 +457,35 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה במחיקה");
     else {
       toast.success("החסימה הוסרה");
+      fetchDayData();
+    }
+  };
+
+  // Add extra shift
+  const handleAddShift = async () => {
+    if (shiftForm.start_time >= shiftForm.end_time) {
+      toast.error("שעת סיום חייבת להיות אחרי שעת התחלה");
+      return;
+    }
+    const { error } = await supabase.from("extra_shifts").insert({
+      shift_date: format(selectedDate, "yyyy-MM-dd"),
+      start_time: shiftForm.start_time,
+      end_time: shiftForm.end_time,
+      notes: shiftForm.notes,
+    });
+    if (error) toast.error("שגיאה בהוספת משמרת");
+    else {
+      toast.success("המשמרת נוספה");
+      setShowShiftDialog(false);
+      fetchDayData();
+    }
+  };
+
+  const handleDeleteShift = async (id: string) => {
+    const { error } = await supabase.from("extra_shifts").delete().eq("id", id);
+    if (error) toast.error("שגיאה במחיקה");
+    else {
+      toast.success("המשמרת הוסרה");
       fetchDayData();
     }
   };
@@ -667,14 +717,23 @@ export default function AdminCalendar() {
       <Dialog open={showTimeline} onOpenChange={setShowTimeline}>
         <DialogContent dir="rtl" className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col p-4">
           <DialogHeader>
-            <DialogTitle className="text-right">
+            <DialogTitle className="text-right flex items-start justify-between gap-2">
               <div>
                 <span>{format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })}</span>
                 <p className="text-sm font-normal text-muted-foreground mt-0.5">{getHebrewDate(selectedDate)}</p>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                title="חזרה ליומן"
+                onClick={() => setShowTimeline(false)}
+              >
+                <CalendarIcon className="h-4 w-4" />
+              </Button>
             </DialogTitle>
           </DialogHeader>
-          <div className="flex items-center gap-2 pb-2 border-b border-border">
+          <div className="flex items-center gap-2 pb-2 border-b border-border flex-wrap">
             <Button
               variant="outline"
               size="sm"
@@ -695,6 +754,17 @@ export default function AdminCalendar() {
               }}
             >
               <Plus className="h-3.5 w-3.5" /> תור חדש
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                setShiftForm({ start_time: "19:00", end_time: "22:00", notes: "" });
+                setShowShiftDialog(true);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" /> הוספת משמרת
             </Button>
           </div>
 
@@ -744,6 +814,33 @@ export default function AdminCalendar() {
                   }}
                 >
                   <span className="text-[10px] font-medium text-muted-foreground bg-background/80 rounded px-1.5 py-0.5 mr-2 mt-1 inline-block">הפסקה</span>
+                </div>
+              ))}
+
+              {/* Extra shifts (additional working windows) */}
+              {extraShifts.map((shift) => (
+                <div
+                  key={shift.id}
+                  className="absolute left-0 right-16 pointer-events-none z-[1] bg-emerald-500/10 border-y border-emerald-500/30"
+                  style={{
+                    top: getTopOffset(shift.start_time),
+                    height: getHeight(shift.start_time, shift.end_time),
+                  }}
+                >
+                  <div className="flex items-center justify-between px-2 pt-1 pointer-events-auto">
+                    <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-300 bg-background/80 rounded px-1.5 py-0.5 inline-block">
+                      משמרת נוספת {shift.start_time.substring(0, 5)}-{shift.end_time.substring(0, 5)}
+                      {shift.notes && ` • ${shift.notes}`}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      onClick={() => handleDeleteShift(shift.id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               ))}
 
@@ -976,21 +1073,59 @@ export default function AdminCalendar() {
             )}
             <div className="space-y-2">
               <Label>לקוחה</Label>
-              <Select
-                value={bookForm.client_id}
-                onValueChange={(v) => setBookForm((prev) => ({ ...prev, client_id: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="בחרי לקוחה" />
-                </SelectTrigger>
-                <SelectContent>
-                  {profiles.map((p) => (
-                    <SelectItem key={p.user_id} value={p.user_id}>
-                      {p.full_name} {p.phone && `(${p.phone})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between font-normal"
+                  >
+                    {bookForm.client_id
+                      ? (() => {
+                          const p = profiles.find((pr) => pr.user_id === bookForm.client_id);
+                          return p ? `${p.full_name}${p.phone ? ` (${p.phone})` : ""}` : "בחרי לקוחה";
+                        })()
+                      : "בחרי לקוחה"}
+                    <Search className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command
+                    filter={(value, search) => {
+                      // value contains name + phone + email lowercased; substring match
+                      return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                    }}
+                  >
+                    <CommandInput placeholder="חיפוש לפי שם / טלפון / מייל..." />
+                    <CommandList>
+                      <CommandEmpty>לא נמצאו תוצאות</CommandEmpty>
+                      <CommandGroup>
+                        {profiles.map((p) => (
+                          <CommandItem
+                            key={p.user_id}
+                            value={`${p.full_name} ${p.phone || ""} ${p.email || ""}`}
+                            onSelect={() => {
+                              setBookForm((prev) => ({ ...prev, client_id: p.user_id }));
+                              setClientSearchOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "h-4 w-4 ml-2",
+                                bookForm.client_id === p.user_id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span className="flex-1">
+                              {p.full_name}
+                              {p.phone && <span className="text-muted-foreground text-xs mr-2">({p.phone})</span>}
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>טיפול</Label>
@@ -1122,7 +1257,50 @@ export default function AdminCalendar() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Appointment Dialog */}
+      {/* Add Shift Dialog */}
+      <Dialog open={showShiftDialog} onOpenChange={setShowShiftDialog}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>הוספת משמרת</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              פתיחת חלון עבודה נוסף ביום {format(selectedDate, "d בMMMM", { locale: he })} — לקוחות יוכלו להזמין תורים בטווח זה.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>שעת התחלה</Label>
+                <Input
+                  type="time"
+                  value={shiftForm.start_time}
+                  onChange={(e) => setShiftForm((prev) => ({ ...prev, start_time: e.target.value }))}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>שעת סיום</Label>
+                <Input
+                  type="time"
+                  value={shiftForm.end_time}
+                  onChange={(e) => setShiftForm((prev) => ({ ...prev, end_time: e.target.value }))}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>הערה (אופציונלי)</Label>
+              <Input
+                value={shiftForm.notes}
+                onChange={(e) => setShiftForm((prev) => ({ ...prev, notes: e.target.value }))}
+                placeholder="לדוגמה: ערב חגיגי"
+              />
+            </div>
+            <Button className="w-full gradient-primary text-primary-foreground" onClick={handleAddShift}>
+              הוספת משמרת
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={showEditDialog}
         onOpenChange={(open) => {
@@ -1189,7 +1367,19 @@ export default function AdminCalendar() {
                   <Input
                     type="time"
                     value={editForm.start_time}
-                    onChange={(e) => setEditForm((prev) => (prev ? { ...prev, start_time: e.target.value } : null))}
+                    onChange={(e) => setEditForm((prev) => {
+                      if (!prev) return null;
+                      // Preserve duration: shift end_time accordingly
+                      const toMin = (t: string) => {
+                        const [h, m] = t.split(":").map(Number);
+                        return h * 60 + m;
+                      };
+                      const dur = toMin(prev.end_time) - toMin(prev.start_time);
+                      const [h, m] = e.target.value.split(":").map(Number);
+                      const endMin = h * 60 + m + dur;
+                      const newEnd = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+                      return { ...prev, start_time: e.target.value, end_time: newEnd };
+                    })}
                     dir="ltr"
                   />
                 </div>
@@ -1346,6 +1536,21 @@ export default function AdminCalendar() {
                         <Phone className="h-3.5 w-3.5" /> התקשרי
                       </Button>
                     )}
+
+                    {hasPhone && (() => {
+                      const waPhone = normalizedPhone.startsWith("0") ? "972" + normalizedPhone.slice(1) : normalizedPhone;
+                      return (
+                        <Button
+                          asChild
+                          size="sm"
+                          className="gap-1.5 bg-[hsl(142_70%_45%)] text-white hover:bg-[hsl(142_70%_38%)] border-0"
+                        >
+                          <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer">
+                            <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                          </a>
+                        </Button>
+                      );
+                    })()}
 
                     {hasPhone ? (
                       <Button

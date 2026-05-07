@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format, addDays, isBefore, startOfDay } from "date-fns";
 import { he } from "date-fns/locale";
@@ -75,6 +76,9 @@ export default function ClientBooking() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [bookedSlots, setBookedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
+  const [extraShifts, setExtraShifts] = useState<Record<string, { start_time: string; end_time: string }[]>>({});
+  const [confirmationText, setConfirmationText] = useState<string>("");
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"treatment" | "date" | "time" | "success">("treatment");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -112,6 +116,8 @@ export default function ClientBooking() {
   useEffect(() => {
     fetchTreatments();
     fetchSettings();
+    fetchExtraShifts();
+    fetchConfirmationText();
   }, []);
 
   useEffect(() => {
@@ -168,6 +174,30 @@ export default function ClientBooking() {
     if (row) setSettings(row as unknown as BusinessSettings);
   };
 
+  const fetchConfirmationText = async () => {
+    const { data } = await supabase.rpc("get_public_business_settings");
+    const row = data?.[0] as any;
+    const text = (row?.custom_texts?.booking_confirmation as string | undefined) ?? "ניתן לבטל עד 24 שעות לפני התור";
+    setConfirmationText(text);
+  };
+
+  const fetchExtraShifts = async () => {
+    // Load all upcoming extra shifts
+    const today = format(new Date(), "yyyy-MM-dd");
+    const { data } = await supabase
+      .from("extra_shifts")
+      .select("shift_date, start_time, end_time")
+      .gte("shift_date", today);
+    if (data) {
+      const map: Record<string, { start_time: string; end_time: string }[]> = {};
+      (data as any[]).forEach((s) => {
+        if (!map[s.shift_date]) map[s.shift_date] = [];
+        map[s.shift_date].push({ start_time: s.start_time, end_time: s.end_time });
+      });
+      setExtraShifts(map);
+    }
+  };
+
   const fetchBookedSlots = async (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const [aptsRes, blocksRes] = await Promise.all([
@@ -182,58 +212,68 @@ export default function ClientBooking() {
     if (!settings) return [];
     const dayOfWeek = date.getDay();
     const daySchedule = settings.day_schedules?.[String(dayOfWeek)];
+    const dateStr = format(date, "yyyy-MM-dd");
+    const isWorking = settings.working_days.includes(dayOfWeek);
+    const shifts = extraShifts[dateStr] || [];
 
-    // Use per-day schedule if available, else fall back to global
-    const startTime = daySchedule?.start || settings.start_time;
-    const endTime = daySchedule?.end || settings.end_time;
+    // Build list of working windows
+    const windows: { start: string; end: string }[] = [];
+    if (isWorking) {
+      windows.push({
+        start: daySchedule?.start || settings.start_time,
+        end: daySchedule?.end || settings.end_time,
+      });
+    }
+    shifts.forEach((s) => windows.push({ start: s.start_time.substring(0, 5), end: s.end_time.substring(0, 5) }));
+
+    if (windows.length === 0) return [];
+
     const breaks: { start: string; end: string }[] =
       daySchedule?.breaks ||
       (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
 
-    const slots: string[] = [];
-    const [startH, startM] = startTime.split(":").map(Number);
-    const [endH, endM] = endTime.split(":").map(Number);
+    const allSlots = new Set<string>();
+    const step = settings.slot_step_minutes || 15;
 
-    let current = startH * 60 + startM;
-    const end = endH * 60 + endM;
+    windows.forEach((win) => {
+      const [startH, startM] = win.start.split(":").map(Number);
+      const [endH, endM] = win.end.split(":").map(Number);
+      let current = startH * 60 + startM;
+      const end = endH * 60 + endM;
 
-    while (current + duration <= end) {
-      const h = Math.floor(current / 60);
-      const m = current % 60;
-      const slotStart = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      const slotEndMin = current + duration;
-      const slotEndH = Math.floor(slotEndMin / 60);
-      const slotEndM = slotEndMin % 60;
-      const slotEnd = `${String(slotEndH).padStart(2, "0")}:${String(slotEndM).padStart(2, "0")}`;
+      while (current + duration <= end) {
+        const h = Math.floor(current / 60);
+        const m = current % 60;
+        const slotStart = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        const slotEndMin = current + duration;
+        const slotEndH = Math.floor(slotEndMin / 60);
+        const slotEndM = slotEndMin % 60;
+        const slotEnd = `${String(slotEndH).padStart(2, "0")}:${String(slotEndM).padStart(2, "0")}`;
 
-      const inBreak = breaks.some((brk) => {
-        const [bsH, bsM] = brk.start.split(":").map(Number);
-        const [beH, beM] = brk.end.split(":").map(Number);
-        const bStart = bsH * 60 + bsM;
-        const bEnd = beH * 60 + beM;
-        return current < bEnd && slotEndMin > bStart;
-      });
+        const inBreak = breaks.some((brk) => {
+          const [bsH, bsM] = brk.start.split(":").map(Number);
+          const [beH, beM] = brk.end.split(":").map(Number);
+          return current < beH * 60 + beM && slotEndMin > bsH * 60 + bsM;
+        });
+        const isBooked = booked.some((b) => {
+          const bStart = b.start_time.substring(0, 5);
+          const bEnd = b.end_time.substring(0, 5);
+          return slotStart < bEnd && slotEnd > bStart;
+        });
+        const isBlocked = blockedSlots.some((b) => {
+          const bStart = b.start_time.substring(0, 5);
+          const bEnd = b.end_time.substring(0, 5);
+          return slotStart < bEnd && slotEnd > bStart;
+        });
 
-      const isBooked = booked.some((b) => {
-        const bStart = b.start_time.substring(0, 5);
-        const bEnd = b.end_time.substring(0, 5);
-        return slotStart < bEnd && slotEnd > bStart;
-      });
-
-      const isBlocked = blockedSlots.some((b) => {
-        const bStart = b.start_time.substring(0, 5);
-        const bEnd = b.end_time.substring(0, 5);
-        return slotStart < bEnd && slotEnd > bStart;
-      });
-
-      if (!inBreak && !isBooked && !isBlocked) {
-        slots.push(slotStart);
+        if (!inBreak && !isBooked && !isBlocked) {
+          allSlots.add(slotStart);
+        }
+        current += step;
       }
+    });
 
-      current += settings.slot_step_minutes || 15;
-    }
-
-    return slots;
+    return Array.from(allSlots).sort();
   };
 
   // Find empty gaps in the day's schedule (for variable-duration treatments)
@@ -399,7 +439,10 @@ export default function ClientBooking() {
 
   const isWorkingDay = (date: Date) => {
     if (!settings) return false;
-    return settings.working_days.includes(date.getDay());
+    if (settings.working_days.includes(date.getDay())) return true;
+    // Also open if the day has an extra shift defined
+    const dateStr = format(date, "yyyy-MM-dd");
+    return (extraShifts[dateStr] || []).length > 0;
   };
 
   const toggleTreatment = (t: Treatment) => {
@@ -462,7 +505,10 @@ export default function ClientBooking() {
           .catch((e) => console.error("notify-client failed:", e));
 
         toast.success("התור נקבע בהצלחה! 🎉");
-        setStep("success");
+       setStep("success");
+       if (confirmationText && confirmationText.trim().length > 0) {
+         setShowConfirmationDialog(true);
+       }
       }
     } finally {
       setLoading(false);
@@ -519,8 +565,14 @@ export default function ClientBooking() {
         (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
       const [sH, sM] = startTime.split(":").map(Number);
       const [eH, eM] = endTime.split(":").map(Number);
-      const dayStart = sH * 60 + sM;
-      const dayEnd = eH * 60 + eM;
+      const isWorking = settings.working_days.includes(dayOfWeek);
+      const windows: { start: number; end: number }[] = [];
+      if (isWorking) windows.push({ start: sH * 60 + sM, end: eH * 60 + eM });
+      (extraShifts[dateStr] || []).forEach((s) => {
+        const [aH, aM] = s.start_time.substring(0, 5).split(":").map(Number);
+        const [bH, bM] = s.end_time.substring(0, 5).split(":").map(Number);
+        windows.push({ start: aH * 60 + aM, end: bH * 60 + bM });
+      });
 
       const availableSlots: string[] = [];
       for (const startMin of candidates) {
@@ -528,7 +580,8 @@ export default function ClientBooking() {
         const startStr = `${String(Math.floor(startMin / 60)).padStart(2, "0")}:${String(startMin % 60).padStart(2, "0")}`;
         const endStr = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
-        if (startMin < dayStart || endMin > dayEnd) continue;
+        const inWindow = windows.some((w) => startMin >= w.start && endMin <= w.end);
+        if (!inWindow) continue;
 
         const inBreak = breaks.some((brk) => {
           const [bsH, bsM] = brk.start.split(":").map(Number);
@@ -1068,6 +1121,22 @@ export default function ClientBooking() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={showConfirmationDialog} onOpenChange={setShowConfirmationDialog}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>התור נקבע בהצלחה</DialogTitle>
+            <DialogDescription className="whitespace-pre-line pt-2">
+              {confirmationText}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowConfirmationDialog(false)} className="w-full">
+              אישור
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -516,6 +516,15 @@ export default function AdminSettings() {
               rows={3}
             />
           </div>
+          <div className="space-y-2">
+            <Label>טקסט בעת קביעת תור</Label>
+            <Textarea
+              value={settings.custom_texts.booking_confirmation ?? "ניתן לבטל עד 24 שעות לפני התור"}
+              onChange={(e) => updateCustomText("booking_confirmation", e.target.value)}
+              placeholder="הודעה שתקפוץ ללקוחה לאחר קביעת תור"
+              rows={3}
+            />
+          </div>
         </CardContent>
       </Card>
 
