@@ -1219,7 +1219,50 @@ export default function AdminCalendar() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Appointment Dialog */}
+      {/* Add Shift Dialog */}
+      <Dialog open={showShiftDialog} onOpenChange={setShowShiftDialog}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>הוספת משמרת</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              פתיחת חלון עבודה נוסף ביום {format(selectedDate, "d בMMMM", { locale: he })} — לקוחות יוכלו להזמין תורים בטווח זה.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>שעת התחלה</Label>
+                <Input
+                  type="time"
+                  value={shiftForm.start_time}
+                  onChange={(e) => setShiftForm((prev) => ({ ...prev, start_time: e.target.value }))}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>שעת סיום</Label>
+                <Input
+                  type="time"
+                  value={shiftForm.end_time}
+                  onChange={(e) => setShiftForm((prev) => ({ ...prev, end_time: e.target.value }))}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>הערה (אופציונלי)</Label>
+              <Input
+                value={shiftForm.notes}
+                onChange={(e) => setShiftForm((prev) => ({ ...prev, notes: e.target.value }))}
+                placeholder="לדוגמה: ערב חגיגי"
+              />
+            </div>
+            <Button className="w-full gradient-primary text-primary-foreground" onClick={handleAddShift}>
+              הוספת משמרת
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={showEditDialog}
         onOpenChange={(open) => {
