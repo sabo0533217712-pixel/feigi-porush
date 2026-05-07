@@ -75,6 +75,9 @@ export default function ClientBooking() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [bookedSlots, setBookedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<{ start_time: string; end_time: string }[]>([]);
+  const [extraShifts, setExtraShifts] = useState<Record<string, { start_time: string; end_time: string }[]>>({});
+  const [confirmationText, setConfirmationText] = useState<string>("");
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"treatment" | "date" | "time" | "success">("treatment");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
