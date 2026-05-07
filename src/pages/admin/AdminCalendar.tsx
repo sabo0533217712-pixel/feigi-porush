@@ -1537,6 +1537,21 @@ export default function AdminCalendar() {
                       </Button>
                     )}
 
+                    {hasPhone && (() => {
+                      const waPhone = normalizedPhone.startsWith("0") ? "972" + normalizedPhone.slice(1) : normalizedPhone;
+                      return (
+                        <Button
+                          asChild
+                          size="sm"
+                          className="gap-1.5 bg-[hsl(142_70%_45%)] text-white hover:bg-[hsl(142_70%_38%)] border-0"
+                        >
+                          <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer">
+                            <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                          </a>
+                        </Button>
+                      );
+                    })()}
+
                     {hasPhone ? (
                       <Button
                         asChild
