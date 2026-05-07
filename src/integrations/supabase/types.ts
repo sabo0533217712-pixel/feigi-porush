@@ -175,6 +175,33 @@ export type Database = {
         }
         Relationships: []
       }
+      extra_shifts: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          notes: string
+          shift_date: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          notes?: string
+          shift_date: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          notes?: string
+          shift_date?: string
+          start_time?: string
+        }
+        Relationships: []
+      }
       holiday_settings: {
         Row: {
           blocks_booking: boolean

@@ -1,75 +1,53 @@
 ## תכנית שינויים
 
-### 1) ניהול חגים בהגדרות אדמין
-**מצב נוכחי:** רשימת חגים מוגדרת קשיח בקוד (`src/lib/hebrew-date.ts`) — `ALLOWED_DESCS` (תצוגה) ו-`BOOKING_BLOCKED_DESCS` (חסימת הזמנות).
+### 1) כפתור WhatsApp בפופאפ "פרטי לקוחה" (יצירת קשר)
+ב-`AdminCalendar.tsx` בדיאלוג `showClientInfo` (סביב שורות 1289–1390) מוצגים כפתורי "התקשרי / SMS / מייל". הוספת כפתור WhatsApp ירוק (כמו בדיאלוג הצעת תור מרשימת המתנה — שורות 1421–1431), עם נרמול מספר ל-`972XXXXXXXXX` (חיתוך 0 קידומת אם יש).
 
-**שינוי:**
-- טבלה חדשה `holiday_settings` ב-DB:
-  - `desc` (PK, text) — שם פנימי באנגלית של החג מ-hebcal
-  - `display_name` (text) — שם בעברית להצגה (נקבע אוטומטית בעת ה-seed)
-  - `show_in_calendar` (bool, default true)
-  - `blocks_booking` (bool, default לפי הקבוצה הקיימת)
-  - `category` (text) — לקיבוץ בתצוגה: 'major' / 'erev' / 'cholhamoed' / 'minor_fast' / 'modern' / 'rabbinic' / 'rosh_chodesh'
-- Seed ראשוני שמכניס את כל החגים הקיימים + ראשי חודש (`Rosh Chodesh *`).
-- RLS: כולם רואים (`SELECT` ל-public), רק אדמין `INSERT/UPDATE/DELETE`.
-- פונקציה `get_holiday_settings()` (security definer) לטעינה מהירה ב-client.
+### 2) שעת סיום מתעדכנת אוטומטית בעריכת תור
+בדיאלוג עריכת תור (שורות 1186–1205) ה-`onChange` של "שעת התחלה" רק מעדכן את `start_time`. שינוי: בעת שינוי שעת ההתחלה — חישוב משך התור הקיים (`end_time - start_time` של ה-`editForm` הנוכחי) והגדרת `end_time` חדש בהתאם, כך שהמשך נשמר. שינוי שעת הסיום ידנית עדיין יישאר כפי שהוא.
 
-**שינויי קוד:**
-- `src/lib/hebrew-date.ts`: `getHolidayInfo` יקבל אופציונלית `settings` (Map of desc→{show, blocks}). אם לא סופק — fallback להתנהגות הקיימת.
-- `useHolidaySettings` hook (`src/hooks/useHolidaySettings.tsx`) — טוען פעם אחת ב-app, חושף Map. רענון ע"י realtime או חזרה ל-mount.
-- `ClientBooking.tsx` ו-`AdminCalendar.tsx`: שימוש ב-hook להעברת ההגדרות ל-`getHolidayInfo`/`isBookingBlockedDay`.
-- `AdminSettings.tsx`: כרטיס חדש "ניהול חגים ומועדים" — רשימה מקובצת לפי category, כל שורה עם שני Switch: "הצג בלוח שנה" + "חסום הזמנה". שמירה לכל שינוי או כפתור שמירה גלובלי.
-- `supabase/functions/send-reminders/index.ts`: לקרוא את הטבלה במקום הסט הקבוע.
+### 3) טקסט בעת קביעת תור + פופאפ ללקוחה
+- **הגדרות**: ב-`AdminSettings.tsx` בכרטיס "טקסטים מותאמים" (שורה 495) הוספת שדה `Textarea` חדש `booking_confirmation` עם תווית "טקסט בעת קביעת תור" (ברירת מחדל: "ניתן לבטל עד 24 שעות לפני התור"). נשמר ל-`custom_texts.booking_confirmation` בטבלת `business_settings` (לא נדרש שינוי סכמה — `custom_texts` הוא jsonb).
+- **לקוחה**: ב-`ClientBooking.tsx` כרגע יש שלב `success` (שורה 1041). הוספת `Dialog` שיוצג מיד לאחר הצלחת `setStep("success")` ומציג את הטקסט שהאדמין הגדירה (אם קיים). הדיאלוג ייסגר בלחיצה על "אישור" והמשתמשת תישאר במסך ה-success הקיים.
+- טעינת `custom_texts` קיימת כבר דרך הגדרות ה-business — נוודא שהשדה נטען.
 
-### 2) עריכה ומחיקה של לקוחות בלוח בקרה
-**מצב נוכחי:** טבלת לקוחות קיימת ב-`AdminDashboard.tsx` — תצוגה בלבד.
+### 4) חיפוש טקסטואלי בבחירת לקוחה (אדמין → תור חדש)
+בדיאלוג "קביעת תור חדש" (שורות 977–994), החלפת ה-`Select` הפשוט של לקוחה ב-`Popover` + `Command` (`@/components/ui/command` קיים) כך שניתן להקליד שם/טלפון/מייל ולסנן את `profiles` בזמן אמת. שמירה על אותו `bookForm.client_id` כתוצאה.
 
-**שינוי:**
-- כפתור "עריכה" → Dialog עם שדות `full_name`, `phone`, `email`, `reminder_preference`. שמירה דרך update ל-`profiles`.
-- כפתור "מחיקה" עם `AlertDialog` אישור. מחיקה מוחקת את המשתמש מ-`auth.users` (cascade ל-profiles ויתר הטבלאות).
-  - טכני: edge function חדשה `delete-user` (verify_jwt + בדיקת `has_role(admin)` בתוך ה-function דרך service role) שמבצעת `admin.deleteUser(userId)`. לא ניתן למחוק auth users ישירות מה-client.
-- הוספת RLS policies על `profiles`: `Admins can update/delete profiles`. ועל `user_roles` כבר קיים.
+### 5) "הוספת משמרת" באותו יום
+**DB**: טבלה חדשה `extra_shifts`:
+```
+id uuid pk default gen_random_uuid()
+shift_date date not null
+start_time time not null
+end_time time not null
+notes text default ''
+created_at timestamptz default now()
+```
+RLS: `SELECT` ל-`authenticated` (לקוחות צריכות לראות כדי שהזמינות תיפתח), `INSERT/UPDATE/DELETE` רק לאדמין (`has_role`).
 
-### 3) תמחור גמיש = מחיר סופי לטווח (לא פר-דקה)
-**מצב נוכחי:** `treatment_price_tiers` עם `price_per_minute`. החישוב ב-`ClientBooking.tsx`: `Math.round(price_per_minute * minutes)`. בחירת משך — dropdown של כל מכפלות 5 עד 120 דק'.
+**UI אדמין** (`AdminCalendar.tsx`, סביב שורות 677–699):
+- כפתור שלישי "הוספת משמרת" בשורת הפעולות של ה-Timeline.
+- דיאלוג חדש `showShiftDialog` עם שעת התחלה / סיום / הערה, שמירה ל-`extra_shifts` עבור `selectedDate`.
+- ב-`fetchDayData` הוספת `extra_shifts` לתאריך, והרחבת `daySchedule` כך ששעות הציר (`startHour`/`endHour`) יכסו גם את טווח המשמרות הנוספות. תצוגה ויזואלית של המשמרת ברצועת רקע עדינה (למשל ירקרק) על ה-timeline, עם כפתור מחיקה.
 
-**שינוי:**
-- migration: rename `price_per_minute` → `total_price` (numeric). או הוספת עמודה חדשה ושמירת תאימות. אבחר ב-rename — שום קוד חוץ נוסף משתמש בה.
-- `AdminTreatments.tsx`:
-  - תווית התווית מ"₪ לדקה" ל"מחיר סה"כ (₪)".
-  - שדה `price_per_minute` בטופס → `total_price`.
-- `ClientBooking.tsx`:
-  - `calculateTierPrice` יחזיר `tier.total_price` (לא כפל).
-  - **בחירת משך** — במקום dropdown של כל 5 דק', הצגת רשימת הטווחים שהוגדרו (כל tier = אופציה אחת = `min-max דק' • ₪total_price`). הלקוחה תבחר טווח, ו-`variableDurations[t.id]` יוגדר ל-`max_minutes` של הטווח שנבחר (כדי לתפוס את כל הזמן בלוח).
-- עדכון `PriceTier` interface בכל הקבצים.
+**UI לקוחה** (`ClientBooking.tsx`, `getAvailableSlots` בשורה 181 ו-`fetchMoreDays` בשורה ~494):
+- שליפת `extra_shifts` לתאריך הרלוונטי.
+- אלגוריתם הסלוטים יורחב כך שלכל יום יחושבו טווחי עבודה = [טווח רגיל מ-`day_schedules`/`start_time`/`end_time`] ∪ [כל המשמרות הנוספות לאותו יום]. הסלוטים נוצרים בכל אחד מהטווחים, תוך שמירה על אותה לוגיקת חסימות/הפסקות/תורים תפוסים.
+- בדיקת ימי עבודה (`working_days`): אם יש משמרת נוספת ביום שאינו רגיל — היום ייפתח להזמנה רק לטווח של המשמרת.
 
-### 4) הצגת תיאור טיפול ללקוחה
-**שינוי ב-`ClientBooking.tsx`:**
-- הוספת `description` ל-interface `Treatment`.
-- הצגתו מתחת ל-`{t.name}` בכרטיס הטיפול (`<p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>` כשקיים).
+### 6) כפתור "חזרה ליומן" בתצוגת היום
+ב-`Dialog` של ה-Timeline (שורה 667) הוספת כפתור-אייקון קטן (`CalendarIcon`) ב-`DialogHeader` משמאל לכותרת, שב-onClick מבצע `setShowTimeline(false)` — סוגר את התצוגה וחושף את היומן החודשי שמתחת.
 
-### 5) גרירת סדר טיפולים
-**שינוי DB:** הוספת עמודה `display_order` (int, default 0) לטבלת `treatments`. כל הטיפולים הקיימים יקבלו ערך לפי `created_at`.
+---
 
-**ספריה:** התקנת `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`.
+## קבצים שיתעדכנו / יווצרו
+- חדש: `supabase/migrations/<timestamp>_extra_shifts.sql` (טבלה + RLS)
+- עריכה: `src/pages/admin/AdminCalendar.tsx` (סעיפים 1, 2, 4, 5, 6)
+- עריכה: `src/pages/admin/AdminSettings.tsx` (סעיף 3 — שדה טקסט חדש)
+- עריכה: `src/pages/ClientBooking.tsx` (סעיף 3 — פופאפ; סעיף 5 — שילוב משמרות נוספות בלוגיקת הסלוטים)
 
-**`AdminTreatments.tsx`:**
-- עטיפת רשימת הטיפולים ב-`DndContext` + `SortableContext`.
-- כל כרטיס הופך ל-`SortableItem` עם ידית גרירה (אייקון `GripVertical` משמאל).
-- בסיום גרירה — חישוב מחדש של `display_order` לכל הטיפולים שהושפעו, update ב-DB.
-- ב-`fetchTreatments`: `.order('display_order', { ascending: true })`.
-
-**`ClientBooking.tsx`:**
-- `fetchTreatments`: `.order('display_order', { ascending: true })`.
-
-### קבצים שיתעדכנו / יווצרו
-- חדש: `supabase/migrations/<timestamp>_holidays_and_treatment_changes.sql`
-- חדש: `supabase/functions/delete-user/index.ts` + ערך ב-`supabase/config.toml`
-- חדש: `src/hooks/useHolidaySettings.tsx`
-- עריכה: `src/lib/hebrew-date.ts`, `src/pages/ClientBooking.tsx`, `src/pages/admin/AdminSettings.tsx`, `src/pages/admin/AdminDashboard.tsx`, `src/pages/admin/AdminTreatments.tsx`, `src/pages/admin/AdminCalendar.tsx`, `supabase/functions/send-reminders/index.ts`
-- התקנה: `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`
-
-### הערות
-- שום שינוי בלוגיקת זמינות, התראות, או UI כללי שלא מוזכר.
-- ה-rename של `price_per_minute` ל-`total_price` הוא שינוי שובר; וידאתי שאין שימוש נוסף בקוד.
-- מחיקת לקוח מחיקה מלאה (auth + cascade). ניתן בעתיד לעבור ל-soft delete אם נדרש.
+## הערות
+- אין שינוי בלוגיקת התראות, חגים, תמחור או UI כללי שלא הוזכר.
+- הטבלה `extra_shifts` לא משפיעה על `check_appointment_overlap` הקיים — בדיקת חפיפה בין תורים נשארת זהה; המשמרת רק מרחיבה את חלון הזמינות שמוצג ללקוחה.
+- כפתור החיפוש (סעיף 4) משתמש ברכיבי `Command` הקיימים ב-shadcn — אין צורך בהתקנות נוספות.
