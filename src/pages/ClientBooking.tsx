@@ -561,8 +561,14 @@ export default function ClientBooking() {
         (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
       const [sH, sM] = startTime.split(":").map(Number);
       const [eH, eM] = endTime.split(":").map(Number);
-      const dayStart = sH * 60 + sM;
-      const dayEnd = eH * 60 + eM;
+      const isWorking = settings.working_days.includes(dayOfWeek);
+      const windows: { start: number; end: number }[] = [];
+      if (isWorking) windows.push({ start: sH * 60 + sM, end: eH * 60 + eM });
+      (extraShifts[dateStr] || []).forEach((s) => {
+        const [aH, aM] = s.start_time.substring(0, 5).split(":").map(Number);
+        const [bH, bM] = s.end_time.substring(0, 5).split(":").map(Number);
+        windows.push({ start: aH * 60 + aM, end: bH * 60 + bM });
+      });
 
       const availableSlots: string[] = [];
       for (const startMin of candidates) {
@@ -570,7 +576,8 @@ export default function ClientBooking() {
         const startStr = `${String(Math.floor(startMin / 60)).padStart(2, "0")}:${String(startMin % 60).padStart(2, "0")}`;
         const endStr = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
-        if (startMin < dayStart || endMin > dayEnd) continue;
+        const inWindow = windows.some((w) => startMin >= w.start && endMin <= w.end);
+        if (!inWindow) continue;
 
         const inBreak = breaks.some((brk) => {
           const [bsH, bsM] = brk.start.split(":").map(Number);
