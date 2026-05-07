@@ -316,13 +316,14 @@ export default function AdminCalendar() {
 
   const fetchDayData = async () => {
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const [aptsRes, blocksRes] = await Promise.all([
+    const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
       supabase
         .from("appointments")
         .select("*, treatments(name, color)")
         .eq("appointment_date", dateStr)
         .order("start_time"),
       supabase.from("time_blocks").select("*").eq("block_date", dateStr).order("start_time"),
+      supabase.from("extra_shifts").select("*").eq("shift_date", dateStr).order("start_time"),
     ]);
 
     if (aptsRes.data && aptsRes.data.length > 0) {
@@ -340,6 +341,7 @@ export default function AdminCalendar() {
     }
 
     setTimeBlocks((blocksRes.data || []) as unknown as TimeBlock[]);
+    setExtraShifts((shiftsRes.data || []) as unknown as ExtraShift[]);
   };
 
   // Get day hours from settings
