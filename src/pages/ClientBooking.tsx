@@ -211,58 +211,68 @@ export default function ClientBooking() {
     if (!settings) return [];
     const dayOfWeek = date.getDay();
     const daySchedule = settings.day_schedules?.[String(dayOfWeek)];
+    const dateStr = format(date, "yyyy-MM-dd");
+    const isWorking = settings.working_days.includes(dayOfWeek);
+    const shifts = extraShifts[dateStr] || [];
 
-    // Use per-day schedule if available, else fall back to global
-    const startTime = daySchedule?.start || settings.start_time;
-    const endTime = daySchedule?.end || settings.end_time;
+    // Build list of working windows
+    const windows: { start: string; end: string }[] = [];
+    if (isWorking) {
+      windows.push({
+        start: daySchedule?.start || settings.start_time,
+        end: daySchedule?.end || settings.end_time,
+      });
+    }
+    shifts.forEach((s) => windows.push({ start: s.start_time.substring(0, 5), end: s.end_time.substring(0, 5) }));
+
+    if (windows.length === 0) return [];
+
     const breaks: { start: string; end: string }[] =
       daySchedule?.breaks ||
       (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
 
-    const slots: string[] = [];
-    const [startH, startM] = startTime.split(":").map(Number);
-    const [endH, endM] = endTime.split(":").map(Number);
+    const allSlots = new Set<string>();
+    const step = settings.slot_step_minutes || 15;
 
-    let current = startH * 60 + startM;
-    const end = endH * 60 + endM;
+    windows.forEach((win) => {
+      const [startH, startM] = win.start.split(":").map(Number);
+      const [endH, endM] = win.end.split(":").map(Number);
+      let current = startH * 60 + startM;
+      const end = endH * 60 + endM;
 
-    while (current + duration <= end) {
-      const h = Math.floor(current / 60);
-      const m = current % 60;
-      const slotStart = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      const slotEndMin = current + duration;
-      const slotEndH = Math.floor(slotEndMin / 60);
-      const slotEndM = slotEndMin % 60;
-      const slotEnd = `${String(slotEndH).padStart(2, "0")}:${String(slotEndM).padStart(2, "0")}`;
+      while (current + duration <= end) {
+        const h = Math.floor(current / 60);
+        const m = current % 60;
+        const slotStart = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        const slotEndMin = current + duration;
+        const slotEndH = Math.floor(slotEndMin / 60);
+        const slotEndM = slotEndMin % 60;
+        const slotEnd = `${String(slotEndH).padStart(2, "0")}:${String(slotEndM).padStart(2, "0")}`;
 
-      const inBreak = breaks.some((brk) => {
-        const [bsH, bsM] = brk.start.split(":").map(Number);
-        const [beH, beM] = brk.end.split(":").map(Number);
-        const bStart = bsH * 60 + bsM;
-        const bEnd = beH * 60 + beM;
-        return current < bEnd && slotEndMin > bStart;
-      });
+        const inBreak = breaks.some((brk) => {
+          const [bsH, bsM] = brk.start.split(":").map(Number);
+          const [beH, beM] = brk.end.split(":").map(Number);
+          return current < beH * 60 + beM && slotEndMin > bsH * 60 + bsM;
+        });
+        const isBooked = booked.some((b) => {
+          const bStart = b.start_time.substring(0, 5);
+          const bEnd = b.end_time.substring(0, 5);
+          return slotStart < bEnd && slotEnd > bStart;
+        });
+        const isBlocked = blockedSlots.some((b) => {
+          const bStart = b.start_time.substring(0, 5);
+          const bEnd = b.end_time.substring(0, 5);
+          return slotStart < bEnd && slotEnd > bStart;
+        });
 
-      const isBooked = booked.some((b) => {
-        const bStart = b.start_time.substring(0, 5);
-        const bEnd = b.end_time.substring(0, 5);
-        return slotStart < bEnd && slotEnd > bStart;
-      });
-
-      const isBlocked = blockedSlots.some((b) => {
-        const bStart = b.start_time.substring(0, 5);
-        const bEnd = b.end_time.substring(0, 5);
-        return slotStart < bEnd && slotEnd > bStart;
-      });
-
-      if (!inBreak && !isBooked && !isBlocked) {
-        slots.push(slotStart);
+        if (!inBreak && !isBooked && !isBlocked) {
+          allSlots.add(slotStart);
+        }
+        current += step;
       }
+    });
 
-      current += settings.slot_step_minutes || 15;
-    }
-
-    return slots;
+    return Array.from(allSlots).sort();
   };
 
   // Find empty gaps in the day's schedule (for variable-duration treatments)
