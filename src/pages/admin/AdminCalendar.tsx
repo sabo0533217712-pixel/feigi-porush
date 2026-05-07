@@ -356,12 +356,18 @@ export default function AdminCalendar() {
     if (breaks.length === 0 && settings.break_start && settings.break_end) {
       breaks = [{ start: settings.break_start.substring(0, 5), end: settings.break_end.substring(0, 5) }];
     }
-    return {
-      startHour: parseInt(startTime.split(":")[0]),
-      endHour: parseInt(endTime.split(":")[0]) + (parseInt(endTime.split(":")[1]) > 0 ? 1 : 0),
-      breaks,
-    };
-  }, [settings, selectedDate]);
+    let startHour = parseInt(startTime.split(":")[0]);
+    let endHour = parseInt(endTime.split(":")[0]) + (parseInt(endTime.split(":")[1]) > 0 ? 1 : 0);
+    // Extend to cover extra shifts
+    extraShifts.forEach((s) => {
+      const sH = parseInt(s.start_time.split(":")[0]);
+      const eRaw = s.end_time.split(":");
+      const eH = parseInt(eRaw[0]) + (parseInt(eRaw[1]) > 0 ? 1 : 0);
+      if (sH < startHour) startHour = sH;
+      if (eH > endHour) endHour = eH;
+    });
+    return { startHour, endHour, breaks };
+  }, [settings, selectedDate, extraShifts]);
 
   const timelineHours = useMemo(() => {
     const hours: string[] = [];
