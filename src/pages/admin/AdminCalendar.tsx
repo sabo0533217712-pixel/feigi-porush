@@ -1073,21 +1073,59 @@ export default function AdminCalendar() {
             )}
             <div className="space-y-2">
               <Label>לקוחה</Label>
-              <Select
-                value={bookForm.client_id}
-                onValueChange={(v) => setBookForm((prev) => ({ ...prev, client_id: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="בחרי לקוחה" />
-                </SelectTrigger>
-                <SelectContent>
-                  {profiles.map((p) => (
-                    <SelectItem key={p.user_id} value={p.user_id}>
-                      {p.full_name} {p.phone && `(${p.phone})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between font-normal"
+                  >
+                    {bookForm.client_id
+                      ? (() => {
+                          const p = profiles.find((pr) => pr.user_id === bookForm.client_id);
+                          return p ? `${p.full_name}${p.phone ? ` (${p.phone})` : ""}` : "בחרי לקוחה";
+                        })()
+                      : "בחרי לקוחה"}
+                    <Search className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command
+                    filter={(value, search) => {
+                      // value contains name + phone + email lowercased; substring match
+                      return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                    }}
+                  >
+                    <CommandInput placeholder="חיפוש לפי שם / טלפון / מייל..." />
+                    <CommandList>
+                      <CommandEmpty>לא נמצאו תוצאות</CommandEmpty>
+                      <CommandGroup>
+                        {profiles.map((p) => (
+                          <CommandItem
+                            key={p.user_id}
+                            value={`${p.full_name} ${p.phone || ""} ${p.email || ""}`}
+                            onSelect={() => {
+                              setBookForm((prev) => ({ ...prev, client_id: p.user_id }));
+                              setClientSearchOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "h-4 w-4 ml-2",
+                                bookForm.client_id === p.user_id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span className="flex-1">
+                              {p.full_name}
+                              {p.phone && <span className="text-muted-foreground text-xs mr-2">({p.phone})</span>}
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>טיפול</Label>
