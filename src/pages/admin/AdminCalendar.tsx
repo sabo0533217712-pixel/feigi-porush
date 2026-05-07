@@ -71,6 +71,14 @@ interface TimeBlock {
   notes: string;
 }
 
+interface ExtraShift {
+  id: string;
+  shift_date: string;
+  start_time: string;
+  end_time: string;
+  notes: string;
+}
+
 interface DaySchedule {
   start: string;
   end: string;
