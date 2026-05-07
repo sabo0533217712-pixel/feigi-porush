@@ -817,6 +817,33 @@ export default function AdminCalendar() {
                 </div>
               ))}
 
+              {/* Extra shifts (additional working windows) */}
+              {extraShifts.map((shift) => (
+                <div
+                  key={shift.id}
+                  className="absolute left-0 right-16 pointer-events-none z-[1] bg-emerald-500/10 border-y border-emerald-500/30"
+                  style={{
+                    top: getTopOffset(shift.start_time),
+                    height: getHeight(shift.start_time, shift.end_time),
+                  }}
+                >
+                  <div className="flex items-center justify-between px-2 pt-1 pointer-events-auto">
+                    <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-300 bg-background/80 rounded px-1.5 py-0.5 inline-block">
+                      משמרת נוספת {shift.start_time.substring(0, 5)}-{shift.end_time.substring(0, 5)}
+                      {shift.notes && ` • ${shift.notes}`}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      onClick={() => handleDeleteShift(shift.id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
               {/* Time blocks */}
               {timeBlocks.map((block) => (
                 <div
