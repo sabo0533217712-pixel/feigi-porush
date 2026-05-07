@@ -667,14 +667,23 @@ export default function AdminCalendar() {
       <Dialog open={showTimeline} onOpenChange={setShowTimeline}>
         <DialogContent dir="rtl" className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col p-4">
           <DialogHeader>
-            <DialogTitle className="text-right">
+            <DialogTitle className="text-right flex items-start justify-between gap-2">
               <div>
                 <span>{format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })}</span>
                 <p className="text-sm font-normal text-muted-foreground mt-0.5">{getHebrewDate(selectedDate)}</p>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                title="חזרה ליומן"
+                onClick={() => setShowTimeline(false)}
+              >
+                <CalendarIcon className="h-4 w-4" />
+              </Button>
             </DialogTitle>
           </DialogHeader>
-          <div className="flex items-center gap-2 pb-2 border-b border-border">
+          <div className="flex items-center gap-2 pb-2 border-b border-border flex-wrap">
             <Button
               variant="outline"
               size="sm"
@@ -695,6 +704,17 @@ export default function AdminCalendar() {
               }}
             >
               <Plus className="h-3.5 w-3.5" /> תור חדש
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                setShiftForm({ start_time: "19:00", end_time: "22:00", notes: "" });
+                setShowShiftDialog(true);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" /> הוספת משמרת
             </Button>
           </div>
 
