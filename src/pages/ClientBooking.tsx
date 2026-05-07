@@ -504,7 +504,10 @@ export default function ClientBooking() {
           .catch((e) => console.error("notify-client failed:", e));
 
         toast.success("התור נקבע בהצלחה! 🎉");
-        setStep("success");
+       setStep("success");
+       if (confirmationText && confirmationText.trim().length > 0) {
+         setShowConfirmationDialog(true);
+       }
       }
     } finally {
       setLoading(false);
