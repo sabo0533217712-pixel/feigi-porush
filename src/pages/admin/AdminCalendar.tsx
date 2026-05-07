@@ -461,6 +461,35 @@ export default function AdminCalendar() {
     }
   };
 
+  // Add extra shift
+  const handleAddShift = async () => {
+    if (shiftForm.start_time >= shiftForm.end_time) {
+      toast.error("שעת סיום חייבת להיות אחרי שעת התחלה");
+      return;
+    }
+    const { error } = await supabase.from("extra_shifts").insert({
+      shift_date: format(selectedDate, "yyyy-MM-dd"),
+      start_time: shiftForm.start_time,
+      end_time: shiftForm.end_time,
+      notes: shiftForm.notes,
+    });
+    if (error) toast.error("שגיאה בהוספת משמרת");
+    else {
+      toast.success("המשמרת נוספה");
+      setShowShiftDialog(false);
+      fetchDayData();
+    }
+  };
+
+  const handleDeleteShift = async (id: string) => {
+    const { error } = await supabase.from("extra_shifts").delete().eq("id", id);
+    if (error) toast.error("שגיאה במחיקה");
+    else {
+      toast.success("המשמרת הוסרה");
+      fetchDayData();
+    }
+  };
+
   // Edit appointment
   const handleEditSave = async () => {
     if (!editForm) return;
