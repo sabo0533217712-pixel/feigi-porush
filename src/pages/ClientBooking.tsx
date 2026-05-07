@@ -438,7 +438,10 @@ export default function ClientBooking() {
 
   const isWorkingDay = (date: Date) => {
     if (!settings) return false;
-    return settings.working_days.includes(date.getDay());
+    if (settings.working_days.includes(date.getDay())) return true;
+    // Also open if the day has an extra shift defined
+    const dateStr = format(date, "yyyy-MM-dd");
+    return (extraShifts[dateStr] || []).length > 0;
   };
 
   const toggleTreatment = (t: Treatment) => {
