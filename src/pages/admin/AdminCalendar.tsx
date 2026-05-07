@@ -1329,7 +1329,19 @@ export default function AdminCalendar() {
                   <Input
                     type="time"
                     value={editForm.start_time}
-                    onChange={(e) => setEditForm((prev) => (prev ? { ...prev, start_time: e.target.value } : null))}
+                    onChange={(e) => setEditForm((prev) => {
+                      if (!prev) return null;
+                      // Preserve duration: shift end_time accordingly
+                      const toMin = (t: string) => {
+                        const [h, m] = t.split(":").map(Number);
+                        return h * 60 + m;
+                      };
+                      const dur = toMin(prev.end_time) - toMin(prev.start_time);
+                      const [h, m] = e.target.value.split(":").map(Number);
+                      const endMin = h * 60 + m + dur;
+                      const newEnd = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+                      return { ...prev, start_time: e.target.value, end_time: newEnd };
+                    })}
                     dir="ltr"
                   />
                 </div>
