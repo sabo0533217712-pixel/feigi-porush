@@ -173,6 +173,30 @@ export default function ClientBooking() {
     if (row) setSettings(row as unknown as BusinessSettings);
   };
 
+  const fetchConfirmationText = async () => {
+    const { data } = await supabase.rpc("get_public_business_settings");
+    const row = data?.[0] as any;
+    const text = (row?.custom_texts?.booking_confirmation as string | undefined) ?? "ניתן לבטל עד 24 שעות לפני התור";
+    setConfirmationText(text);
+  };
+
+  const fetchExtraShifts = async () => {
+    // Load all upcoming extra shifts
+    const today = format(new Date(), "yyyy-MM-dd");
+    const { data } = await supabase
+      .from("extra_shifts")
+      .select("shift_date, start_time, end_time")
+      .gte("shift_date", today);
+    if (data) {
+      const map: Record<string, { start_time: string; end_time: string }[]> = {};
+      (data as any[]).forEach((s) => {
+        if (!map[s.shift_date]) map[s.shift_date] = [];
+        map[s.shift_date].push({ start_time: s.start_time, end_time: s.end_time });
+      });
+      setExtraShifts(map);
+    }
+  };
+
   const fetchBookedSlots = async (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const [aptsRes, blocksRes] = await Promise.all([
