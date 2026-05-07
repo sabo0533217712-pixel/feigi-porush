@@ -1121,6 +1121,22 @@ export default function ClientBooking() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={showConfirmationDialog} onOpenChange={setShowConfirmationDialog}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>התור נקבע בהצלחה</DialogTitle>
+            <DialogDescription className="whitespace-pre-line pt-2">
+              {confirmationText}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowConfirmationDialog(false)} className="w-full">
+              אישור
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
