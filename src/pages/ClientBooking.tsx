@@ -115,6 +115,8 @@ export default function ClientBooking() {
   useEffect(() => {
     fetchTreatments();
     fetchSettings();
+    fetchExtraShifts();
+    fetchConfirmationText();
   }, []);
 
   useEffect(() => {
