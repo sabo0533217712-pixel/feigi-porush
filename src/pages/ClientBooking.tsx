@@ -208,6 +208,8 @@ export default function ClientBooking() {
     if (blocksRes.data) setBlockedSlots(blocksRes.data);
   };
 
+  const DEFAULT_SCHEDULE = { start: "09:00", end: "18:00", breaks: [{ start: "13:00", end: "14:00" }] };
+
   const getAvailableSlots = (date: Date, booked: { start_time: string; end_time: string }[], duration: number) => {
     if (!settings) return [];
     const dayOfWeek = date.getDay();
@@ -220,8 +222,8 @@ export default function ClientBooking() {
     const windows: { start: string; end: string }[] = [];
     if (isWorking) {
       windows.push({
-        start: daySchedule?.start || settings.start_time,
-        end: daySchedule?.end || settings.end_time,
+        start: daySchedule?.start || DEFAULT_SCHEDULE.start,
+        end: daySchedule?.end || DEFAULT_SCHEDULE.end,
       });
     }
     shifts.forEach((s) => windows.push({ start: s.start_time.substring(0, 5), end: s.end_time.substring(0, 5) }));
@@ -229,8 +231,7 @@ export default function ClientBooking() {
     if (windows.length === 0) return [];
 
     const breaks: { start: string; end: string }[] =
-      daySchedule?.breaks ||
-      (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
+      daySchedule?.breaks || DEFAULT_SCHEDULE.breaks;
 
     const allSlots = new Set<string>();
     const step = settings.slot_step_minutes || 15;
@@ -282,11 +283,10 @@ export default function ClientBooking() {
     if (!settings) return [];
     const dayOfWeek = date.getDay();
     const daySchedule = settings.day_schedules?.[String(dayOfWeek)];
-    const startTime = daySchedule?.start || settings.start_time;
-    const endTime = daySchedule?.end || settings.end_time;
+    const startTime = daySchedule?.start || DEFAULT_SCHEDULE.start;
+    const endTime = daySchedule?.end || DEFAULT_SCHEDULE.end;
     const breaks: { start: string; end: string }[] =
-      daySchedule?.breaks ||
-      (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
+      daySchedule?.breaks || DEFAULT_SCHEDULE.breaks;
 
     const toMin = (s: string) => {
       const [h, m] = s.split(":").map(Number);
@@ -558,11 +558,10 @@ export default function ClientBooking() {
       // Day schedule (working hours + breaks)
       const dayOfWeek = d.getDay();
       const daySchedule = settings.day_schedules?.[String(dayOfWeek)];
-      const startTime = daySchedule?.start || settings.start_time;
-      const endTime = daySchedule?.end || settings.end_time;
+      const startTime = daySchedule?.start || DEFAULT_SCHEDULE.start;
+      const endTime = daySchedule?.end || DEFAULT_SCHEDULE.end;
       const breaks: { start: string; end: string }[] =
-        daySchedule?.breaks ||
-        (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
+        daySchedule?.breaks || DEFAULT_SCHEDULE.breaks;
       const [sH, sM] = startTime.split(":").map(Number);
       const [eH, eM] = endTime.split(":").map(Number);
       const isWorking = settings.working_days.includes(dayOfWeek);
