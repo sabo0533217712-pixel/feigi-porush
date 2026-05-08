@@ -344,21 +344,20 @@ export default function AdminCalendar() {
     setExtraShifts((shiftsRes.data || []) as unknown as ExtraShift[]);
   };
 
-  // Get day hours from settings
+  // Get day hours from settings — must mirror AdminSettings exactly:
+  // if no per-day schedule exists for this DOW, use DEFAULT 09:00–18:00 (same as settings UI),
+  // NOT the global start_time/end_time which may be a stale fallback.
   const daySchedule = useMemo(() => {
-    if (!settings) return { startHour: 8, endHour: 20, breaks: [] as { start: string; end: string }[] };
+    const DEFAULT = { start: "09:00", end: "18:00", breaks: [{ start: "13:00", end: "14:00" }] };
+    if (!settings) return { startHour: 9, endHour: 18, breaks: [] as { start: string; end: string }[] };
     const dow = selectedDate.getDay();
     const ds = settings.day_schedules?.[String(dow)];
-    const startTime = ds?.start || settings.start_time;
-    const endTime = ds?.end || settings.end_time;
-    let breaks = ds?.breaks || [];
-    // Fallback to global break_start/break_end if no day-specific breaks
-    if (breaks.length === 0 && settings.break_start && settings.break_end) {
-      breaks = [{ start: settings.break_start.substring(0, 5), end: settings.break_end.substring(0, 5) }];
-    }
+    const startTime = ds?.start || DEFAULT.start;
+    const endTime = ds?.end || DEFAULT.end;
+    const breaks = ds?.breaks ?? DEFAULT.breaks;
     let startHour = parseInt(startTime.split(":")[0]);
     let endHour = parseInt(endTime.split(":")[0]) + (parseInt(endTime.split(":")[1]) > 0 ? 1 : 0);
-    // Extend to cover extra shifts
+    // Extend to cover extra shifts (so shift windows are visible on the timeline)
     extraShifts.forEach((s) => {
       const sH = parseInt(s.start_time.split(":")[0]);
       const eRaw = s.end_time.split(":");
