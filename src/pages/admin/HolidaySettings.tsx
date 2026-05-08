@@ -64,48 +64,43 @@ export default function HolidaySettings() {
   })).filter((g) => g.rows.length > 0);
 
   return (
-    <Card className="shadow-card">
-      <CardHeader>
-        <CardTitle className="text-lg">ניהול חגים ומועדים</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <p className="text-xs text-muted-foreground">
-          לכל חג: "הצג בלוח" — האם יופיע בלוח השנה. "חסום הזמנה" — האם לקוחות לא יוכלו להזמין באותו יום.
-        </p>
-        {loading && <p className="text-sm text-muted-foreground">טוען...</p>}
-        {grouped.map((g) => (
-          <div key={g.category} className="space-y-2">
-            <h3 className="text-sm font-semibold text-foreground">{g.label}</h3>
-            <div className="space-y-1">
-              <div className="hidden sm:grid grid-cols-[1fr_auto_auto] gap-4 px-2 text-xs text-muted-foreground">
-                <span></span>
-                <span className="w-20 text-center">הצג בלוח</span>
-                <span className="w-20 text-center">חסום הזמנה</span>
-              </div>
-              {g.rows.map((r) => (
-                <div
-                  key={r.holiday_desc}
-                  className="grid grid-cols-[1fr_auto_auto] items-center gap-4 p-2 rounded-md hover:bg-muted/50"
-                >
-                  <span className="text-sm">{r.display_name || r.holiday_desc}</span>
-                  <div className="w-20 flex justify-center">
-                    <Switch
-                      checked={r.show_in_calendar}
-                      onCheckedChange={(v) => updateRow(r.holiday_desc, "show_in_calendar", v)}
-                    />
-                  </div>
-                  <div className="w-20 flex justify-center">
-                    <Switch
-                      checked={r.blocks_booking}
-                      onCheckedChange={(v) => updateRow(r.holiday_desc, "blocks_booking", v)}
-                    />
-                  </div>
-                </div>
-              ))}
+    <div className="space-y-6">
+      <p className="text-xs text-muted-foreground">
+        לכל חג: "הצג בלוח" — האם יופיע בלוח השנה. "חסום הזמנה" — האם לקוחות לא יוכלו להזמין באותו יום.
+      </p>
+      {loading && <p className="text-sm text-muted-foreground">טוען...</p>}
+      {grouped.map((g) => (
+        <div key={g.category} className="space-y-2">
+          <h3 className="text-sm font-semibold text-foreground">{g.label}</h3>
+          <div className="space-y-1">
+            <div className="hidden sm:grid grid-cols-[1fr_auto_auto] gap-4 px-2 text-xs text-muted-foreground">
+              <span></span>
+              <span className="w-20 text-center">הצג בלוח</span>
+              <span className="w-20 text-center">חסום הזמנה</span>
             </div>
+            {g.rows.map((r) => (
+              <div
+                key={r.holiday_desc}
+                className="grid grid-cols-[1fr_auto_auto] items-center gap-4 p-2 rounded-md hover:bg-muted/50"
+              >
+                <span className="text-sm">{r.display_name || r.holiday_desc}</span>
+                <div className="w-20 flex justify-center">
+                  <Switch
+                    checked={r.show_in_calendar}
+                    onCheckedChange={(v) => updateRow(r.holiday_desc, "show_in_calendar", v)}
+                  />
+                </div>
+                <div className="w-20 flex justify-center">
+                  <Switch
+                    checked={r.blocks_booking}
+                    onCheckedChange={(v) => updateRow(r.holiday_desc, "blocks_booking", v)}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </CardContent>
-    </Card>
+        </div>
+      ))}
+    </div>
   );
 }
