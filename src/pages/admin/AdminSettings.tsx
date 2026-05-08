@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { Plus, X, Trash2 } from "lucide-react";
 import { applyThemeFromImage } from "@/hooks/useBusinessTheme";
 import HolidaySettings from "./HolidaySettings";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+
 
 const DAY_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
