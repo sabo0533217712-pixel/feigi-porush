@@ -558,11 +558,10 @@ export default function ClientBooking() {
       // Day schedule (working hours + breaks)
       const dayOfWeek = d.getDay();
       const daySchedule = settings.day_schedules?.[String(dayOfWeek)];
-      const startTime = daySchedule?.start || settings.start_time;
-      const endTime = daySchedule?.end || settings.end_time;
+      const startTime = daySchedule?.start || DEFAULT_SCHEDULE.start;
+      const endTime = daySchedule?.end || DEFAULT_SCHEDULE.end;
       const breaks: { start: string; end: string }[] =
-        daySchedule?.breaks ||
-        (settings.break_start && settings.break_end ? [{ start: settings.break_start, end: settings.break_end }] : []);
+        daySchedule?.breaks || DEFAULT_SCHEDULE.breaks;
       const [sH, sM] = startTime.split(":").map(Number);
       const [eH, eM] = endTime.split(":").map(Number);
       const isWorking = settings.working_days.includes(dayOfWeek);
