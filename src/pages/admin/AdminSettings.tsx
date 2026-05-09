@@ -43,6 +43,7 @@ export default function AdminSettings() {
     custom_texts: {} as Record<string, string>,
     day_schedules: {} as DaySchedules,
     slot_step_minutes: 15,
+    appointment_buffer_minutes: 5,
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
