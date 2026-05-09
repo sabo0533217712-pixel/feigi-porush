@@ -463,6 +463,19 @@ export default function AdminSettings() {
                     />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label>זמן חיץ בין תורים (דקות)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={settings.appointment_buffer_minutes}
+                    onChange={(e) => setSettings({ ...settings, appointment_buffer_minutes: Number(e.target.value) })}
+                    dir="ltr"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    זמן שיתווסף אוטומטית לסוף כל תור (לא יוצג ללקוחה, אבל יחסום שעות סמוכות)
+                  </p>
+                </div>
               </CardContent>
             </AccordionContent>
           </Card>
