@@ -276,7 +276,7 @@ export default function AdminSettings() {
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       <h1 className="text-2xl font-display font-bold text-foreground">הגדרות העסק</h1>
 
-      <Accordion type="multiple" defaultValue={["business","schedule","appointments","branding","texts","holidays"]} className="space-y-4">
+      <Accordion type="multiple" defaultValue={[]} className="space-y-4">
         {/* Business Details */}
         <AccordionItem value="business" className="border-0">
           <Card className="shadow-card">
