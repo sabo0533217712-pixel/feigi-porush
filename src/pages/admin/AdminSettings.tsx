@@ -75,6 +75,7 @@ export default function AdminSettings() {
         custom_texts: ((data as any).custom_texts as Record<string, string>) || {},
         day_schedules: ds,
         slot_step_minutes: (data as any).slot_step_minutes || 15,
+        appointment_buffer_minutes: (data as any).appointment_buffer_minutes ?? 5,
       });
     }
   };
