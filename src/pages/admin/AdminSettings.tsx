@@ -43,6 +43,7 @@ export default function AdminSettings() {
     custom_texts: {} as Record<string, string>,
     day_schedules: {} as DaySchedules,
     slot_step_minutes: 15,
+    appointment_buffer_minutes: 5,
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -74,6 +75,7 @@ export default function AdminSettings() {
         custom_texts: ((data as any).custom_texts as Record<string, string>) || {},
         day_schedules: ds,
         slot_step_minutes: (data as any).slot_step_minutes || 15,
+        appointment_buffer_minutes: (data as any).appointment_buffer_minutes ?? 5,
       });
     }
   };
@@ -117,6 +119,7 @@ export default function AdminSettings() {
         custom_texts: settings.custom_texts,
         day_schedules: settings.day_schedules,
         slot_step_minutes: settings.slot_step_minutes,
+        appointment_buffer_minutes: settings.appointment_buffer_minutes,
         // Keep legacy fields synced from first working day as fallback
         start_time: Object.values(settings.day_schedules)[0]?.start || "09:00",
         end_time: Object.values(settings.day_schedules)[0]?.end || "18:00",
@@ -273,7 +276,7 @@ export default function AdminSettings() {
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       <h1 className="text-2xl font-display font-bold text-foreground">הגדרות העסק</h1>
 
-      <Accordion type="multiple" defaultValue={["business","schedule","appointments","branding","texts","holidays"]} className="space-y-4">
+      <Accordion type="multiple" defaultValue={[]} className="space-y-4">
         {/* Business Details */}
         <AccordionItem value="business" className="border-0">
           <Card className="shadow-card">
@@ -459,6 +462,19 @@ export default function AdminSettings() {
                       dir="ltr"
                     />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>זמן חיץ בין תורים (דקות)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={settings.appointment_buffer_minutes}
+                    onChange={(e) => setSettings({ ...settings, appointment_buffer_minutes: Number(e.target.value) })}
+                    dir="ltr"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    זמן שיתווסף אוטומטית לסוף כל תור (לא יוצג ללקוחה, אבל יחסום שעות סמוכות)
+                  </p>
                 </div>
               </CardContent>
             </AccordionContent>

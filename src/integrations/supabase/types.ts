@@ -111,6 +111,7 @@ export type Database = {
           admin_email: string | null
           admin_phone: string | null
           advance_booking_days: number
+          appointment_buffer_minutes: number
           break_end: string | null
           break_start: string | null
           business_name: string
@@ -133,6 +134,7 @@ export type Database = {
           admin_email?: string | null
           admin_phone?: string | null
           advance_booking_days?: number
+          appointment_buffer_minutes?: number
           break_end?: string | null
           break_start?: string | null
           business_name?: string
@@ -155,6 +157,7 @@ export type Database = {
           admin_email?: string | null
           admin_phone?: string | null
           advance_booking_days?: number
+          appointment_buffer_minutes?: number
           break_end?: string | null
           break_start?: string | null
           business_name?: string
@@ -572,6 +575,7 @@ export type Database = {
         Args: never
         Returns: {
           advance_booking_days: number
+          appointment_buffer_minutes: number
           break_end: string
           break_start: string
           business_name: string
