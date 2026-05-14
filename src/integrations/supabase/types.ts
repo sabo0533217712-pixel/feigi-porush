@@ -62,9 +62,12 @@ export type Database = {
           booked_by_admin: boolean
           client_id: string
           created_at: string
+          customer_name: string | null
+          customer_phone: string | null
           end_time: string
           id: string
           notes: string | null
+          source: string
           start_time: string
           status: string
           treatment_id: string
@@ -75,9 +78,12 @@ export type Database = {
           booked_by_admin?: boolean
           client_id: string
           created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
           end_time: string
           id?: string
           notes?: string | null
+          source?: string
           start_time: string
           status?: string
           treatment_id: string
@@ -88,9 +94,12 @@ export type Database = {
           booked_by_admin?: boolean
           client_id?: string
           created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
           end_time?: string
           id?: string
           notes?: string | null
+          source?: string
           start_time?: string
           status?: string
           treatment_id?: string
@@ -366,6 +375,39 @@ export type Database = {
         }
         Relationships: []
       }
+      slot_holds: {
+        Row: {
+          created_at: string
+          end_time: string
+          expires_at: string
+          hold_date: string
+          id: string
+          phone: string | null
+          source: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          expires_at: string
+          hold_date: string
+          id?: string
+          phone?: string | null
+          source?: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          expires_at?: string
+          hold_date?: string
+          id?: string
+          phone?: string | null
+          source?: string
+          start_time?: string
+        }
+        Relationships: []
+      }
       time_blocks: {
         Row: {
           block_date: string
@@ -537,6 +579,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      webhook_events: {
+        Row: {
+          created_at: string
+          delivered: boolean
+          event: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          created_at?: string
+          delivered?: boolean
+          event: string
+          id?: string
+          payload?: Json
+        }
+        Update: {
+          created_at?: string
+          delivered?: boolean
+          event?: string
+          id?: string
+          payload?: Json
+        }
+        Relationships: []
       }
     }
     Views: {
