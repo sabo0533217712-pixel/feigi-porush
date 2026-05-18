@@ -152,8 +152,12 @@ function buildHtmlMessage(ctx: MessageContext): string {
   const slotHtml = `יום <strong>${ctx.dayName}</strong> ${ctx.dateGregorian}${ctx.dateHebrew ? ` (${ctx.dateHebrew})` : ""} בשעה <strong>${ctx.startTime}</strong>`;
   const isMulti = ctx.treatments.length > 1;
   const treatmentBlock = treatmentLabelHtml(ctx);
+  const addressBlock =
+    ctx.businessAddress && ctx.event !== "cancelled"
+      ? `<p style="margin-top:8px;"><strong>כתובת:</strong> ${ctx.businessAddress}</p>`
+      : "";
   const wrap = (inner: string) =>
-    `<div dir="rtl" style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#333;max-width:600px;">${inner}</div>`;
+    `<div dir="rtl" style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#333;max-width:600px;">${inner}${addressBlock}</div>`;
 
   if (ctx.event === "created") {
     return wrap(
