@@ -263,6 +263,7 @@ Deno.serve(async (req) => {
     const clientPhone = profile?.phone ?? "";
     const phoneIntl = toInternationalPhone(clientPhone);
     const cancellationHours = settings?.cancellation_hours ?? 24;
+    const businessAddress = (settings as any)?.business_address ?? "";
 
     // Build treatments list — fallback to single treatment when no rows in appointment_treatments
     type AT = { treatment_id: string; duration_minutes: number; price: number; treatments: { name: string } | null };
