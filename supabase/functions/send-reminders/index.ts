@@ -403,6 +403,7 @@ Deno.serve(async (req) => {
         dateHebrew,
         startTime,
         cancellationHours,
+        businessAddress,
         isTomorrow: classification === "regular",
       };
 
