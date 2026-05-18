@@ -13,13 +13,22 @@ export interface HolidayInfo {
 }
 
 // Fallback defaults if DB settings haven't loaded yet
+// Israel-only holiday observance (diaspora-only days like Pesach II/VIII, Shavuot II,
+// Sukkot II, Simchat Torah are intentionally excluded).
 const FALLBACK_BLOCKED = new Set<string>([
-  'Pesach I', 'Pesach II', 'Pesach VII', 'Pesach VIII',
-  'Shavuot', 'Shavuot I', 'Shavuot II',
-  'Sukkot I', 'Sukkot II', 'Shmini Atzeret', 'Simchat Torah',
+  'Pesach I', 'Pesach VII',
+  'Shavuot',
+  'Sukkot I', 'Shmini Atzeret',
   'Rosh Hashana', 'Rosh Hashana I', 'Rosh Hashana II',
   'Yom Kippur',
   'Tish\'a B\'Av', 'Tzom Gedaliah', 'Asara B\'Tevet', 'Tzom Tammuz',
+]);
+
+// Holidays that exist only in the diaspora — always ignored, even if hebcal returns them.
+const DIASPORA_ONLY = new Set<string>([
+  'Pesach II', 'Pesach VIII',
+  'Shavuot I', 'Shavuot II',
+  'Sukkot II', 'Simchat Torah',
 ]);
 
 export function getHolidayInfo(date: Date, settingsOverride?: HolidaySettingsMap | null): HolidayInfo | null {
