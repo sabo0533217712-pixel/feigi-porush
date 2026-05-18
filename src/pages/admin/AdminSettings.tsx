@@ -34,6 +34,7 @@ export default function AdminSettings() {
   const [settings, setSettings] = useState({
     id: "",
     business_name: "",
+    business_address: "",
     working_days: [0, 1, 2, 3, 4] as number[],
     slot_duration_minutes: 30,
     advance_booking_days: 30,
@@ -66,6 +67,7 @@ export default function AdminSettings() {
       setSettings({
         id: data.id,
         business_name: data.business_name,
+        business_address: (data as any).business_address || "",
         working_days: data.working_days,
         slot_duration_minutes: data.slot_duration_minutes,
         advance_booking_days: data.advance_booking_days,
@@ -110,6 +112,7 @@ export default function AdminSettings() {
       .from("business_settings")
       .update({
         business_name: settings.business_name,
+        business_address: settings.business_address,
         working_days: settings.working_days,
         slot_duration_minutes: settings.slot_duration_minutes,
         advance_booking_days: settings.advance_booking_days,
@@ -290,6 +293,14 @@ export default function AdminSettings() {
                   <Input
                     value={settings.business_name}
                     onChange={(e) => setSettings({ ...settings, business_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>כתובת העסק</Label>
+                  <Input
+                    value={settings.business_address}
+                    onChange={(e) => setSettings({ ...settings, business_address: e.target.value })}
+                    placeholder="רחוב, מספר, עיר"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">

@@ -184,6 +184,7 @@ interface MsgCtx {
   dateHebrew: string;
   startTime: string;
   cancellationHours: number;
+  businessAddress?: string;
   isTomorrow: boolean; // true for "regular" appointments (reminder 1 day before)
 }
 
@@ -200,6 +201,7 @@ function buildPlainMessage(ctx: MsgCtx): string {
     `${greeting}\n` +
     `זוהי תזכורת לתור שנקבע לך ב${slot}.\n` +
     `${treatmentLine}\n` +
+    (ctx.businessAddress ? `כתובת: ${ctx.businessAddress}\n` : "") +
     `במידה ולא תוכלי להגיע, ניתן לבטל עד ${ctx.cancellationHours} שעות לפני מועד התור.`
   );
 }
@@ -222,6 +224,7 @@ function buildHtmlMessage(ctx: MsgCtx): string {
     `<p>${greeting}</p>` +
     `<p>זוהי תזכורת לתור שנקבע לך ב-${slotHtml}.</p>` +
     treatmentBlock +
+    (ctx.businessAddress ? `<p><strong>כתובת:</strong> ${ctx.businessAddress}</p>` : "") +
     `<p style="background:#fff7ed;border-right:3px solid #f59e0b;padding:10px 14px;border-radius:6px;">` +
     `במידה ולא תוכלי להגיע, ניתן לבטל עד <strong>${ctx.cancellationHours} שעות</strong> לפני מועד התור.` +
     `</p>` +
@@ -329,10 +332,11 @@ Deno.serve(async (req) => {
     // Enrich each due appointment with profile + treatments + settings
     const { data: settings } = await supabase
       .from("business_settings")
-      .select("cancellation_hours")
+      .select("cancellation_hours, business_address")
       .limit(1)
       .maybeSingle();
     const cancellationHours = settings?.cancellation_hours ?? 24;
+    const businessAddress = (settings as any)?.business_address ?? "";
 
     const reminders: Record<string, unknown>[] = [];
     const successfulIds: string[] = [];
@@ -399,6 +403,7 @@ Deno.serve(async (req) => {
         dateHebrew,
         startTime,
         cancellationHours,
+        businessAddress,
         isTomorrow: classification === "regular",
       };
 

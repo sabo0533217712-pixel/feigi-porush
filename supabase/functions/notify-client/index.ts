@@ -77,6 +77,7 @@ interface MessageContext {
   startTime: string;
   endTime: string;
   cancellationHours: number;
+  businessAddress?: string;
   previousLine?: string; // pre-formatted "מהמועד הקודם..." line, plain text
 }
 
@@ -140,6 +141,9 @@ function buildPlainMessage(ctx: MessageContext): string {
         `התור שלך לטיפול ${ctx.treatmentName} שהיה אמור להתקיים ב${slot} בוטל.\n` +
         `לקביעת תור חדש ניתן להיכנס למערכת.`;
   }
+  if (ctx.businessAddress && ctx.event !== "cancelled") {
+    body += `\nכתובת: ${ctx.businessAddress}`;
+  }
   return body;
 }
 
@@ -148,8 +152,12 @@ function buildHtmlMessage(ctx: MessageContext): string {
   const slotHtml = `יום <strong>${ctx.dayName}</strong> ${ctx.dateGregorian}${ctx.dateHebrew ? ` (${ctx.dateHebrew})` : ""} בשעה <strong>${ctx.startTime}</strong>`;
   const isMulti = ctx.treatments.length > 1;
   const treatmentBlock = treatmentLabelHtml(ctx);
+  const addressBlock =
+    ctx.businessAddress && ctx.event !== "cancelled"
+      ? `<p style="margin-top:8px;"><strong>כתובת:</strong> ${ctx.businessAddress}</p>`
+      : "";
   const wrap = (inner: string) =>
-    `<div dir="rtl" style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#333;max-width:600px;">${inner}</div>`;
+    `<div dir="rtl" style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#333;max-width:600px;">${inner}${addressBlock}</div>`;
 
   if (ctx.event === "created") {
     return wrap(
@@ -232,7 +240,7 @@ Deno.serve(async (req) => {
         .eq("user_id", apt.client_id)
         .maybeSingle(),
       supabase.from("treatments").select("name, duration_minutes").eq("id", apt.treatment_id).maybeSingle(),
-      supabase.from("business_settings").select("cancellation_hours").limit(1).maybeSingle(),
+      supabase.from("business_settings").select("cancellation_hours, business_address").limit(1).maybeSingle(),
       supabase
         .from("appointment_treatments")
         .select("treatment_id, duration_minutes, price, treatments(name)")
@@ -255,6 +263,7 @@ Deno.serve(async (req) => {
     const clientPhone = profile?.phone ?? "";
     const phoneIntl = toInternationalPhone(clientPhone);
     const cancellationHours = settings?.cancellation_hours ?? 24;
+    const businessAddress = (settings as any)?.business_address ?? "";
 
     // Build treatments list — fallback to single treatment when no rows in appointment_treatments
     type AT = { treatment_id: string; duration_minutes: number; price: number; treatments: { name: string } | null };
@@ -306,6 +315,7 @@ Deno.serve(async (req) => {
       startTime,
       endTime,
       cancellationHours,
+      businessAddress,
       previousLine,
     };
 

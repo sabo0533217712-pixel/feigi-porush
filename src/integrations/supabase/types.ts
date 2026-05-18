@@ -123,6 +123,7 @@ export type Database = {
           appointment_buffer_minutes: number
           break_end: string | null
           break_start: string | null
+          business_address: string | null
           business_name: string
           cancellation_hours: number
           created_at: string
@@ -146,6 +147,7 @@ export type Database = {
           appointment_buffer_minutes?: number
           break_end?: string | null
           break_start?: string | null
+          business_address?: string | null
           business_name?: string
           cancellation_hours?: number
           created_at?: string
@@ -169,6 +171,7 @@ export type Database = {
           appointment_buffer_minutes?: number
           break_end?: string | null
           break_start?: string | null
+          business_address?: string | null
           business_name?: string
           cancellation_hours?: number
           created_at?: string
@@ -698,6 +701,7 @@ export type Database = {
           appointment_buffer_minutes: number
           break_end: string
           break_start: string
+          business_address: string
           business_name: string
           cancellation_hours: number
           custom_texts: Json
