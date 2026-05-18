@@ -112,6 +112,7 @@ export default function AdminSettings() {
       .from("business_settings")
       .update({
         business_name: settings.business_name,
+        business_address: settings.business_address,
         working_days: settings.working_days,
         slot_duration_minutes: settings.slot_duration_minutes,
         advance_booking_days: settings.advance_booking_days,
