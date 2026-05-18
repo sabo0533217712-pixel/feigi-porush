@@ -36,20 +36,6 @@ export default function ClientProfile() {
       setFullName(data.full_name || '');
       setEmail(data.email || '');
       setPhone(data.phone || '');
-      // Migrate legacy 'sms' → 'whatsapp' on the fly
-      const pref = data.reminder_preference === 'sms' ? 'whatsapp' : (data.reminder_preference || 'whatsapp');
-      setReminderPref(pref);
-    }
-  const fetchProfile = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user!.id)
-      .single();
-    if (data) {
-      setFullName(data.full_name || '');
-      setEmail(data.email || '');
-      setPhone(data.phone || '');
       const pref = data.reminder_preference === 'sms' ? 'whatsapp' : (data.reminder_preference || 'whatsapp');
       setReminderPref(pref);
       setSecQuestion(data.security_question || '');
@@ -75,6 +61,8 @@ export default function ClientProfile() {
       setHasSecurity(true);
     }
   };
+
+  const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     const { error } = await supabase
