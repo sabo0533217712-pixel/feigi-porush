@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Save, User, Mail, Phone, Bell, MessageCircle } from 'lucide-react';
+import { Save, User, Mail, Phone, Bell, MessageCircle, ShieldCheck } from 'lucide-react';
 
 export default function ClientProfile() {
   const { user } = useAuth();
