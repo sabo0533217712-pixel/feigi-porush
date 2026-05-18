@@ -224,6 +224,7 @@ function buildHtmlMessage(ctx: MsgCtx): string {
     `<p>${greeting}</p>` +
     `<p>זוהי תזכורת לתור שנקבע לך ב-${slotHtml}.</p>` +
     treatmentBlock +
+    (ctx.businessAddress ? `<p><strong>כתובת:</strong> ${ctx.businessAddress}</p>` : "") +
     `<p style="background:#fff7ed;border-right:3px solid #f59e0b;padding:10px 14px;border-radius:6px;">` +
     `במידה ולא תוכלי להגיע, ניתן לבטל עד <strong>${ctx.cancellationHours} שעות</strong> לפני מועד התור.` +
     `</p>` +
