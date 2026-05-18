@@ -78,7 +78,8 @@ export default function Auth() {
     setLoading(true);
     try {
       await signUp(regEmail, regPassword, regName, regPhone, regQuestion, regAnswer);
-      toast.success('נרשמת בהצלחה! בדקי את המייל לאישור');
+      toast.success('נרשמת בהצלחה!');
+      navigate('/');
     } catch (err: any) {
       toast.error(err.message || 'שגיאה בהרשמה');
     } finally {
