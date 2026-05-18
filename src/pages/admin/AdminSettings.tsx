@@ -34,6 +34,7 @@ export default function AdminSettings() {
   const [settings, setSettings] = useState({
     id: "",
     business_name: "",
+    business_address: "",
     working_days: [0, 1, 2, 3, 4] as number[],
     slot_duration_minutes: 30,
     advance_booking_days: 30,
