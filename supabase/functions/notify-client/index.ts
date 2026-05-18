@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
         .eq("user_id", apt.client_id)
         .maybeSingle(),
       supabase.from("treatments").select("name, duration_minutes").eq("id", apt.treatment_id).maybeSingle(),
-      supabase.from("business_settings").select("cancellation_hours").limit(1).maybeSingle(),
+      supabase.from("business_settings").select("cancellation_hours, business_address").limit(1).maybeSingle(),
       supabase
         .from("appointment_treatments")
         .select("treatment_id, duration_minutes, price, treatments(name)")
