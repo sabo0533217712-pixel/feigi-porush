@@ -315,6 +315,7 @@ Deno.serve(async (req) => {
       startTime,
       endTime,
       cancellationHours,
+      businessAddress,
       previousLine,
     };
 
