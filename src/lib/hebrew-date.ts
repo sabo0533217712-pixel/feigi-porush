@@ -31,6 +31,14 @@ const DIASPORA_ONLY = new Set<string>([
   'Sukkot II', 'Simchat Torah',
 ]);
 
+// Map individual Chol HaMoed day descs (as returned by hebcal) to an aggregate
+// holiday_settings row so a single toggle controls all CH"M days of that festival.
+function normalizeDesc(desc: string): string {
+  if (/^Pesach (III|IV|V|VI) \(CH'M\)$/.test(desc)) return 'Pesach Chol HaMoed';
+  if (/^Sukkot (III|IV|V|VI) \(CH'M\)$/.test(desc)) return 'Sukkot Chol HaMoed';
+  return desc;
+}
+
 export function getHolidayInfo(date: Date, settingsOverride?: HolidaySettingsMap | null): HolidayInfo | null {
   try {
     const hd = new HDate(date);
