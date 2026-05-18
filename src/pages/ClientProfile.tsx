@@ -168,6 +168,33 @@ export default function ClientProfile() {
         </CardContent>
       </Card>
 
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5" />
+            שאלת אבטחה
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {hasSecurity
+              ? 'שאלת האבטחה הוגדרה. אפשר לעדכן כאן בכל עת. התשובה הקיימת שמורה מוצפנת ולא מוצגת.'
+              : 'הגדירי שאלה ותשובה אישית — תשמש לאיפוס סיסמה במקרה ששכחת.'}
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="sec-q">שאלה</Label>
+            <Input id="sec-q" value={secQuestion} onChange={e => setSecQuestion(e.target.value)} placeholder="לדוגמה: שם החיה הראשונה שלי" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sec-a">תשובה {hasSecurity && <span className="text-xs text-muted-foreground">(הזיני רק אם את רוצה לעדכן)</span>}</Label>
+            <Input id="sec-a" value={secAnswer} onChange={e => setSecAnswer(e.target.value)} placeholder="התשובה הסודית שלך" />
+          </div>
+          <Button variant="outline" className="w-full" onClick={handleSaveSecurity} disabled={savingSecurity}>
+            {savingSecurity ? 'שומר...' : 'שמור שאלת אבטחה'}
+          </Button>
+        </CardContent>
+      </Card>
+
       <Button
         className="w-full gradient-primary text-primary-foreground"
         onClick={handleSave}
