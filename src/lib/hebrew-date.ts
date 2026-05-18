@@ -96,8 +96,9 @@ export function isBookingBlockedDay(date: Date, settings?: HolidaySettingsMap | 
     for (const ev of events) {
       const desc = ev.getDesc();
       if (DIASPORA_ONLY.has(desc)) continue;
-      const s = map?.get(desc);
-      const blocks = s ? s.blocks_booking : FALLBACK_BLOCKED.has(desc);
+      const key = normalizeDesc(desc);
+      const s = map?.get(key);
+      const blocks = s ? s.blocks_booking : FALLBACK_BLOCKED.has(key);
       if (blocks) return true;
     }
     return false;
