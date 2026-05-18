@@ -40,10 +40,41 @@ export default function ClientProfile() {
       const pref = data.reminder_preference === 'sms' ? 'whatsapp' : (data.reminder_preference || 'whatsapp');
       setReminderPref(pref);
     }
+  const fetchProfile = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user!.id)
+      .single();
+    if (data) {
+      setFullName(data.full_name || '');
+      setEmail(data.email || '');
+      setPhone(data.phone || '');
+      const pref = data.reminder_preference === 'sms' ? 'whatsapp' : (data.reminder_preference || 'whatsapp');
+      setReminderPref(pref);
+      setSecQuestion(data.security_question || '');
+      setHasSecurity(!!data.security_question && !!data.security_answer_hash);
+    }
     setLoading(false);
   };
 
-  const handleSave = async () => {
+  const handleSaveSecurity = async () => {
+    if (secQuestion.trim().length < 3) return toast.error('שאלת אבטחה קצרה מדי');
+    if (secAnswer.trim().length < 2) return toast.error('נא להזין תשובה');
+    setSavingSecurity(true);
+    const { error } = await supabase.rpc('set_security_question', {
+      _question: secQuestion.trim(),
+      _answer: secAnswer.trim(),
+    });
+    setSavingSecurity(false);
+    if (error) {
+      toast.error('שגיאה בשמירת שאלת האבטחה');
+    } else {
+      toast.success('שאלת האבטחה נשמרה');
+      setSecAnswer('');
+      setHasSecurity(true);
+    }
+  };
     if (!user) return;
     setSaving(true);
     const { error } = await supabase
