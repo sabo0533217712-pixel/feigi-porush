@@ -77,6 +77,7 @@ interface MessageContext {
   startTime: string;
   endTime: string;
   cancellationHours: number;
+  businessAddress?: string;
   previousLine?: string; // pre-formatted "מהמועד הקודם..." line, plain text
 }
 
