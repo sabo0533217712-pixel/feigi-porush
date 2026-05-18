@@ -67,6 +67,7 @@ export default function AdminSettings() {
       setSettings({
         id: data.id,
         business_name: data.business_name,
+        business_address: (data as any).business_address || "",
         working_days: data.working_days,
         slot_duration_minutes: data.slot_duration_minutes,
         advance_booking_days: data.advance_booking_days,
