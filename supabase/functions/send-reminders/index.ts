@@ -184,6 +184,7 @@ interface MsgCtx {
   dateHebrew: string;
   startTime: string;
   cancellationHours: number;
+  businessAddress?: string;
   isTomorrow: boolean; // true for "regular" appointments (reminder 1 day before)
 }
 
