@@ -31,6 +31,14 @@ const DIASPORA_ONLY = new Set<string>([
   'Sukkot II', 'Simchat Torah',
 ]);
 
+// Map individual Chol HaMoed day descs (as returned by hebcal) to an aggregate
+// holiday_settings row so a single toggle controls all CH"M days of that festival.
+function normalizeDesc(desc: string): string {
+  if (/^Pesach (III|IV|V|VI) \(CH'M\)$/.test(desc)) return 'Pesach Chol HaMoed';
+  if (/^Sukkot (III|IV|V|VI) \(CH'M\)$/.test(desc)) return 'Sukkot Chol HaMoed';
+  return desc;
+}
+
 export function getHolidayInfo(date: Date, settingsOverride?: HolidaySettingsMap | null): HolidayInfo | null {
   try {
     const hd = new HDate(date);
@@ -44,7 +52,7 @@ export function getHolidayInfo(date: Date, settingsOverride?: HolidaySettingsMap
       const desc = ev.getDesc();
       if (DIASPORA_ONLY.has(desc)) return false;
       if (settings) {
-        const s = settings.get(desc);
+        const s = settings.get(normalizeDesc(desc));
         return s ? s.show_in_calendar : false;
       }
       return true;
@@ -59,11 +67,12 @@ export function getHolidayInfo(date: Date, settingsOverride?: HolidaySettingsMap
     const ev = sorted[0];
     const f = ev.getFlags();
     const desc = ev.getDesc();
+    const key = normalizeDesc(desc);
     const isMajor = !!(f & flags.CHAG);
     const isErev = !!(f & flags.EREV);
     const isCholHamoed = !!(f & flags.CHOL_HAMOED);
-    const setting = settings?.get(desc);
-    const blocksBooking = setting ? setting.blocks_booking : FALLBACK_BLOCKED.has(desc);
+    const setting = settings?.get(key);
+    const blocksBooking = setting ? setting.blocks_booking : FALLBACK_BLOCKED.has(key);
     let name = setting?.display_name || '';
     if (!name) {
       try {
@@ -87,8 +96,9 @@ export function isBookingBlockedDay(date: Date, settings?: HolidaySettingsMap | 
     for (const ev of events) {
       const desc = ev.getDesc();
       if (DIASPORA_ONLY.has(desc)) continue;
-      const s = map?.get(desc);
-      const blocks = s ? s.blocks_booking : FALLBACK_BLOCKED.has(desc);
+      const key = normalizeDesc(desc);
+      const s = map?.get(key);
+      const blocks = s ? s.blocks_booking : FALLBACK_BLOCKED.has(key);
       if (blocks) return true;
     }
     return false;
