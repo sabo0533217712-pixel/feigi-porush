@@ -141,6 +141,9 @@ function buildPlainMessage(ctx: MessageContext): string {
         `התור שלך לטיפול ${ctx.treatmentName} שהיה אמור להתקיים ב${slot} בוטל.\n` +
         `לקביעת תור חדש ניתן להיכנס למערכת.`;
   }
+  if (ctx.businessAddress && ctx.event !== "cancelled") {
+    body += `\nכתובת: ${ctx.businessAddress}`;
+  }
   return body;
 }
 
