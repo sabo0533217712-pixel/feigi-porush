@@ -70,6 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     if (error) throw error;
+    // Auto-confirm is enabled — sign in immediately so the user enters the app without email verification
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInError) throw signInError;
   };
 
   const signIn = async (email: string, password: string) => {
