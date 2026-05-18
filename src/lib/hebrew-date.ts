@@ -13,13 +13,22 @@ export interface HolidayInfo {
 }
 
 // Fallback defaults if DB settings haven't loaded yet
+// Israel-only holiday observance (diaspora-only days like Pesach II/VIII, Shavuot II,
+// Sukkot II, Simchat Torah are intentionally excluded).
 const FALLBACK_BLOCKED = new Set<string>([
-  'Pesach I', 'Pesach II', 'Pesach VII', 'Pesach VIII',
-  'Shavuot', 'Shavuot I', 'Shavuot II',
-  'Sukkot I', 'Sukkot II', 'Shmini Atzeret', 'Simchat Torah',
+  'Pesach I', 'Pesach VII',
+  'Shavuot',
+  'Sukkot I', 'Shmini Atzeret',
   'Rosh Hashana', 'Rosh Hashana I', 'Rosh Hashana II',
   'Yom Kippur',
   'Tish\'a B\'Av', 'Tzom Gedaliah', 'Asara B\'Tevet', 'Tzom Tammuz',
+]);
+
+// Holidays that exist only in the diaspora — always ignored, even if hebcal returns them.
+const DIASPORA_ONLY = new Set<string>([
+  'Pesach II', 'Pesach VIII',
+  'Shavuot I', 'Shavuot II',
+  'Sukkot II', 'Simchat Torah',
 ]);
 
 export function getHolidayInfo(date: Date, settingsOverride?: HolidaySettingsMap | null): HolidayInfo | null {
@@ -30,9 +39,10 @@ export function getHolidayInfo(date: Date, settingsOverride?: HolidaySettingsMap
 
     const settings = settingsOverride ?? getCachedHolidaySettings();
 
-    // Filter by show_in_calendar from settings (or all if not loaded)
+    // Filter by show_in_calendar from settings (or all if not loaded), excluding diaspora-only.
     const filtered = events.filter((ev) => {
       const desc = ev.getDesc();
+      if (DIASPORA_ONLY.has(desc)) return false;
       if (settings) {
         const s = settings.get(desc);
         return s ? s.show_in_calendar : false;
@@ -76,6 +86,7 @@ export function isBookingBlockedDay(date: Date, settings?: HolidaySettingsMap | 
     const map = settings ?? getCachedHolidaySettings();
     for (const ev of events) {
       const desc = ev.getDesc();
+      if (DIASPORA_ONLY.has(desc)) continue;
       const s = map?.get(desc);
       const blocks = s ? s.blocks_booking : FALLBACK_BLOCKED.has(desc);
       if (blocks) return true;
