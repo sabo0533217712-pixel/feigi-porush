@@ -52,7 +52,7 @@ export function getHolidayInfo(date: Date, settingsOverride?: HolidaySettingsMap
       const desc = ev.getDesc();
       if (DIASPORA_ONLY.has(desc)) return false;
       if (settings) {
-        const s = settings.get(desc);
+        const s = settings.get(normalizeDesc(desc));
         return s ? s.show_in_calendar : false;
       }
       return true;
@@ -67,11 +67,12 @@ export function getHolidayInfo(date: Date, settingsOverride?: HolidaySettingsMap
     const ev = sorted[0];
     const f = ev.getFlags();
     const desc = ev.getDesc();
+    const key = normalizeDesc(desc);
     const isMajor = !!(f & flags.CHAG);
     const isErev = !!(f & flags.EREV);
     const isCholHamoed = !!(f & flags.CHOL_HAMOED);
-    const setting = settings?.get(desc);
-    const blocksBooking = setting ? setting.blocks_booking : FALLBACK_BLOCKED.has(desc);
+    const setting = settings?.get(key);
+    const blocksBooking = setting ? setting.blocks_booking : FALLBACK_BLOCKED.has(key);
     let name = setting?.display_name || '';
     if (!name) {
       try {
