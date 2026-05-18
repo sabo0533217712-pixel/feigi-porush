@@ -295,6 +295,14 @@ export default function AdminSettings() {
                     onChange={(e) => setSettings({ ...settings, business_name: e.target.value })}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>כתובת העסק</Label>
+                  <Input
+                    value={settings.business_address}
+                    onChange={(e) => setSettings({ ...settings, business_address: e.target.value })}
+                    placeholder="רחוב, מספר, עיר"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>טלפון </Label>
