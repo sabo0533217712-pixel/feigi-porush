@@ -39,9 +39,10 @@ export function getHolidayInfo(date: Date, settingsOverride?: HolidaySettingsMap
 
     const settings = settingsOverride ?? getCachedHolidaySettings();
 
-    // Filter by show_in_calendar from settings (or all if not loaded)
+    // Filter by show_in_calendar from settings (or all if not loaded), excluding diaspora-only.
     const filtered = events.filter((ev) => {
       const desc = ev.getDesc();
+      if (DIASPORA_ONLY.has(desc)) return false;
       if (settings) {
         const s = settings.get(desc);
         return s ? s.show_in_calendar : false;
