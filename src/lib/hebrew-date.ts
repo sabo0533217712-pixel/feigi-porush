@@ -34,8 +34,9 @@ const DIASPORA_ONLY = new Set<string>([
 // Map individual Chol HaMoed day descs (as returned by hebcal) to an aggregate
 // holiday_settings row so a single toggle controls all CH"M days of that festival.
 function normalizeDesc(desc: string): string {
-  if (/^Pesach (III|IV|V|VI) \(CH'M\)$/.test(desc)) return 'Pesach Chol HaMoed';
-  if (/^Sukkot (III|IV|V|VI) \(CH'M\)$/.test(desc)) return 'Sukkot Chol HaMoed';
+  // hebcal uses two single-quotes in "(CH''M)"
+  if (/^Pesach (II|III|IV|V|VI) \(CH''M\)$/.test(desc)) return 'Pesach Chol HaMoed';
+  if (/^Sukkot (II|III|IV|V|VI) \(CH''M\)$/.test(desc)) return 'Sukkot Chol HaMoed';
   return desc;
 }
 
