@@ -1,33 +1,44 @@
-## שינויים מתוכננים
+## איפוס סיסמה לפי מספר טלפון + שאלת אבטחה
 
-### 1. קולאפס סגור כברירת מחדל במסך הגדרות
-ב-`src/pages/admin/AdminSettings.tsx` להחליף את `defaultValue={["business","schedule",...]}` ב-`defaultValue={[]}` כך שכל הסקשנים יהיו סגורים בעת טעינת המסך.
+מחליפים את מנגנון איפוס הסיסמה הקיים (שליחת מייל) במנגנון מבוסס טלפון + שאלת אבטחה אישית.
 
-### 2. שחזור סיסמה במסך הכניסה
-ב-`src/pages/Auth.tsx` להוסיף קישור "שכחתי סיסמה" מתחת לטופס ההתחברות שיפתח דיאלוג קטן (Dialog) המבקש מייל, ושולח קישור איפוס באמצעות:
-```ts
-supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/auth?reset=true` })
-```
-בנוסף ניצור עמוד/מצב חדש: כאשר המשתמש חוזר עם token (event `PASSWORD_RECOVERY`), נציג טופס "סיסמה חדשה" שקורא ל-`supabase.auth.updateUser({ password })`.
+### זרימת המשתמש במסך ההתחברות
 
-### 3. זמן חיץ (buffer) בין תורים — ניתן להגדרה
-**Backend (migration):**
-- להוסיף עמודה `appointment_buffer_minutes integer NOT NULL DEFAULT 5` לטבלה `business_settings`.
-- לעדכן את הפונקציה `get_public_business_settings` כך שתחזיר גם שדה זה.
-- לעדכן את `check_appointment_overlap` להתחשב ב-buffer: בעת בדיקת חפיפה, להשוות מול `end_time + buffer` של תורים קיימים (או להזיז את הסוף בעת ההכנסה — נעדיף לוגיקת בדיקה כי אז נתוני התור עצמו נשארים נקיים והבאפר הוא רק חיץ).
+1. המשתמשת לוחצת "שכחתי סיסמה"
+2. דיאלוג שלב 1: הזנת **מספר טלפון** → "המשך"
+3. דיאלוג שלב 2: מוצגת **שאלת האבטחה** האישית של אותה לקוחה + שדה תשובה → "אמת"
+4. דיאלוג שלב 3: הזנת **סיסמה חדשה** + אימות → "עדכן"
+5. הצלחה: הסיסמה מתעדכנת והמשתמשת מתחברת אוטומטית.
 
-**גישה מועדפת:** לאחסן את `end_time` כפי שהוא (זמן הטיפול בפועל), ולהוסיף את ה-buffer בכל מקום שמחשב סלוטים פנויים / חפיפות:
-- `check_appointment_overlap`: בעת חישוב חפיפה להוסיף את ה-buffer בשני הצדדים.
-- `get_busy_slots`: להחזיר את `end_time + buffer` כסוף "תפוס" כדי שהקליינט יראה אותו כתפוס.
+### למה צריך שאלת אבטחה?
+טלפון לבדו אינו מספיק — כל מי שיודע את הטלפון יכול לאפס סיסמה. לכן מוסיפים שכבת אימות שנייה: שאלת אבטחה שהלקוחה הגדירה בעצמה.
 
-**Frontend:**
-- `AdminSettings.tsx` — להוסיף שדה "דקות חיץ בין תורים" בסקשן "הגדרות תורים".
-- `ClientBooking.tsx` — בחישוב `getAvailableSlots` להוסיף את ה-buffer לסוף כל תור תפוס.
-- `AdminCalendar.tsx` — בעת הצגה ויצירת תור חדש להחיל אותה לוגיקה.
+### איפה מגדירים את שאלת האבטחה?
+- בעמוד **הרשמה** (`Auth.tsx` – טאב "הרשמה"): נוסיף 2 שדות חובה: "שאלת אבטחה" (טקסט חופשי, למשל "שם החתול שלי") ו"תשובה".
+- בעמוד **הפרופיל של הלקוחה** (`ClientProfile.tsx`): נוסיף סקשן "אבטחה" שמאפשר להגדיר/לעדכן את השאלה והתשובה (חובה כדי שאיפוס סיסמה יעבוד).
+- ב**אדמין** (`AdminDashboard.tsx` → עריכת לקוחה): אפשרות לעזור ללקוחה לאפס את השאלה אם שכחה.
 
-### קבצים שיתעדכנו
-- `supabase/migrations/...` (חדש) — עמודה + עדכון פונקציות
-- `src/pages/admin/AdminSettings.tsx`
-- `src/pages/Auth.tsx`
-- `src/pages/ClientBooking.tsx`
-- `src/pages/admin/AdminCalendar.tsx`
+### צד שרת (Backend)
+
+**Migration חדש:**
+- הוספת שתי עמודות ל-`profiles`:
+  - `security_question text` (nullable)
+  - `security_answer_hash text` (nullable) — נשמור hash בלבד (bcrypt/sha256 + salt), לא טקסט גולמי.
+- פונקציית RPC `request_password_reset(_phone text)` שמחזירה את שאלת האבטחה אם הטלפון קיים, או הודעת שגיאה גנרית אם לא (כדי לא לחשוף אילו מספרים רשומים). `SECURITY DEFINER`.
+- פונקציית RPC `verify_security_answer(_phone text, _answer text)` שמשווה את ה-hash של התשובה לזה ששמור ב-DB. אם תקין — מחזירה token זמני (UUID חד-פעמי שנשמר בטבלה חדשה `password_reset_tokens` עם תוקף 10 דקות).
+- טבלה חדשה `password_reset_tokens` (id, user_id, token, expires_at, used).
+- Edge function `reset-password-with-token` שמקבלת `{ token, new_password }`, מוודאת תוקף, ומשתמשת ב-`supabase.auth.admin.updateUserById()` עם service role key כדי לעדכן את הסיסמה. מוחקת את ה-token לאחר שימוש.
+
+### אבטחה ושיקולים
+- **Rate limiting** בסיסי: לוג ניסיונות כושלים על השאלה. לאחר 5 ניסיונות כושלים תוך 15 דקות לאותו טלפון — חסימה זמנית.
+- **תשובה לא נשמרת בטקסט גלוי** — רק hash.
+- שגיאות גנריות ("פרטים שגויים") כדי לא להדליף אילו טלפונים רשומים במערכת.
+- לקוחות קיימים שאין להם שאלת אבטחה: לא יוכלו להשתמש באיפוס הזה עד שיגדירו שאלה בפרופיל. במסך השלב הראשון של "שכחתי סיסמה" תוצג הודעה ידידותית במקרה כזה: "לא הוגדרה שאלת אבטחה, פני למנהלת המערכת".
+
+### קבצים שיתעדכנו / יווצרו
+- `supabase/migrations/...` (חדש) — עמודות `security_question`, `security_answer_hash`, טבלה `password_reset_tokens`, פונקציות RPC.
+- `supabase/functions/reset-password-with-token/index.ts` (חדש) — עדכון סיסמה עם service role.
+- `src/pages/Auth.tsx` — החלפת דיאלוג "שכחתי סיסמה" הקיים בזרימה תלת-שלבית; הסרת `recoveryMode` הישן והוספת שדות שאלה+תשובה בטאב ההרשמה.
+- `src/pages/ClientProfile.tsx` — סקשן "שאלת אבטחה" לעדכון.
+- `src/hooks/useAuth.tsx` — חתימת `signUp` מקבלת גם שאלה+תשובה.
+- `AdminDashboard.tsx` — (אופציונלי) איפוס שאלה ע"י אדמין.

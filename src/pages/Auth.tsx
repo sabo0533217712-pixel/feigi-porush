@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,10 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import Brand from '@/components/Brand';
+
+type ForgotStep = 'phone' | 'question' | 'password' | 'done';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -30,25 +31,29 @@ export default function Auth() {
   const [regPassword, setRegPassword] = useState('');
   const [regName, setRegName] = useState('');
   const [regPhone, setRegPhone] = useState('');
+  const [regQuestion, setRegQuestion] = useState('');
+  const [regAnswer, setRegAnswer] = useState('');
 
-  // Forgot password dialog
+  // Forgot password (phone-based)
   const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
+  const [step, setStep] = useState<ForgotStep>('phone');
+  const [fpPhone, setFpPhone] = useState('');
+  const [fpQuestion, setFpQuestion] = useState('');
+  const [fpAnswer, setFpAnswer] = useState('');
+  const [fpToken, setFpToken] = useState('');
+  const [fpNewPwd, setFpNewPwd] = useState('');
+  const [fpNewPwd2, setFpNewPwd2] = useState('');
+  const [fpBusy, setFpBusy] = useState(false);
 
-  // Password recovery (after clicking link in email)
-  const [recoveryMode, setRecoveryMode] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setRecoveryMode(true);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+  const resetForgot = () => {
+    setStep('phone');
+    setFpPhone('');
+    setFpQuestion('');
+    setFpAnswer('');
+    setFpToken('');
+    setFpNewPwd('');
+    setFpNewPwd2('');
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,13 +71,13 @@ export default function Auth() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regName.trim()) {
-      toast.error('נא להזין שם מלא');
-      return;
-    }
+    if (!regName.trim()) return toast.error('נא להזין שם מלא');
+    if (!regPhone.trim()) return toast.error('נא להזין מספר טלפון');
+    if (regQuestion.trim().length < 3) return toast.error('שאלת אבטחה קצרה מדי');
+    if (regAnswer.trim().length < 2) return toast.error('תשובה לשאלת האבטחה קצרה מדי');
     setLoading(true);
     try {
-      await signUp(regEmail, regPassword, regName, regPhone);
+      await signUp(regEmail, regPassword, regName, regPhone, regQuestion, regAnswer);
       toast.success('נרשמת בהצלחה! בדקי את המייל לאישור');
     } catch (err: any) {
       toast.error(err.message || 'שגיאה בהרשמה');
@@ -81,101 +86,87 @@ export default function Auth() {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!forgotEmail.trim()) {
-      toast.error('נא להזין אימייל');
-      return;
-    }
-    setForgotLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}/auth`,
-      });
-      if (error) throw error;
-      toast.success('קישור לאיפוס סיסמה נשלח למייל');
-      setForgotOpen(false);
-      setForgotEmail('');
-    } catch (err: any) {
-      toast.error(err.message || 'שגיאה בשליחת הקישור');
-    } finally {
-      setForgotLoading(false);
+  // ----- Forgot password steps -----
+
+  const errMsg = (code: string) => {
+    switch (code) {
+      case 'rate_limited': return 'יותר מדי ניסיונות, נסי שוב בעוד 15 דקות';
+      case 'invalid_phone': return 'מספר טלפון לא תקין';
+      case 'not_available': return 'לא נמצאה שאלת אבטחה עבור מספר זה. פני למנהלת המערכת.';
+      case 'invalid_answer': return 'התשובה אינה נכונה';
+      case 'invalid_input': return 'נתונים חסרים';
+      default: return code || 'שגיאה';
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const submitPhone = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      toast.error('סיסמה חייבת להיות לפחות 6 תווים');
-      return;
-    }
-    if (newPassword !== newPasswordConfirm) {
-      toast.error('הסיסמאות אינן תואמות');
-      return;
-    }
-    setLoading(true);
+    if (!fpPhone.trim()) return toast.error('נא להזין מספר טלפון');
+    setFpBusy(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { data, error } = await supabase.rpc('request_password_reset', { _phone: fpPhone });
       if (error) throw error;
+      const q = Array.isArray(data) ? data[0]?.security_question : (data as any)?.security_question;
+      if (!q) throw new Error('not_available');
+      setFpQuestion(q);
+      setStep('question');
+    } catch (err: any) {
+      toast.error(errMsg(err.message));
+    } finally {
+      setFpBusy(false);
+    }
+  };
+
+  const submitAnswer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fpAnswer.trim()) return toast.error('נא להזין תשובה');
+    setFpBusy(true);
+    try {
+      const { data, error } = await supabase.rpc('verify_security_answer', {
+        _phone: fpPhone,
+        _answer: fpAnswer,
+      });
+      if (error) throw error;
+      const t = Array.isArray(data) ? data[0]?.token : (data as any)?.token;
+      if (!t) throw new Error('invalid_answer');
+      setFpToken(t);
+      setStep('password');
+    } catch (err: any) {
+      toast.error(errMsg(err.message));
+    } finally {
+      setFpBusy(false);
+    }
+  };
+
+  const submitNewPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (fpNewPwd.length < 6) return toast.error('סיסמה חייבת להיות לפחות 6 תווים');
+    if (fpNewPwd !== fpNewPwd2) return toast.error('הסיסמאות אינן תואמות');
+    setFpBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-password-with-token', {
+        body: { token: fpToken, new_password: fpNewPwd },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'שגיאה');
       toast.success('הסיסמה עודכנה בהצלחה!');
-      setRecoveryMode(false);
-      setNewPassword('');
-      setNewPasswordConfirm('');
-      navigate('/');
+      // Try to auto-sign-in
+      if (data.email) {
+        try {
+          await signIn(data.email, fpNewPwd);
+          setForgotOpen(false);
+          resetForgot();
+          navigate('/');
+          return;
+        } catch {/* fall through */}
+      }
+      setStep('done');
     } catch (err: any) {
       toast.error(err.message || 'שגיאה בעדכון הסיסמה');
     } finally {
-      setLoading(false);
+      setFpBusy(false);
     }
   };
-
-  if (recoveryMode) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md animate-fade-in">
-          <div className="text-center mb-8">
-            <Brand size="lg" linkTo="/" />
-            <p className="text-muted-foreground mt-3">איפוס סיסמה</p>
-          </div>
-          <Card className="shadow-card border-border/50">
-            <CardHeader />
-            <CardContent>
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">סיסמה חדשה</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    placeholder="לפחות 6 תווים"
-                    dir="ltr"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-password-confirm">אימות סיסמה</Label>
-                  <Input
-                    id="new-password-confirm"
-                    type="password"
-                    value={newPasswordConfirm}
-                    onChange={(e) => setNewPasswordConfirm(e.target.value)}
-                    required
-                    minLength={6}
-                    dir="ltr"
-                  />
-                </div>
-                <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={loading}>
-                  {loading ? 'מעדכן...' : 'עדכון סיסמה'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -211,10 +202,7 @@ export default function Auth() {
                   <div className="text-center">
                     <button
                       type="button"
-                      onClick={() => {
-                        setForgotEmail(loginEmail);
-                        setForgotOpen(true);
-                      }}
+                      onClick={() => { resetForgot(); setForgotOpen(true); }}
                       className="text-sm text-primary hover:underline"
                     >
                       שכחתי סיסמה
@@ -231,7 +219,7 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="reg-phone">טלפון</Label>
-                    <Input id="reg-phone" value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder="050-1234567" dir="ltr" />
+                    <Input id="reg-phone" value={regPhone} onChange={e => setRegPhone(e.target.value)} required placeholder="050-1234567" dir="ltr" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="reg-email">אימייל</Label>
@@ -240,6 +228,15 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label htmlFor="reg-password">סיסמה</Label>
                     <Input id="reg-password" type="password" value={regPassword} onChange={e => setRegPassword(e.target.value)} required minLength={6} placeholder="לפחות 6 תווים" dir="ltr" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-question">שאלת אבטחה</Label>
+                    <Input id="reg-question" value={regQuestion} onChange={e => setRegQuestion(e.target.value)} required placeholder="לדוגמה: שם החיה הראשונה שלי" />
+                    <p className="text-xs text-muted-foreground">תשמש לאיפוס סיסמה אם תשכחי אותה</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-answer">תשובה</Label>
+                    <Input id="reg-answer" value={regAnswer} onChange={e => setRegAnswer(e.target.value)} required placeholder="התשובה הסודית שלך" />
                   </div>
                   <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={loading}>
                     {loading ? 'נרשם...' : 'הרשמי'}
@@ -250,31 +247,67 @@ export default function Auth() {
           </Tabs>
         </Card>
 
-        <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <Dialog open={forgotOpen} onOpenChange={(o) => { setForgotOpen(o); if (!o) resetForgot(); }}>
           <DialogContent dir="rtl">
             <DialogHeader>
               <DialogTitle>איפוס סיסמה</DialogTitle>
-              <DialogDescription>הזיני את כתובת המייל ונשלח לך קישור לאיפוס הסיסמה</DialogDescription>
+              <DialogDescription>
+                {step === 'phone' && 'הזיני את מספר הטלפון שלך כדי להתחיל'}
+                {step === 'question' && 'עני על שאלת האבטחה שהגדרת'}
+                {step === 'password' && 'הזיני סיסמה חדשה'}
+                {step === 'done' && 'הסיסמה עודכנה. אפשר להתחבר עכשיו.'}
+              </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleForgotPassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="forgot-email">אימייל</Label>
-                <Input
-                  id="forgot-email"
-                  type="email"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  required
-                  placeholder="your@email.com"
-                  dir="ltr"
-                />
-              </div>
-              <DialogFooter>
-                <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={forgotLoading}>
-                  {forgotLoading ? 'שולח...' : 'שליחת קישור'}
+
+            {step === 'phone' && (
+              <form onSubmit={submitPhone} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fp-phone">מספר טלפון</Label>
+                  <Input id="fp-phone" value={fpPhone} onChange={e => setFpPhone(e.target.value)} placeholder="050-1234567" dir="ltr" required />
+                </div>
+                <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={fpBusy}>
+                  {fpBusy ? 'בודק...' : 'המשך'}
                 </Button>
-              </DialogFooter>
-            </form>
+              </form>
+            )}
+
+            {step === 'question' && (
+              <form onSubmit={submitAnswer} className="space-y-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">שאלת האבטחה שלך:</p>
+                  <p className="text-base font-medium">{fpQuestion}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fp-answer">התשובה שלך</Label>
+                  <Input id="fp-answer" value={fpAnswer} onChange={e => setFpAnswer(e.target.value)} required />
+                </div>
+                <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={fpBusy}>
+                  {fpBusy ? 'מאמת...' : 'אמת'}
+                </Button>
+              </form>
+            )}
+
+            {step === 'password' && (
+              <form onSubmit={submitNewPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fp-pwd">סיסמה חדשה</Label>
+                  <Input id="fp-pwd" type="password" value={fpNewPwd} onChange={e => setFpNewPwd(e.target.value)} required minLength={6} dir="ltr" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fp-pwd2">אימות סיסמה</Label>
+                  <Input id="fp-pwd2" type="password" value={fpNewPwd2} onChange={e => setFpNewPwd2(e.target.value)} required minLength={6} dir="ltr" />
+                </div>
+                <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={fpBusy}>
+                  {fpBusy ? 'מעדכן...' : 'עדכון סיסמה'}
+                </Button>
+              </form>
+            )}
+
+            {step === 'done' && (
+              <Button className="w-full gradient-primary text-primary-foreground" onClick={() => { setForgotOpen(false); resetForgot(); }}>
+                סגור
+              </Button>
+            )}
           </DialogContent>
         </Dialog>
       </div>

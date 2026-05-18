@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Save, User, Mail, Phone, Bell, MessageCircle } from 'lucide-react';
+import { Save, User, Mail, Phone, Bell, MessageCircle, ShieldCheck } from 'lucide-react';
 
 export default function ClientProfile() {
   const { user } = useAuth();
@@ -15,6 +15,10 @@ export default function ClientProfile() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [reminderPref, setReminderPref] = useState('whatsapp');
+  const [secQuestion, setSecQuestion] = useState('');
+  const [secAnswer, setSecAnswer] = useState('');
+  const [hasSecurity, setHasSecurity] = useState(false);
+  const [savingSecurity, setSavingSecurity] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -32,11 +36,30 @@ export default function ClientProfile() {
       setFullName(data.full_name || '');
       setEmail(data.email || '');
       setPhone(data.phone || '');
-      // Migrate legacy 'sms' → 'whatsapp' on the fly
       const pref = data.reminder_preference === 'sms' ? 'whatsapp' : (data.reminder_preference || 'whatsapp');
       setReminderPref(pref);
+      setSecQuestion(data.security_question || '');
+      setHasSecurity(!!data.security_question && !!data.security_answer_hash);
     }
     setLoading(false);
+  };
+
+  const handleSaveSecurity = async () => {
+    if (secQuestion.trim().length < 3) return toast.error('שאלת אבטחה קצרה מדי');
+    if (secAnswer.trim().length < 2) return toast.error('נא להזין תשובה');
+    setSavingSecurity(true);
+    const { error } = await supabase.rpc('set_security_question', {
+      _question: secQuestion.trim(),
+      _answer: secAnswer.trim(),
+    });
+    setSavingSecurity(false);
+    if (error) {
+      toast.error('שגיאה בשמירת שאלת האבטחה');
+    } else {
+      toast.success('שאלת האבטחה נשמרה');
+      setSecAnswer('');
+      setHasSecurity(true);
+    }
   };
 
   const handleSave = async () => {
@@ -142,6 +165,33 @@ export default function ClientProfile() {
               </Label>
             </div>
           </RadioGroup>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5" />
+            שאלת אבטחה
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {hasSecurity
+              ? 'שאלת האבטחה הוגדרה. אפשר לעדכן כאן בכל עת. התשובה הקיימת שמורה מוצפנת ולא מוצגת.'
+              : 'הגדירי שאלה ותשובה אישית — תשמש לאיפוס סיסמה במקרה ששכחת.'}
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="sec-q">שאלה</Label>
+            <Input id="sec-q" value={secQuestion} onChange={e => setSecQuestion(e.target.value)} placeholder="לדוגמה: שם החיה הראשונה שלי" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sec-a">תשובה {hasSecurity && <span className="text-xs text-muted-foreground">(הזיני רק אם את רוצה לעדכן)</span>}</Label>
+            <Input id="sec-a" value={secAnswer} onChange={e => setSecAnswer(e.target.value)} placeholder="התשובה הסודית שלך" />
+          </div>
+          <Button variant="outline" className="w-full" onClick={handleSaveSecurity} disabled={savingSecurity}>
+            {savingSecurity ? 'שומר...' : 'שמור שאלת אבטחה'}
+          </Button>
         </CardContent>
       </Card>
 

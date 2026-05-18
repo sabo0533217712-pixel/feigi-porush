@@ -321,6 +321,54 @@ export type Database = {
         }
         Relationships: []
       }
+      password_reset_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          phone: string
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone: string
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone?: string
+          success?: boolean
+        }
+        Relationships: []
+      }
+      password_reset_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+          used: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          token: string
+          used?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -329,6 +377,8 @@ export type Database = {
           id: string
           phone: string | null
           reminder_preference: string
+          security_answer_hash: string | null
+          security_question: string | null
           updated_at: string
           user_id: string
         }
@@ -339,6 +389,8 @@ export type Database = {
           id?: string
           phone?: string | null
           reminder_preference?: string
+          security_answer_hash?: string | null
+          security_question?: string | null
           updated_at?: string
           user_id: string
         }
@@ -349,6 +401,8 @@ export type Database = {
           id?: string
           phone?: string | null
           reminder_preference?: string
+          security_answer_hash?: string | null
+          security_question?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -665,6 +719,23 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      normalize_phone: { Args: { _phone: string }; Returns: string }
+      request_password_reset: {
+        Args: { _phone: string }
+        Returns: {
+          security_question: string
+        }[]
+      }
+      set_security_question: {
+        Args: { _answer: string; _question: string }
+        Returns: undefined
+      }
+      verify_security_answer: {
+        Args: { _answer: string; _phone: string }
+        Returns: {
+          token: string
+        }[]
       }
     }
     Enums: {
