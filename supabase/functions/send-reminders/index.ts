@@ -332,10 +332,11 @@ Deno.serve(async (req) => {
     // Enrich each due appointment with profile + treatments + settings
     const { data: settings } = await supabase
       .from("business_settings")
-      .select("cancellation_hours")
+      .select("cancellation_hours, business_address")
       .limit(1)
       .maybeSingle();
     const cancellationHours = settings?.cancellation_hours ?? 24;
+    const businessAddress = (settings as any)?.business_address ?? "";
 
     const reminders: Record<string, unknown>[] = [];
     const successfulIds: string[] = [];
