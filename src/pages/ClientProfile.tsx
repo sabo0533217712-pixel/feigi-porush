@@ -15,6 +15,10 @@ export default function ClientProfile() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [reminderPref, setReminderPref] = useState('whatsapp');
+  const [secQuestion, setSecQuestion] = useState('');
+  const [secAnswer, setSecAnswer] = useState('');
+  const [hasSecurity, setHasSecurity] = useState(false);
+  const [savingSecurity, setSavingSecurity] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
