@@ -201,6 +201,7 @@ function buildPlainMessage(ctx: MsgCtx): string {
     `${greeting}\n` +
     `זוהי תזכורת לתור שנקבע לך ב${slot}.\n` +
     `${treatmentLine}\n` +
+    (ctx.businessAddress ? `כתובת: ${ctx.businessAddress}\n` : "") +
     `במידה ולא תוכלי להגיע, ניתן לבטל עד ${ctx.cancellationHours} שעות לפני מועד התור.`
   );
 }
