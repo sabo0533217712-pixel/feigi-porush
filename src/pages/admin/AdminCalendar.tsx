@@ -100,6 +100,7 @@ export default function AdminCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
+  const [isDayLoading, setIsDayLoading] = useState(true);
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
