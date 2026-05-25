@@ -1029,7 +1029,13 @@ export default function ClientBooking() {
                 ))}
               </div>
             )}
-            {showMoreDays && moreDaySuggestions.length === 0 && (
+            {showMoreDays && loadingMoreDays && (
+              <p className="text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                מחפשת ימים פנויים...
+              </p>
+            )}
+            {showMoreDays && !loadingMoreDays && moreDaySuggestions.length === 0 && (
               <p className="text-sm text-muted-foreground text-center">
                 לא נמצאו ימים בשבועיים הקרובים שבהם השעה {preferredTime} פנויה
               </p>
