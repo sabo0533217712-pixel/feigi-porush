@@ -99,9 +99,12 @@ interface BusinessSettings {
 export default function AdminCalendar() {
   const holidaySettings = useHolidaySettings();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
-  const [isDayLoading, setIsDayLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const dateKey = format(selectedDate, "yyyy-MM-dd");
+  const invalidateDay = (date?: Date | string) => {
+    const key = typeof date === "string" ? date : format(date ?? selectedDate, "yyyy-MM-dd");
+    queryClient.invalidateQueries({ queryKey: ["admin-day", key], refetchType: "active" });
+  };
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
