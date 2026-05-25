@@ -165,9 +165,7 @@ export default function AdminCalendar() {
     }
   }, [showBookDialog, clientSearchOpen]);
 
-  useEffect(() => {
-    fetchDayData();
-  }, [selectedDate]);
+  // (day data is now loaded via useQuery below — no manual effect needed)
 
   useEffect(() => {
     fetchMonthCounts();
