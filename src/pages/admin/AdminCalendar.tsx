@@ -183,11 +183,11 @@ export default function AdminCalendar() {
     const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
 
     const refreshDay = () => {
-      fetchDayData();
+      invalidateDay();
     };
 
     const refreshAll = () => {
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     };
 
@@ -449,7 +449,7 @@ export default function AdminCalendar() {
       }
       setShowBookDialog(false);
       setBookForm({ client_id: "", treatment_id: "", start_time: "09:00", end_time: "09:30", notes: "" });
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     }
   };
@@ -467,7 +467,7 @@ export default function AdminCalendar() {
       toast.success("הזמן נחסם");
       setShowBlockDialog(false);
       setBlockForm({ start_time: "09:00", end_time: "10:00", notes: "" });
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -477,7 +477,7 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה במחיקה");
     else {
       toast.success("החסימה הוסרה");
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -497,7 +497,7 @@ export default function AdminCalendar() {
     else {
       toast.success("המשמרת נוספה");
       setShowShiftDialog(false);
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -506,7 +506,7 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה במחיקה");
     else {
       toast.success("המשמרת הוסרה");
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -549,7 +549,7 @@ export default function AdminCalendar() {
       }
       setShowEditDialog(false);
       setEditForm(null);
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     }
   };
@@ -575,7 +575,7 @@ export default function AdminCalendar() {
       setShowEditDialog(false);
       setEditingAppointment(null);
       setEditForm(null);
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     }
   };
@@ -620,7 +620,7 @@ export default function AdminCalendar() {
       setEditForm(null);
       setSelectedDate(newDate);
       fetchMonthCounts();
-      fetchDayData();
+      invalidateDay();
     }
   };
 
