@@ -620,6 +620,7 @@ export default function ClientBooking() {
       if (results.length >= 5) break;
     }
     setMoreDaySuggestions(results);
+    setLoadingMoreDays(false);
   };
 
   return (
