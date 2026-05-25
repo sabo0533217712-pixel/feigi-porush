@@ -872,7 +872,12 @@ export default function ClientBooking() {
               <input
                 type="time"
                 value={preferredTime}
-                onChange={(e) => setPreferredTime(e.target.value)}
+                onChange={(e) => {
+                  setPreferredTime(e.target.value);
+                  setShowMoreDays(false);
+                  setMoreDaySuggestions([]);
+                  setLoadingMoreDays(false);
+                }}
                 className="border border-input rounded-md px-3 py-1.5 text-sm bg-background"
                 dir="ltr"
               />
