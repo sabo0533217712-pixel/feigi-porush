@@ -86,6 +86,7 @@ export default function ClientBooking() {
   const [showAllSlots, setShowAllSlots] = useState(false);
   const [showMoreDays, setShowMoreDays] = useState(false);
   const [moreDaySuggestions, setMoreDaySuggestions] = useState<{ date: Date; slots: string[] }[]>([]);
+  const [loadingMoreDays, setLoadingMoreDays] = useState(false);
   const [clientNote, setClientNote] = useState<string>("");
 
   const getDuration = (t: Treatment) => (t.is_variable_duration ? variableDurations[t.id] || 15 : t.duration_minutes);
