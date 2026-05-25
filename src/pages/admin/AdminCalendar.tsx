@@ -311,32 +311,45 @@ export default function AdminCalendar() {
 
   const fetchDayData = async () => {
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
-      supabase
-        .from("appointments")
-        .select("*, treatments(name, color)")
-        .eq("appointment_date", dateStr)
-        .order("start_time"),
-      supabase.from("time_blocks").select("*").eq("block_date", dateStr).order("start_time"),
-      supabase.from("extra_shifts").select("*").eq("shift_date", dateStr).order("start_time"),
-    ]);
+    // Clear stale data from previous day immediately so it doesn't flash
+    setIsDayLoading(true);
+    setAppointments([]);
+    setTimeBlocks([]);
+    setExtraShifts([]);
+    try {
+      const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select("*, treatments(name, color)")
+          .eq("appointment_date", dateStr)
+          .order("start_time"),
+        supabase.from("time_blocks").select("*").eq("block_date", dateStr).order("start_time"),
+        supabase.from("extra_shifts").select("*").eq("shift_date", dateStr).order("start_time"),
+      ]);
 
-    if (aptsRes.data && aptsRes.data.length > 0) {
-      const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, phone, email")
-        .in("user_id", clientIds);
-      const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
-      setAppointments(
-        aptsRes.data.map((a) => ({ ...a, profiles: profileMap.get(a.client_id) || null })) as unknown as Appointment[],
-      );
-    } else {
-      setAppointments([]);
+      // Guard against race: if the user already switched to another day, drop this result
+      if (format(selectedDate, "yyyy-MM-dd") !== dateStr) return;
+
+      if (aptsRes.data && aptsRes.data.length > 0) {
+        const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, phone, email")
+          .in("user_id", clientIds);
+        if (format(selectedDate, "yyyy-MM-dd") !== dateStr) return;
+        const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
+        setAppointments(
+          aptsRes.data.map((a) => ({ ...a, profiles: profileMap.get(a.client_id) || null })) as unknown as Appointment[],
+        );
+      } else {
+        setAppointments([]);
+      }
+
+      setTimeBlocks((blocksRes.data || []) as unknown as TimeBlock[]);
+      setExtraShifts((shiftsRes.data || []) as unknown as ExtraShift[]);
+    } finally {
+      setIsDayLoading(false);
     }
-
-    setTimeBlocks((blocksRes.data || []) as unknown as TimeBlock[]);
-    setExtraShifts((shiftsRes.data || []) as unknown as ExtraShift[]);
   };
 
   // Get day hours from settings — must mirror AdminSettings exactly:
