@@ -210,11 +210,7 @@ export default function AdminCalendar() {
         },
         refreshDay,
       )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          refreshAll();
-        }
-      });
+      .subscribe();
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {

@@ -1,27 +1,40 @@
-## תיקון הודעות והתנהגות של "ימים נוספים עם שעות סמוכות"
+## הבעיה
 
-קובץ יחיד מושפע: `src/pages/ClientBooking.tsx`.
+בלחיצה על יום בלוח השנה, כל הקריאות לשרת (`appointments`, `time_blocks`, `extra_shifts`, `profiles`) רצות **פעמיים**. זה לא בעיה ב-Realtime — זו כפילות מובנית בקוד.
 
-### 1. הפרדה בין הודעת טעינה לבין הודעת "לא נמצאו ימים"
-היום, ברגע שלוחצים על "הצע לי ימים אחרים" — `showMoreDays` נהפך מיד ל-`true` ו-`moreDaySuggestions` עדיין ריק, ולכן ההודעה "לא נמצאו ימים..." מוצגת כל זמן הטעינה, עד שהתוצאות נטענות.
+### למה זה קורה
+ב-`src/pages/admin/AdminCalendar.tsx` יש שני `useEffect` שמגיבים לשינוי `selectedDate`:
 
-הפתרון:
-- להוסיף state חדש `loadingMoreDays: boolean`.
-- בתחילת `fetchMoreDays` להציב `setLoadingMoreDays(true)`, ובסיום (אחרי `setMoreDaySuggestions`) להציב `setLoadingMoreDays(false)`.
-- בבלוק שמציג "לא נמצאו ימים בשבועיים הקרובים..." להוסיף תנאי `!loadingMoreDays`.
-- להוסיף בלוק חדש שמוצג כאשר `showMoreDays && loadingMoreDays` עם טקסט טעינה (לדוגמה: "מחפשת ימים פנויים..." עם אייקון Loader2 מסתובב, באותו סגנון של שאר ההודעות במסך).
+1. **שורה 163-165** — `useEffect([selectedDate])` קורא ישירות ל-`fetchDayData()`.
+2. **שורה 179-232** — `useEffect([selectedDate, currentMonth])` יוצר ערוץ Realtime חדש, וב-callback של `SUBSCRIBED` (שורה 213-216) קורא ל-`refreshAll()` שקורא שוב ל-`fetchDayData()` + `fetchMonthCounts()`.
 
-### 2. סגירת אזור "ימים נוספים" בעת שינוי שעה מועדפת
-היום בעת שינוי `preferredTime` האזור של ההצעות נשאר פתוח עם נתונים מהשעה הקודמת.
+מכאן ה-4 קריאות הכפולות בכל מעבר יום, וגם `fetchMonthCounts` כפול (גם מ-`useEffect([currentMonth])` בשורה 167 וגם מה-SUBSCRIBED).
 
-הפתרון:
-- ב-`onChange` של ה-input של "שעה מועדפת" (שורה 871), בנוסף ל-`setPreferredTime`, לקרוא ל:
-  - `setShowMoreDays(false)`
-  - `setMoreDaySuggestions([])`
-  - `setLoadingMoreDays(false)` (לבטיחות)
+## השינוי
 
-כך שהקולאפס יחזור למצב התחלתי וכפתור "🔍 הצע לי ימים אחרים..." יוצג שוב עם השעה המעודכנת.
+קובץ אחד: `src/pages/admin/AdminCalendar.tsx`
 
-### הערות
-- ללא שינויי לוגיקה עסקית, ללא שינויי DB, ללא שינוי בהצעות החכמות עצמן או באלגוריתם החיפוש.
-- שינוי קוסמטי + UX בלבד בקובץ `ClientBooking.tsx`.
+**להסיר את הקריאה ל-`refreshAll()` מתוך ה-`SUBSCRIBED` callback** (שורות 213-217). הטעינה הראשונית כבר נעשית ע"י ה-`useEffect` הייעודיים (`[selectedDate]` ו-`[currentMonth]`), אז אין צורך לטעון מחדש מתוך ה-subscribe.
+
+לפני:
+```ts
+.subscribe((status) => {
+  if (status === "SUBSCRIBED") {
+    refreshAll();
+  }
+});
+```
+
+אחרי:
+```ts
+.subscribe();
+```
+
+`refreshAll` עדיין נחוץ ל-`visibilitychange` (חזרה ללשונית), אז הוא נשאר מוגדר.
+
+## תוצאה
+
+- לחיצה על יום: **4 קריאות במקום 8** (חיסכון 50%).
+- Realtime ממשיך לעדכן בזמן אמת כשמשהו משתנה.
+- רענון בחזרה ללשונית ממשיך לעבוד.
+- שום פונקציונליות לא משתנה.
