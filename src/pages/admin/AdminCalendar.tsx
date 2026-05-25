@@ -136,7 +136,7 @@ export default function AdminCalendar() {
     notes: "",
   });
   const [blockForm, setBlockForm] = useState({ start_time: "09:00", end_time: "10:00", notes: "" });
-  const [extraShifts, setExtraShifts] = useState<ExtraShift[]>([]);
+  // extraShifts comes from the day query below
   const [showShiftDialog, setShowShiftDialog] = useState(false);
   const [shiftForm, setShiftForm] = useState({ start_time: "19:00", end_time: "22:00", notes: "" });
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
