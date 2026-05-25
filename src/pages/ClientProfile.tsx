@@ -1,22 +1,22 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { toast } from 'sonner';
-import { Save, User, Mail, Phone, Bell, MessageCircle, ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { toast } from "sonner";
+import { Save, User, Mail, Phone, Bell, MessageCircle, ShieldCheck } from "lucide-react";
 
 export default function ClientProfile() {
   const { user } = useAuth();
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [reminderPref, setReminderPref] = useState('whatsapp');
-  const [secQuestion, setSecQuestion] = useState('');
-  const [secAnswer, setSecAnswer] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [reminderPref, setReminderPref] = useState("whatsapp");
+  const [secQuestion, setSecQuestion] = useState("");
+  const [secAnswer, setSecAnswer] = useState("");
   const [hasSecurity, setHasSecurity] = useState(false);
   const [savingSecurity, setSavingSecurity] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -27,37 +27,33 @@ export default function ClientProfile() {
   }, [user]);
 
   const fetchProfile = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user!.id)
-      .single();
+    const { data } = await supabase.from("profiles").select("*").eq("user_id", user!.id).single();
     if (data) {
-      setFullName(data.full_name || '');
-      setEmail(data.email || '');
-      setPhone(data.phone || '');
-      const pref = data.reminder_preference === 'sms' ? 'whatsapp' : (data.reminder_preference || 'whatsapp');
+      setFullName(data.full_name || "");
+      setEmail(data.email || "");
+      setPhone(data.phone || "");
+      const pref = data.reminder_preference === "sms" ? "whatsapp" : data.reminder_preference || "whatsapp";
       setReminderPref(pref);
-      setSecQuestion(data.security_question || '');
+      setSecQuestion(data.security_question || "");
       setHasSecurity(!!data.security_question && !!data.security_answer_hash);
     }
     setLoading(false);
   };
 
   const handleSaveSecurity = async () => {
-    if (secQuestion.trim().length < 3) return toast.error('שאלת אבטחה קצרה מדי');
-    if (secAnswer.trim().length < 2) return toast.error('נא להזין תשובה');
+    if (secQuestion.trim().length < 3) return toast.error("שאלת אבטחה קצרה מדי");
+    if (secAnswer.trim().length < 2) return toast.error("נא להזין תשובה");
     setSavingSecurity(true);
-    const { error } = await supabase.rpc('set_security_question', {
+    const { error } = await supabase.rpc("set_security_question", {
       _question: secQuestion.trim(),
       _answer: secAnswer.trim(),
     });
     setSavingSecurity(false);
     if (error) {
-      toast.error('שגיאה בשמירת שאלת האבטחה');
+      toast.error("שגיאה בשמירת שאלת האבטחה");
     } else {
-      toast.success('שאלת האבטחה נשמרה');
-      setSecAnswer('');
+      toast.success("שאלת האבטחה נשמרה");
+      setSecAnswer("");
       setHasSecurity(true);
     }
   };
@@ -66,19 +62,19 @@ export default function ClientProfile() {
     if (!user) return;
     setSaving(true);
     const { error } = await supabase
-      .from('profiles')
+      .from("profiles")
       .update({
         full_name: fullName.trim(),
         email: email.trim(),
         phone: phone.trim(),
         reminder_preference: reminderPref,
       })
-      .eq('user_id', user.id);
+      .eq("user_id", user.id);
 
     if (error) {
-      toast.error('שגיאה בשמירת הפרטים');
+      toast.error("שגיאה בשמירת הפרטים");
     } else {
-      toast.success('הפרטים עודכנו בהצלחה');
+      toast.success("הפרטים עודכנו בהצלחה");
     }
     setSaving(false);
   };
@@ -104,7 +100,7 @@ export default function ClientProfile() {
             <Input
               id="fullName"
               value={fullName}
-              onChange={e => setFullName(e.target.value)}
+              onChange={(e) => setFullName(e.target.value)}
               placeholder="השם המלא שלך"
             />
           </div>
@@ -118,7 +114,7 @@ export default function ClientProfile() {
               id="email"
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="example@email.com"
               dir="ltr"
             />
@@ -133,7 +129,7 @@ export default function ClientProfile() {
               id="phone"
               type="tel"
               value={phone}
-              onChange={e => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value)}
               placeholder="050-1234567"
               dir="ltr"
             />
@@ -178,30 +174,38 @@ export default function ClientProfile() {
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
             {hasSecurity
-              ? 'שאלת האבטחה הוגדרה. אפשר לעדכן כאן בכל עת. התשובה הקיימת שמורה מוצפנת ולא מוצגת.'
-              : 'הגדירי שאלה ותשובה אישית — תשמש לאיפוס סיסמה במקרה ששכחת.'}
+              ? "שאלת האבטחה הוגדרה. אפשר לעדכן כאן בכל עת. התשובה הקיימת שמורה מוצפנת ולא מוצגת."
+              : "הגדירי שאלה ותשובה אישית — תשמש לאיפוס סיסמה במקרה ששכחת."}
           </p>
           <div className="space-y-2">
             <Label htmlFor="sec-q">שאלה</Label>
-            <Input id="sec-q" value={secQuestion} onChange={e => setSecQuestion(e.target.value)} placeholder="לדוגמה: שם החיה הראשונה שלי" />
+            <Input
+              id="sec-q"
+              value={secQuestion}
+              onChange={(e) => setSecQuestion(e.target.value)}
+              placeholder="לדוגמה: שם משפחה קודם"
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sec-a">תשובה {hasSecurity && <span className="text-xs text-muted-foreground">(הזיני רק אם את רוצה לעדכן)</span>}</Label>
-            <Input id="sec-a" value={secAnswer} onChange={e => setSecAnswer(e.target.value)} placeholder="התשובה הסודית שלך" />
+            <Label htmlFor="sec-a">
+              תשובה {hasSecurity && <span className="text-xs text-muted-foreground">(הזיני רק אם את רוצה לעדכן)</span>}
+            </Label>
+            <Input
+              id="sec-a"
+              value={secAnswer}
+              onChange={(e) => setSecAnswer(e.target.value)}
+              placeholder="התשובה הסודית שלך"
+            />
           </div>
           <Button variant="outline" className="w-full" onClick={handleSaveSecurity} disabled={savingSecurity}>
-            {savingSecurity ? 'שומר...' : 'שמור שאלת אבטחה'}
+            {savingSecurity ? "שומר..." : "שמור שאלת אבטחה"}
           </Button>
         </CardContent>
       </Card>
 
-      <Button
-        className="w-full gradient-primary text-primary-foreground"
-        onClick={handleSave}
-        disabled={saving}
-      >
+      <Button className="w-full gradient-primary text-primary-foreground" onClick={handleSave} disabled={saving}>
         <Save className="h-4 w-4 ml-2" />
-        {saving ? 'שומר...' : 'שמור שינויים'}
+        {saving ? "שומר..." : "שמור שינויים"}
       </Button>
     </div>
   );
