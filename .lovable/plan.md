@@ -1,35 +1,27 @@
-## עדכון קובץ המיגרציה של holiday_settings
+## תיקון הודעות והתנהגות של "ימים נוספים עם שעות סמוכות"
 
-### 1) עדכון `supabase/migrations/20260505194349_...sql`
+קובץ יחיד מושפע: `src/pages/ClientBooking.tsx`.
 
-החלף את בלוק ה־`INSERT INTO public.holiday_settings ...` כך שישקף את המצב הנוכחי בפועל בטבלה (53 רשומות, אחרי האיחוד של חוה״מ ומחיקת חגי גלות):
+### 1. הפרדה בין הודעת טעינה לבין הודעת "לא נמצאו ימים"
+היום, ברגע שלוחצים על "הצע לי ימים אחרים" — `showMoreDays` נהפך מיד ל-`true` ו-`moreDaySuggestions` עדיין ריק, ולכן ההודעה "לא נמצאו ימים..." מוצגת כל זמן הטעינה, עד שהתוצאות נטענות.
 
-- **להסיר** מהסיד את הרשומות שאינן קיימות יותר במסד:
-  - `Pesach II`, `Pesach VIII`
-  - `Shavuot I`, `Shavuot II`
-  - `Sukkot II`
-  - `Simchat Torah`
-  - `Pesach III/IV/V/VI (CH''M)` (4 שורות)
-  - `Sukkot III/IV/V/VI (CH''M)` (4 שורות)
+הפתרון:
+- להוסיף state חדש `loadingMoreDays: boolean`.
+- בתחילת `fetchMoreDays` להציב `setLoadingMoreDays(true)`, ובסיום (אחרי `setMoreDaySuggestions`) להציב `setLoadingMoreDays(false)`.
+- בבלוק שמציג "לא נמצאו ימים בשבועיים הקרובים..." להוסיף תנאי `!loadingMoreDays`.
+- להוסיף בלוק חדש שמוצג כאשר `showMoreDays && loadingMoreDays` עם טקסט טעינה (לדוגמה: "מחפשת ימים פנויים..." עם אייקון Loader2 מסתובב, באותו סגנון של שאר ההודעות במסך).
 
-- **להוסיף** את שתי שורות האיחוד:
-  - `('Pesach Chol HaMoed', 'חול המועד פסח', 'cholhamoed', true, true)`
-  - `('Sukkot Chol HaMoed', 'חול המועד סוכות', 'cholhamoed', true, false)`
+### 2. סגירת אזור "ימים נוספים" בעת שינוי שעה מועדפת
+היום בעת שינוי `preferredTime` האזור של ההצעות נשאר פתוח עם נתונים מהשעה הקודמת.
 
-- **לעדכן שם תצוגה**:
-  - `Shmini Atzeret` → `'שמיני עצרת / שמחת תורה'`
+הפתרון:
+- ב-`onChange` של ה-input של "שעה מועדפת" (שורה 871), בנוסף ל-`setPreferredTime`, לקרוא ל:
+  - `setShowMoreDays(false)`
+  - `setMoreDaySuggestions([])`
+  - `setLoadingMoreDays(false)` (לבטיחות)
 
-- **לעדכן ראשי חודש** ל־`show_in_calendar = true` (כפי שהם במסד כיום).
+כך שהקולאפס יחזור למצב התחלתי וכפתור "🔍 הצע לי ימים אחרים..." יוצג שוב עם השעה המעודכנת.
 
-תוצאה: 53 שורות סיד שתואמות בדיוק למה שמופיע ב־`holiday_settings` כרגע.
-
-### 2) בדיקת חוסר התאמות נוספים בין הקוד/DB לבין `supabase/`
-
-עברתי על המיגרציות והשוויתי לסכמה הנוכחית — לא נמצאו אי־התאמות מבניות נוספות. השינוי היחיד שאינו כתוב כמיגרציית סיד הוא תוכן הטבלה `holiday_settings` (תוקן בסעיף 1).
-
-הערה: המיגרציה `20260519074913_...sql` (שדרוג `verify_security_answer` לתמיכה בערכי plaintext ישנים) כבר קיימת ותואמת לפונקציה במסד — אין צורך בשינוי שם.
-
-### פירוט טכני
-
-- הקובץ היחיד שישתנה: `supabase/migrations/20260505194349_467661f9-ebfc-4531-8d1b-136b452f326d.sql` — רק בלוק ה־`VALUES` בתוך ה־`INSERT` (שורות ~20-86). שאר הקובץ (יצירת טבלה, RLS, טריגר, פונקציית `get_holiday_settings`, ושינויי `treatment_price_tiers`/`treatments`/`profiles`) נשאר כמו שהוא.
-- ה־`ON CONFLICT (holiday_desc) DO NOTHING` נשמר, כך שהרצה חוזרת על מסד קיים לא תדרוס נתונים ידניים.
+### הערות
+- ללא שינויי לוגיקה עסקית, ללא שינויי DB, ללא שינוי בהצעות החכמות עצמן או באלגוריתם החיפוש.
+- שינוי קוסמטי + UX בלבד בקובץ `ClientBooking.tsx`.

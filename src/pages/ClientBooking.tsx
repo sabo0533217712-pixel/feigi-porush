@@ -14,7 +14,7 @@ import { format, addDays, isBefore, startOfDay } from "date-fns";
 import { he } from "date-fns/locale";
 import { getHebrewDateShort, isBookingBlockedDay, getHolidayInfo } from "@/lib/hebrew-date";
 import { useHolidaySettings } from "@/hooks/useHolidaySettings";
-import { Clock, Sparkles, ChevronLeft, AlertCircle } from "lucide-react";
+import { Clock, Sparkles, ChevronLeft, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Treatment {
@@ -86,6 +86,7 @@ export default function ClientBooking() {
   const [showAllSlots, setShowAllSlots] = useState(false);
   const [showMoreDays, setShowMoreDays] = useState(false);
   const [moreDaySuggestions, setMoreDaySuggestions] = useState<{ date: Date; slots: string[] }[]>([]);
+  const [loadingMoreDays, setLoadingMoreDays] = useState(false);
   const [clientNote, setClientNote] = useState<string>("");
 
   const getDuration = (t: Treatment) => (t.is_variable_duration ? variableDurations[t.id] || 15 : t.duration_minutes);
@@ -537,6 +538,8 @@ export default function ClientBooking() {
   const fetchMoreDays = async () => {
     if (!settings || selectedTreatments.length === 0 || !selectedDate) return;
     setShowMoreDays(true);
+    setLoadingMoreDays(true);
+    setMoreDaySuggestions([]);
     const results: { date: Date; slots: string[] }[] = [];
     for (let i = 1; i <= 14; i++) {
       const d = addDays(selectedDate, i);
@@ -617,6 +620,7 @@ export default function ClientBooking() {
       if (results.length >= 5) break;
     }
     setMoreDaySuggestions(results);
+    setLoadingMoreDays(false);
   };
 
   return (
@@ -868,7 +872,12 @@ export default function ClientBooking() {
               <input
                 type="time"
                 value={preferredTime}
-                onChange={(e) => setPreferredTime(e.target.value)}
+                onChange={(e) => {
+                  setPreferredTime(e.target.value);
+                  setShowMoreDays(false);
+                  setMoreDaySuggestions([]);
+                  setLoadingMoreDays(false);
+                }}
                 className="border border-input rounded-md px-3 py-1.5 text-sm bg-background"
                 dir="ltr"
               />
@@ -1020,7 +1029,13 @@ export default function ClientBooking() {
                 ))}
               </div>
             )}
-            {showMoreDays && moreDaySuggestions.length === 0 && (
+            {showMoreDays && loadingMoreDays && (
+              <p className="text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                מחפשת ימים פנויים...
+              </p>
+            )}
+            {showMoreDays && !loadingMoreDays && moreDaySuggestions.length === 0 && (
               <p className="text-sm text-muted-foreground text-center">
                 לא נמצאו ימים בשבועיים הקרובים שבהם השעה {preferredTime} פנויה
               </p>
