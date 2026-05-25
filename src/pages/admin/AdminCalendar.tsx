@@ -149,10 +149,16 @@ export default function AdminCalendar() {
 
   useEffect(() => {
     fetchTreatments();
-    fetchProfiles();
     fetchSettings();
     fetchWaitlist();
   }, []);
+
+  // Lazy-load profiles only when a dialog that needs the client list opens
+  useEffect(() => {
+    if ((showBookDialog || clientSearchOpen) && profiles.length === 0) {
+      fetchProfiles();
+    }
+  }, [showBookDialog, clientSearchOpen]);
 
   useEffect(() => {
     fetchDayData();
@@ -167,7 +173,9 @@ export default function AdminCalendar() {
     fetchMonthCountsFor(moveMonth, setMoveMonthCounts, setMoveMonthColors);
   }, [moveMonth, showMoveDatePicker]);
 
-  // Realtime + fallback refresh for the currently viewed day
+  // Realtime updates for the currently viewed day, plus a refresh when the tab
+  // becomes visible again. The previous 2-second polling fallback was removed
+  // because it caused ~120 redundant queries per minute on top of Realtime.
   useEffect(() => {
     const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
 
@@ -208,25 +216,15 @@ export default function AdminCalendar() {
         }
       });
 
-    const fallbackInterval = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        refreshDay();
-      }
-    }, 2000);
-
-    const handleFocus = () => refreshAll();
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         refreshAll();
       }
     };
 
-    window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.clearInterval(fallbackInterval);
-      window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(channel);
     };
