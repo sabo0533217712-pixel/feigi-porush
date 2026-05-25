@@ -618,9 +618,11 @@ export default function AdminCalendar() {
       setShowEditDialog(false);
       setEditingAppointment(null);
       setEditForm(null);
+      // Invalidate both source and destination days; setSelectedDate triggers refetch of destination.
+      invalidateDay(original.appointment_date);
+      invalidateDay(newDateStr);
       setSelectedDate(newDate);
       fetchMonthCounts();
-      invalidateDay();
     }
   };
 
