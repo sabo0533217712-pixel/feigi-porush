@@ -14,7 +14,7 @@ import { format, addDays, isBefore, startOfDay } from "date-fns";
 import { he } from "date-fns/locale";
 import { getHebrewDateShort, isBookingBlockedDay, getHolidayInfo } from "@/lib/hebrew-date";
 import { useHolidaySettings } from "@/hooks/useHolidaySettings";
-import { Clock, Sparkles, ChevronLeft, AlertCircle } from "lucide-react";
+import { Clock, Sparkles, ChevronLeft, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Treatment {
