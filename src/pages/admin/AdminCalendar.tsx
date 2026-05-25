@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -98,9 +99,12 @@ interface BusinessSettings {
 export default function AdminCalendar() {
   const holidaySettings = useHolidaySettings();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
-  const [isDayLoading, setIsDayLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const dateKey = format(selectedDate, "yyyy-MM-dd");
+  const invalidateDay = (date?: Date | string) => {
+    const key = typeof date === "string" ? date : format(date ?? selectedDate, "yyyy-MM-dd");
+    queryClient.invalidateQueries({ queryKey: ["admin-day", key], refetchType: "active" });
+  };
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
@@ -132,7 +136,7 @@ export default function AdminCalendar() {
     notes: "",
   });
   const [blockForm, setBlockForm] = useState({ start_time: "09:00", end_time: "10:00", notes: "" });
-  const [extraShifts, setExtraShifts] = useState<ExtraShift[]>([]);
+  // extraShifts comes from the day query below
   const [showShiftDialog, setShowShiftDialog] = useState(false);
   const [shiftForm, setShiftForm] = useState({ start_time: "19:00", end_time: "22:00", notes: "" });
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
@@ -161,9 +165,7 @@ export default function AdminCalendar() {
     }
   }, [showBookDialog, clientSearchOpen]);
 
-  useEffect(() => {
-    fetchDayData();
-  }, [selectedDate]);
+  // (day data is now loaded via useQuery below — no manual effect needed)
 
   useEffect(() => {
     fetchMonthCounts();
@@ -181,11 +183,11 @@ export default function AdminCalendar() {
     const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
 
     const refreshDay = () => {
-      fetchDayData();
+      invalidateDay();
     };
 
     const refreshAll = () => {
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     };
 
@@ -309,48 +311,59 @@ export default function AdminCalendar() {
     }
   };
 
-  const fetchDayData = async () => {
-    const dateStr = format(selectedDate, "yyyy-MM-dd");
-    // Clear stale data from previous day immediately so it doesn't flash
-    setIsDayLoading(true);
-    setAppointments([]);
-    setTimeBlocks([]);
-    setExtraShifts([]);
-    try {
+  // Day data via React Query: per-date queryKey + AbortController = safe against race conditions.
+  const { data: dayData, isLoading: isDayLoading } = useQuery({
+    queryKey: ["admin-day", dateKey],
+    queryFn: async ({ signal }) => {
       const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
         supabase
           .from("appointments")
           .select("*, treatments(name, color)")
-          .eq("appointment_date", dateStr)
-          .order("start_time"),
-        supabase.from("time_blocks").select("*").eq("block_date", dateStr).order("start_time"),
-        supabase.from("extra_shifts").select("*").eq("shift_date", dateStr).order("start_time"),
+          .eq("appointment_date", dateKey)
+          .order("start_time")
+          .abortSignal(signal),
+        supabase
+          .from("time_blocks")
+          .select("*")
+          .eq("block_date", dateKey)
+          .order("start_time")
+          .abortSignal(signal),
+        supabase
+          .from("extra_shifts")
+          .select("*")
+          .eq("shift_date", dateKey)
+          .order("start_time")
+          .abortSignal(signal),
       ]);
 
-      // Guard against race: if the user already switched to another day, drop this result
-      if (format(selectedDate, "yyyy-MM-dd") !== dateStr) return;
-
+      let appointments: Appointment[] = [];
       if (aptsRes.data && aptsRes.data.length > 0) {
         const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
         const { data: profs } = await supabase
           .from("profiles")
           .select("user_id, full_name, phone, email")
-          .in("user_id", clientIds);
-        if (format(selectedDate, "yyyy-MM-dd") !== dateStr) return;
+          .in("user_id", clientIds)
+          .abortSignal(signal);
         const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
-        setAppointments(
-          aptsRes.data.map((a) => ({ ...a, profiles: profileMap.get(a.client_id) || null })) as unknown as Appointment[],
-        );
-      } else {
-        setAppointments([]);
+        appointments = aptsRes.data.map((a) => ({
+          ...a,
+          profiles: profileMap.get(a.client_id) || null,
+        })) as unknown as Appointment[];
       }
 
-      setTimeBlocks((blocksRes.data || []) as unknown as TimeBlock[]);
-      setExtraShifts((shiftsRes.data || []) as unknown as ExtraShift[]);
-    } finally {
-      setIsDayLoading(false);
-    }
-  };
+      return {
+        appointments,
+        timeBlocks: (blocksRes.data || []) as unknown as TimeBlock[],
+        extraShifts: (shiftsRes.data || []) as unknown as ExtraShift[],
+      };
+    },
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+  });
+
+  const appointments = dayData?.appointments ?? [];
+  const timeBlocks = dayData?.timeBlocks ?? [];
+  const extraShifts = dayData?.extraShifts ?? [];
 
   // Get day hours from settings — must mirror AdminSettings exactly:
   // if no per-day schedule exists for this DOW, use DEFAULT 09:00–18:00 (same as settings UI),
@@ -436,7 +449,7 @@ export default function AdminCalendar() {
       }
       setShowBookDialog(false);
       setBookForm({ client_id: "", treatment_id: "", start_time: "09:00", end_time: "09:30", notes: "" });
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     }
   };
@@ -454,7 +467,7 @@ export default function AdminCalendar() {
       toast.success("הזמן נחסם");
       setShowBlockDialog(false);
       setBlockForm({ start_time: "09:00", end_time: "10:00", notes: "" });
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -464,7 +477,7 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה במחיקה");
     else {
       toast.success("החסימה הוסרה");
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -484,7 +497,7 @@ export default function AdminCalendar() {
     else {
       toast.success("המשמרת נוספה");
       setShowShiftDialog(false);
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -493,7 +506,7 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה במחיקה");
     else {
       toast.success("המשמרת הוסרה");
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -536,7 +549,7 @@ export default function AdminCalendar() {
       }
       setShowEditDialog(false);
       setEditForm(null);
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     }
   };
@@ -562,7 +575,7 @@ export default function AdminCalendar() {
       setShowEditDialog(false);
       setEditingAppointment(null);
       setEditForm(null);
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     }
   };
@@ -605,9 +618,11 @@ export default function AdminCalendar() {
       setShowEditDialog(false);
       setEditingAppointment(null);
       setEditForm(null);
+      // Invalidate both source and destination days; setSelectedDate triggers refetch of destination.
+      invalidateDay(original.appointment_date);
+      invalidateDay(newDateStr);
       setSelectedDate(newDate);
       fetchMonthCounts();
-      fetchDayData();
     }
   };
 
