@@ -1062,7 +1062,7 @@ export default function ClientBooking() {
                   <div key={t.id} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
                     <span>
-                      {t.name} • {getDuration(t)} דק׳ • ₪{t.price}
+                      {t.name} • {getDuration(t)} דק׳ • ₪{getPrice(t)}
                     </span>
                   </div>
                 ))}
