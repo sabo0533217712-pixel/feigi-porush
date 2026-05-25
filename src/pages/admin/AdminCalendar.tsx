@@ -789,6 +789,11 @@ export default function AdminCalendar() {
 
           {/* Timeline grid */}
           <div className="relative overflow-y-auto flex-1 border border-border rounded-lg" dir="rtl">
+            {isDayLoading && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 backdrop-blur-sm pointer-events-none">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
             <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
               {/* Hour lines */}
               {timelineHours.map((hour, i) => (
