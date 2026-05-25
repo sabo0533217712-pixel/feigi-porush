@@ -538,6 +538,8 @@ export default function ClientBooking() {
   const fetchMoreDays = async () => {
     if (!settings || selectedTreatments.length === 0 || !selectedDate) return;
     setShowMoreDays(true);
+    setLoadingMoreDays(true);
+    setMoreDaySuggestions([]);
     const results: { date: Date; slots: string[] }[] = [];
     for (let i = 1; i <= 14; i++) {
       const d = addDays(selectedDate, i);
