@@ -311,48 +311,59 @@ export default function AdminCalendar() {
     }
   };
 
-  const fetchDayData = async () => {
-    const dateStr = format(selectedDate, "yyyy-MM-dd");
-    // Clear stale data from previous day immediately so it doesn't flash
-    setIsDayLoading(true);
-    setAppointments([]);
-    setTimeBlocks([]);
-    setExtraShifts([]);
-    try {
+  // Day data via React Query: per-date queryKey + AbortController = safe against race conditions.
+  const { data: dayData, isLoading: isDayLoading } = useQuery({
+    queryKey: ["admin-day", dateKey],
+    queryFn: async ({ signal }) => {
       const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
         supabase
           .from("appointments")
           .select("*, treatments(name, color)")
-          .eq("appointment_date", dateStr)
-          .order("start_time"),
-        supabase.from("time_blocks").select("*").eq("block_date", dateStr).order("start_time"),
-        supabase.from("extra_shifts").select("*").eq("shift_date", dateStr).order("start_time"),
+          .eq("appointment_date", dateKey)
+          .order("start_time")
+          .abortSignal(signal),
+        supabase
+          .from("time_blocks")
+          .select("*")
+          .eq("block_date", dateKey)
+          .order("start_time")
+          .abortSignal(signal),
+        supabase
+          .from("extra_shifts")
+          .select("*")
+          .eq("shift_date", dateKey)
+          .order("start_time")
+          .abortSignal(signal),
       ]);
 
-      // Guard against race: if the user already switched to another day, drop this result
-      if (format(selectedDate, "yyyy-MM-dd") !== dateStr) return;
-
+      let appointments: Appointment[] = [];
       if (aptsRes.data && aptsRes.data.length > 0) {
         const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
         const { data: profs } = await supabase
           .from("profiles")
           .select("user_id, full_name, phone, email")
-          .in("user_id", clientIds);
-        if (format(selectedDate, "yyyy-MM-dd") !== dateStr) return;
+          .in("user_id", clientIds)
+          .abortSignal(signal);
         const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
-        setAppointments(
-          aptsRes.data.map((a) => ({ ...a, profiles: profileMap.get(a.client_id) || null })) as unknown as Appointment[],
-        );
-      } else {
-        setAppointments([]);
+        appointments = aptsRes.data.map((a) => ({
+          ...a,
+          profiles: profileMap.get(a.client_id) || null,
+        })) as unknown as Appointment[];
       }
 
-      setTimeBlocks((blocksRes.data || []) as unknown as TimeBlock[]);
-      setExtraShifts((shiftsRes.data || []) as unknown as ExtraShift[]);
-    } finally {
-      setIsDayLoading(false);
-    }
-  };
+      return {
+        appointments,
+        timeBlocks: (blocksRes.data || []) as unknown as TimeBlock[],
+        extraShifts: (shiftsRes.data || []) as unknown as ExtraShift[],
+      };
+    },
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+  });
+
+  const appointments = dayData?.appointments ?? [];
+  const timeBlocks = dayData?.timeBlocks ?? [];
+  const extraShifts = dayData?.extraShifts ?? [];
 
   // Get day hours from settings — must mirror AdminSettings exactly:
   // if no per-day schedule exists for this DOW, use DEFAULT 09:00–18:00 (same as settings UI),
