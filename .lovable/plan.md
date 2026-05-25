@@ -1,40 +1,17 @@
 ## הבעיה
-
-בלחיצה על יום בלוח השנה, כל הקריאות לשרת (`appointments`, `time_blocks`, `extra_shifts`, `profiles`) רצות **פעמיים**. זה לא בעיה ב-Realtime — זו כפילות מובנית בקוד.
-
-### למה זה קורה
-ב-`src/pages/admin/AdminCalendar.tsx` יש שני `useEffect` שמגיבים לשינוי `selectedDate`:
-
-1. **שורה 163-165** — `useEffect([selectedDate])` קורא ישירות ל-`fetchDayData()`.
-2. **שורה 179-232** — `useEffect([selectedDate, currentMonth])` יוצר ערוץ Realtime חדש, וב-callback של `SUBSCRIBED` (שורה 213-216) קורא ל-`refreshAll()` שקורא שוב ל-`fetchDayData()` + `fetchMonthCounts()`.
-
-מכאן ה-4 קריאות הכפולות בכל מעבר יום, וגם `fetchMonthCounts` כפול (גם מ-`useEffect([currentMonth])` בשורה 167 וגם מה-SUBSCRIBED).
+בלחיצה על יום חדש, הנתונים של היום הקודם ממשיכים להופיע עד שהקריאות החדשות חוזרות. זה נוצר כי `fetchDayData` לא מנקה את ה-state לפני שמתחיל לטעון, וגם אין אינדיקציית טעינה.
 
 ## השינוי
-
 קובץ אחד: `src/pages/admin/AdminCalendar.tsx`
 
-**להסיר את הקריאה ל-`refreshAll()` מתוך ה-`SUBSCRIBED` callback** (שורות 213-217). הטעינה הראשונית כבר נעשית ע"י ה-`useEffect` הייעודיים (`[selectedDate]` ו-`[currentMonth]`), אז אין צורך לטעון מחדש מתוך ה-subscribe.
+1. **הוספת state חדש** `isDayLoading: boolean` (ברירת מחדל `true`).
+2. **בתחילת `fetchDayData`** (שורה ~315): לקבוע `setIsDayLoading(true)` ולנקות מיד את הנתונים הישנים — `setAppointments([])`, `setTimeBlocks([])`, `setExtraShifts([])`.
+3. **בסוף `fetchDayData`** (כולל ב-catch/finally): `setIsDayLoading(false)`.
+4. **בתצוגת היום** (האזור של ציר הזמן/רשימת התורים, בסביבות שורה 870-960): כאשר `isDayLoading === true`, להציג skeleton/ספינר עדין במקום הרשימה, כך שהמשתמשת רואה שהיום נטען ולא נתונים ישנים מטעים.
 
-לפני:
-```ts
-.subscribe((status) => {
-  if (status === "SUBSCRIBED") {
-    refreshAll();
-  }
-});
-```
-
-אחרי:
-```ts
-.subscribe();
-```
-
-`refreshAll` עדיין נחוץ ל-`visibilitychange` (חזרה ללשונית), אז הוא נשאר מוגדר.
+ה-skeleton יהיה מינימלי — כמה שורות אפורות בגובה של שורת תור, תואם לעיצוב הקיים (Tailwind `animate-pulse bg-muted`).
 
 ## תוצאה
-
-- לחיצה על יום: **4 קריאות במקום 8** (חיסכון 50%).
-- Realtime ממשיך לעדכן בזמן אמת כשמשהו משתנה.
-- רענון בחזרה ללשונית ממשיך לעבוד.
-- שום פונקציונליות לא משתנה.
+- מעבר ליום חדש = ניקוי מיידי + סימון טעינה.
+- אין יותר תצוגה של נתונים מהיום הקודם.
+- חוויית מעבר ברורה גם בחיבור איטי.
