@@ -15,7 +15,7 @@ import { getHebrewDateShort, getHebrewDate, getHolidayInfo } from "@/lib/hebrew-
 import { useHolidaySettings } from "@/hooks/useHolidaySettings";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2, Search, Check } from "lucide-react";
+import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2, Search, Check, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -100,6 +100,7 @@ export default function AdminCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
+  const [isDayLoading, setIsDayLoading] = useState(true);
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
@@ -310,32 +311,45 @@ export default function AdminCalendar() {
 
   const fetchDayData = async () => {
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
-      supabase
-        .from("appointments")
-        .select("*, treatments(name, color)")
-        .eq("appointment_date", dateStr)
-        .order("start_time"),
-      supabase.from("time_blocks").select("*").eq("block_date", dateStr).order("start_time"),
-      supabase.from("extra_shifts").select("*").eq("shift_date", dateStr).order("start_time"),
-    ]);
+    // Clear stale data from previous day immediately so it doesn't flash
+    setIsDayLoading(true);
+    setAppointments([]);
+    setTimeBlocks([]);
+    setExtraShifts([]);
+    try {
+      const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select("*, treatments(name, color)")
+          .eq("appointment_date", dateStr)
+          .order("start_time"),
+        supabase.from("time_blocks").select("*").eq("block_date", dateStr).order("start_time"),
+        supabase.from("extra_shifts").select("*").eq("shift_date", dateStr).order("start_time"),
+      ]);
 
-    if (aptsRes.data && aptsRes.data.length > 0) {
-      const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, phone, email")
-        .in("user_id", clientIds);
-      const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
-      setAppointments(
-        aptsRes.data.map((a) => ({ ...a, profiles: profileMap.get(a.client_id) || null })) as unknown as Appointment[],
-      );
-    } else {
-      setAppointments([]);
+      // Guard against race: if the user already switched to another day, drop this result
+      if (format(selectedDate, "yyyy-MM-dd") !== dateStr) return;
+
+      if (aptsRes.data && aptsRes.data.length > 0) {
+        const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, phone, email")
+          .in("user_id", clientIds);
+        if (format(selectedDate, "yyyy-MM-dd") !== dateStr) return;
+        const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
+        setAppointments(
+          aptsRes.data.map((a) => ({ ...a, profiles: profileMap.get(a.client_id) || null })) as unknown as Appointment[],
+        );
+      } else {
+        setAppointments([]);
+      }
+
+      setTimeBlocks((blocksRes.data || []) as unknown as TimeBlock[]);
+      setExtraShifts((shiftsRes.data || []) as unknown as ExtraShift[]);
+    } finally {
+      setIsDayLoading(false);
     }
-
-    setTimeBlocks((blocksRes.data || []) as unknown as TimeBlock[]);
-    setExtraShifts((shiftsRes.data || []) as unknown as ExtraShift[]);
   };
 
   // Get day hours from settings — must mirror AdminSettings exactly:
@@ -775,6 +789,11 @@ export default function AdminCalendar() {
 
           {/* Timeline grid */}
           <div className="relative overflow-y-auto flex-1 border border-border rounded-lg" dir="rtl">
+            {isDayLoading && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 backdrop-blur-sm pointer-events-none">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
             <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
               {/* Hour lines */}
               {timelineHours.map((hour, i) => (
