@@ -16,7 +16,7 @@ import { getHebrewDateShort, getHebrewDate, getHolidayInfo } from "@/lib/hebrew-
 import { useHolidaySettings } from "@/hooks/useHolidaySettings";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2, Search, Check, Loader2 } from "lucide-react";
+import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2, Search, Check, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -757,20 +757,40 @@ export default function AdminCalendar() {
       <Dialog open={showTimeline} onOpenChange={setShowTimeline}>
         <DialogContent dir="rtl" className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col p-4">
           <DialogHeader>
-            <DialogTitle className="text-right flex items-start justify-between gap-2">
-              <div>
-                <span>{format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })}</span>
-                <p className="text-sm font-normal text-muted-foreground mt-0.5">{getHebrewDate(selectedDate)}</p>
-              </div>
+            <DialogTitle className="text-right flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 shrink-0"
-                title="חזרה ליומן"
-                onClick={() => setShowTimeline(false)}
+                title="היום הקודם"
+                onClick={() => setSelectedDate((d) => addDays(d, -1))}
               >
-                <CalendarIcon className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
+              <div className="flex-1 text-center">
+                <span>{format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })}</span>
+                <p className="text-sm font-normal text-muted-foreground mt-0.5">{getHebrewDate(selectedDate)}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title="היום הבא"
+                  onClick={() => setSelectedDate((d) => addDays(d, 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title="חזרה ליומן"
+                  onClick={() => setShowTimeline(false)}
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           <div className="flex items-center gap-2 pb-2 border-b border-border flex-wrap">
@@ -1190,10 +1210,9 @@ export default function AdminCalendar() {
             {(() => {
               const selectedTreatment = treatments.find((t) => t.id === bookForm.treatment_id);
               if (!selectedTreatment?.is_variable_duration) return null;
-              const minDur = selectedTreatment.duration_minutes;
               const maxDur = 180;
               const options: number[] = [];
-              for (let d = minDur; d <= maxDur; d += 5) options.push(d);
+              for (let d = 5; d <= maxDur; d += 5) options.push(d);
               return (
                 <div className="space-y-2">
                   <Label>משך הטיפול (דקות)</Label>
@@ -2190,7 +2209,6 @@ function DayTimeline({
   };
 
   const freeWindows = useMemo(() => {
-    if (!isWorkingDay) return [] as { start: string; end: string }[];
     const toMin = (t: string) => {
       const [h, m] = t.substring(0, 5).split(":").map(Number);
       return h * 60 + m;
@@ -2240,10 +2258,15 @@ function DayTimeline({
         <p className="text-[11px] text-muted-foreground">{getHebrewDate(viewDate)}</p>
       </div>
 
-      {!isWorkingDay ? (
-        <p className="text-sm text-muted-foreground text-center py-4">יום זה אינו יום עבודה</p>
-      ) : (
-        <>
+      {!isWorkingDay && (
+        <p className="text-[11px] text-amber-600 dark:text-amber-400 text-center bg-amber-500/10 rounded py-1">
+          ⚠️ יום שאינו יום עבודה — ניתן להעביר ידנית
+        </p>
+      )}
+      <>
+
+
+
           <div className="relative overflow-y-auto max-h-[60vh] border border-border rounded-lg" dir="rtl">
             <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
               {timelineHours.map((hour, i) => (
@@ -2388,8 +2411,8 @@ function DayTimeline({
           <p className="text-[11px] text-muted-foreground text-center">
             לחצי על שעה כלשהי בטיימליין כדי להעביר את התור לאותה שעה ({movedDuration} דק׳)
           </p>
-        </>
-      )}
+      </>
+
     </div>
   );
 }
@@ -2435,7 +2458,7 @@ function ClickToMoveOverlay({
 
   const fitsInFreeWindow = (startMin: number) => {
     const endMin = startMin + movedDuration;
-    if (startMin < daySchedule.startMin || endMin > daySchedule.endMin) return false;
+    if (startMin < 0 || endMin > 24 * 60) return false;
     return freeWindows.some((w) => {
       const ws = toMin(w.start);
       const we = toMin(w.end);
@@ -2451,7 +2474,10 @@ function ClickToMoveOverlay({
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const start = yToMin(e.clientY - rect.top);
-    if (!fitsInFreeWindow(start)) return;
+    const endMin = start + movedDuration;
+    // Admin override: allow click anywhere within the timeline bounds,
+    // even on breaks/blocks/non-working hours.
+    if (start < 0 || endMin > 24 * 60) return;
     onPick(fmt(start));
   };
 
@@ -2470,7 +2496,7 @@ function ClickToMoveOverlay({
           className={`absolute left-0 right-0 rounded-md border-2 pointer-events-none flex items-center justify-center text-[11px] font-semibold transition-colors ${
             valid
               ? "border-primary bg-primary/15 text-primary"
-              : "border-destructive/50 bg-destructive/10 text-destructive"
+              : "border-amber-500/60 bg-amber-500/15 text-amber-700 dark:text-amber-300"
           }`}
           style={{
             top: minToY(hoverMin),
@@ -2479,7 +2505,7 @@ function ClickToMoveOverlay({
         >
           {valid
             ? `העברה ל-${fmt(hoverMin)}–${fmt(hoverMin + movedDuration)}`
-            : "לא פנוי"}
+            : `⚠️ עקיפת מגבלה — ${fmt(hoverMin)}–${fmt(hoverMin + movedDuration)}`}
         </div>
       )}
     </div>
