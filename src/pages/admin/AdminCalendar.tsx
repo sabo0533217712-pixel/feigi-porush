@@ -2264,8 +2264,8 @@ function DayTimeline({
           ⚠️ יום שאינו יום עבודה — ניתן להעביר ידנית
         </p>
       )}
-      {(
-        <>
+      <>
+
 
 
           <div className="relative overflow-y-auto max-h-[60vh] border border-border rounded-lg" dir="rtl">
