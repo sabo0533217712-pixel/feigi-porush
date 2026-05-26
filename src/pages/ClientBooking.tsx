@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -88,7 +88,6 @@ export default function ClientBooking() {
   const [moreDaySuggestions, setMoreDaySuggestions] = useState<{ date: Date; slots: string[] }[]>([]);
   const [loadingMoreDays, setLoadingMoreDays] = useState(false);
   const [clientNote, setClientNote] = useState<string>("");
-  const latestSlotsDateRef = useRef<string | null>(null);
 
   const getDuration = (t: Treatment) => (t.is_variable_duration ? variableDurations[t.id] || 15 : t.duration_minutes);
   const totalDuration = selectedTreatments.reduce((sum, t) => sum + getDuration(t), 0);
@@ -126,12 +125,6 @@ export default function ClientBooking() {
     if (selectedDate) fetchBookedSlots(selectedDate);
   }, [selectedDate]);
 
-  // Keep a live ref to selectedDate for stable realtime callbacks
-  const selectedDateRef = useRef<Date | undefined>(selectedDate);
-  useEffect(() => {
-    selectedDateRef.current = selectedDate;
-  }, [selectedDate]);
-
   // Realtime: refresh availability when other users book/cancel for the selected day
   useEffect(() => {
     if (!selectedDate) return;
@@ -143,30 +136,11 @@ export default function ClientBooking() {
       .on("postgres_changes", { event: "*", schema: "public", table: "time_blocks" }, () => {
         fetchBookedSlots(selectedDate);
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "extra_shifts" }, () => {
-        fetchExtraShifts();
-        fetchBookedSlots(selectedDate);
-      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, [selectedDate]);
-
-  // Realtime: refresh when admin changes business settings (working days, hours, breaks, etc.)
-  useEffect(() => {
-    const channel = supabase
-      .channel("client-booking-settings-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "business_settings" }, () => {
-        fetchSettings();
-        fetchConfirmationText();
-        if (selectedDateRef.current) fetchBookedSlots(selectedDateRef.current);
-      })
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   const fetchTreatments = async () => {
     const { data } = await supabase.from("treatments").select("*").eq("is_active", true).order("display_order").order("created_at");
@@ -227,13 +201,10 @@ export default function ClientBooking() {
 
   const fetchBookedSlots = async (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    latestSlotsDateRef.current = dateStr;
     const [aptsRes, blocksRes] = await Promise.all([
       supabase.rpc("get_busy_slots", { _date: dateStr }),
       supabase.from("time_blocks").select("start_time, end_time").eq("block_date", dateStr),
     ]);
-    // Ignore stale responses if the user has moved to another date in the meantime
-    if (latestSlotsDateRef.current !== dateStr) return;
     if (aptsRes.data) setBookedSlots(aptsRes.data as { start_time: string; end_time: string }[]);
     if (blocksRes.data) setBlockedSlots(blocksRes.data);
   };
@@ -506,15 +477,9 @@ export default function ClientBooking() {
         .single();
 
       if (error) {
-        const msg = error.message || "";
-        if (msg.includes("already booked")) {
+        if (error.message.includes("already booked")) {
           toast.error("השעה הזו כבר נתפסה על ידי לקוחה אחרת. בחרי שעה אחרת");
           setSelectedTime(null);
-          if (selectedDate) await fetchBookedSlots(selectedDate);
-        } else if (msg.includes("break") || msg.includes("blocked")) {
-          toast.error("השעה הזו אינה זמינה יותר. הזמינות התעדכנה — בחרי שעה אחרת");
-          setSelectedTime(null);
-          await fetchSettings();
           if (selectedDate) await fetchBookedSlots(selectedDate);
         } else {
           toast.error("שגיאה בהזמנת התור");
@@ -829,13 +794,6 @@ export default function ClientBooking() {
               selected={selectedDate}
               onSelect={(date) => {
                 setSelectedDate(date);
-                setSelectedTime(null);
-                setShowAllSlots(false);
-                setShowMoreDays(false);
-                setMoreDaySuggestions([]);
-                setLoadingMoreDays(false);
-                setBookedSlots([]);
-                setBlockedSlots([]);
                 if (date) setStep("time");
               }}
               disabled={(date) =>

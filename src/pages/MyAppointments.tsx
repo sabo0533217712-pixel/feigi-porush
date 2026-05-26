@@ -28,7 +28,6 @@ interface Appointment {
   status: string;
   notes: string | null;
   treatments: { name: string; duration_minutes: number; price: number; color: string } | null;
-  appointment_treatments?: { price: number; treatments: { name: string; color: string } | null }[] | null;
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -51,7 +50,7 @@ export default function MyAppointments() {
   const fetchAppointments = async () => {
     const { data } = await supabase
       .from('appointments')
-      .select('*, treatments(name, duration_minutes, price, color), appointment_treatments(price, treatments(name, color))')
+      .select('*, treatments(name, duration_minutes, price, color)')
       .eq('client_id', user!.id)
       .order('appointment_date', { ascending: false });
     if (data) setAppointments(data as unknown as Appointment[]);
@@ -92,12 +91,7 @@ export default function MyAppointments() {
     setCancelId(null);
   };
 
-  const upcoming = appointments
-    .filter(a => a.status === 'confirmed' && !isBefore(parseISO(a.appointment_date), startOfDay(new Date())))
-    .sort((a, b) => {
-      const d = a.appointment_date.localeCompare(b.appointment_date);
-      return d !== 0 ? d : a.start_time.localeCompare(b.start_time);
-    });
+  const upcoming = appointments.filter(a => a.status === 'confirmed' && !isBefore(parseISO(a.appointment_date), startOfDay(new Date())));
   const past = appointments.filter(a => a.status !== 'confirmed' || isBefore(parseISO(a.appointment_date), startOfDay(new Date())));
 
   return (
@@ -170,35 +164,14 @@ function AppointmentCard({ appointment: apt, onCancel, cancelStatus }: {
   const date = parseISO(apt.appointment_date);
   const status = STATUS_MAP[apt.status] || STATUS_MAP.confirmed;
 
-  // Build unified treatments list (prefer appointment_treatments when available)
-  const extraTreatments = (apt.appointment_treatments || [])
-    .map((at) => ({ name: at.treatments?.name || '', color: at.treatments?.color || '#6366f1', price: Number(at.price || 0) }))
-    .filter((t) => !!t.name);
-  const treatmentsList = extraTreatments.length > 0
-    ? extraTreatments
-    : (apt.treatments ? [{ name: apt.treatments.name, color: apt.treatments.color || '#6366f1', price: Number(apt.treatments.price || 0) }] : []);
-
-  const namesLabel = treatmentsList.map((t) => t.name).join(' + ') || apt.treatments?.name || '';
-  const totalPrice = treatmentsList.reduce((s, t) => s + (t.price || 0), 0);
-  const colors = treatmentsList.length > 0
-    ? treatmentsList.map((t) => t.color)
-    : ['#6366f1'];
-  const barBackground = colors.length === 1
-    ? colors[0]
-    : `linear-gradient(to bottom, ${colors.map((c, i) => {
-        const from = (i * 100) / colors.length;
-        const to = ((i + 1) * 100) / colors.length;
-        return `${c} ${from}%, ${c} ${to}%`;
-      }).join(', ')})`;
-
   return (
     <Card className="shadow-card overflow-hidden">
       <div className="flex">
-        <div className="w-1.5 flex-shrink-0" style={{ background: barBackground }} />
+        <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: apt.treatments?.color || '#6366f1' }} />
         <CardContent className="p-4 flex-1">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <h3 className="font-medium text-foreground">{namesLabel}</h3>
+              <h3 className="font-medium text-foreground">{apt.treatments?.name}</h3>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-3.5 w-3.5" />
                 <span>{format(date, 'd/M/yyyy')} • {getHebrewDateShort(date)}</span>
@@ -207,8 +180,8 @@ function AppointmentCard({ appointment: apt, onCancel, cancelStatus }: {
                 <Clock className="h-3.5 w-3.5" />
                 <span>{apt.start_time.substring(0, 5)} - {apt.end_time.substring(0, 5)}</span>
               </div>
-              {totalPrice > 0 && (
-                <span className="text-sm text-primary font-medium">₪{totalPrice}</span>
+              {apt.treatments?.price && (
+                <span className="text-sm text-primary font-medium">₪{apt.treatments.price}</span>
               )}
               <Badge variant={status.variant} className="mt-1">{status.label}</Badge>
             </div>
