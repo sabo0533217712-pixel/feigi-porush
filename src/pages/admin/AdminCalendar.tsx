@@ -2458,7 +2458,7 @@ function ClickToMoveOverlay({
 
   const fitsInFreeWindow = (startMin: number) => {
     const endMin = startMin + movedDuration;
-    if (startMin < daySchedule.startMin || endMin > daySchedule.endMin) return false;
+    if (startMin < 0 || endMin > 24 * 60) return false;
     return freeWindows.some((w) => {
       const ws = toMin(w.start);
       const we = toMin(w.end);
@@ -2474,7 +2474,10 @@ function ClickToMoveOverlay({
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const start = yToMin(e.clientY - rect.top);
-    if (!fitsInFreeWindow(start)) return;
+    const endMin = start + movedDuration;
+    // Admin override: allow click anywhere within the timeline bounds,
+    // even on breaks/blocks/non-working hours.
+    if (start < 0 || endMin > 24 * 60) return;
     onPick(fmt(start));
   };
 
