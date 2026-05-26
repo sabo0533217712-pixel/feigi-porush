@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -134,6 +134,10 @@ export default function ClientBooking() {
         fetchBookedSlots(selectedDate);
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "time_blocks" }, () => {
+        fetchBookedSlots(selectedDate);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "extra_shifts" }, () => {
+        fetchExtraShifts();
         fetchBookedSlots(selectedDate);
       })
       .subscribe();
