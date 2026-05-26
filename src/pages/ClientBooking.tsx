@@ -515,15 +515,20 @@ export default function ClientBooking() {
         .single();
 
       if (error) {
-        const msg = error.message || "";
+        const msg = (error.message || "").toLowerCase();
         if (msg.includes("already booked")) {
           toast.error("השעה הזו כבר נתפסה על ידי לקוחה אחרת. בחרי שעה אחרת");
           setSelectedTime(null);
           if (selectedDate) await fetchBookedSlots(selectedDate);
-        } else if (msg.includes("break") || msg.includes("blocked")) {
-          toast.error("השעה הזו אינה זמינה יותר. הזמינות התעדכנה — בחרי שעה אחרת");
+        } else if (
+          msg.includes("break") ||
+          msg.includes("blocked") ||
+          msg.includes("outside working hours") ||
+          msg.includes("not available")
+        ) {
+          toast.error("השעה הזו כבר אינה זמינה. הזמינות התעדכנה — בחרי שעה אחרת");
           setSelectedTime(null);
-          await fetchSettings();
+          await Promise.all([fetchSettings(), fetchExtraShifts()]);
           if (selectedDate) await fetchBookedSlots(selectedDate);
         } else {
           toast.error("שגיאה בהזמנת התור");
