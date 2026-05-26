@@ -2209,7 +2209,6 @@ function DayTimeline({
   };
 
   const freeWindows = useMemo(() => {
-    if (!isWorkingDay) return [] as { start: string; end: string }[];
     const toMin = (t: string) => {
       const [h, m] = t.substring(0, 5).split(":").map(Number);
       return h * 60 + m;
