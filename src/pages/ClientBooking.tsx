@@ -128,31 +128,17 @@ export default function ClientBooking() {
   // Realtime: refresh availability when other users book/cancel for the selected day
   useEffect(() => {
     if (!selectedDate) return;
-    const refresh = () => {
-      fetchBookedSlots(selectedDate);
-      fetchExtraShifts();
-    };
     const channel = supabase
-      .channel(`client-booking-realtime-${format(selectedDate, "yyyy-MM-dd")}-${Date.now()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "appointments" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "time_blocks" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "extra_shifts" }, refresh)
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") refresh();
-      });
-
-    const onVisible = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", refresh);
-    const interval = window.setInterval(refresh, 30000);
-
+      .channel(`client-booking-realtime-${format(selectedDate, "yyyy-MM-dd")}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "appointments" }, () => {
+        fetchBookedSlots(selectedDate);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "time_blocks" }, () => {
+        fetchBookedSlots(selectedDate);
+      })
+      .subscribe();
     return () => {
       supabase.removeChannel(channel);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", refresh);
-      window.clearInterval(interval);
     };
   }, [selectedDate]);
 
