@@ -2259,9 +2259,15 @@ function DayTimeline({
         <p className="text-[11px] text-muted-foreground">{getHebrewDate(viewDate)}</p>
       </div>
 
-      {!isWorkingDay ? (
-        <p className="text-sm text-muted-foreground text-center py-4">יום זה אינו יום עבודה</p>
-      ) : (
+      {!isWorkingDay && (
+        <p className="text-[11px] text-amber-600 dark:text-amber-400 text-center bg-amber-500/10 rounded py-1">
+          ⚠️ יום שאינו יום עבודה — ניתן להעביר ידנית
+        </p>
+      )}
+      {(
+        <></>
+      ) || !isWorkingDay ? null : null}
+      {true ? (
         <>
           <div className="relative overflow-y-auto max-h-[60vh] border border-border rounded-lg" dir="rtl">
             <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
