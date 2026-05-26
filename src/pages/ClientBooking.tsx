@@ -369,7 +369,15 @@ export default function ClientBooking() {
   const availableSlots = useMemo(() => {
     if (!settings || !selectedDate || selectedTreatments.length === 0) return [];
     return getAvailableSlots(selectedDate, bookedSlots, totalDuration);
-  }, [settings, selectedDate, selectedTreatments, bookedSlots, blockedSlots, totalDuration]);
+  }, [settings, selectedDate, selectedTreatments, bookedSlots, blockedSlots, extraShifts, totalDuration]);
+
+  // If the previously selected time disappears (admin removed a shift / added a break /
+  // unmarked the working day) — clear the selection so the client cannot proceed.
+  useEffect(() => {
+    if (selectedTime && availableSlots.length > 0 && !availableSlots.includes(selectedTime)) {
+      setSelectedTime(null);
+    }
+  }, [availableSlots, selectedTime]);
 
   // Smart suggestions: 3 closest to preferred time + gap fillers
   const smartSuggestions = useMemo((): SlotSuggestion[] => {
