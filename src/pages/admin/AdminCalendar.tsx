@@ -55,6 +55,7 @@ interface Appointment {
   client_id: string;
   profiles: { full_name: string; phone: string; email: string; user_id: string } | null;
   treatments: { name: string; color: string } | null;
+  appointment_treatments?: { treatments: { name: string; color: string } | null }[] | null;
 }
 
 interface Profile {
