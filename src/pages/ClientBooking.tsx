@@ -126,6 +126,12 @@ export default function ClientBooking() {
     if (selectedDate) fetchBookedSlots(selectedDate);
   }, [selectedDate]);
 
+  // Keep a live ref to selectedDate for stable realtime callbacks
+  const selectedDateRef = useRef<Date | undefined>(selectedDate);
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+
   // Realtime: refresh availability when other users book/cancel for the selected day
   useEffect(() => {
     if (!selectedDate) return;
@@ -146,6 +152,21 @@ export default function ClientBooking() {
       supabase.removeChannel(channel);
     };
   }, [selectedDate]);
+
+  // Realtime: refresh when admin changes business settings (working days, hours, breaks, etc.)
+  useEffect(() => {
+    const channel = supabase
+      .channel("client-booking-settings-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "business_settings" }, () => {
+        fetchSettings();
+        fetchConfirmationText();
+        if (selectedDateRef.current) fetchBookedSlots(selectedDateRef.current);
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const fetchTreatments = async () => {
     const { data } = await supabase.from("treatments").select("*").eq("is_active", true).order("display_order").order("created_at");
