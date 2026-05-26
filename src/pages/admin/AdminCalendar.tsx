@@ -2496,7 +2496,7 @@ function ClickToMoveOverlay({
           className={`absolute left-0 right-0 rounded-md border-2 pointer-events-none flex items-center justify-center text-[11px] font-semibold transition-colors ${
             valid
               ? "border-primary bg-primary/15 text-primary"
-              : "border-destructive/50 bg-destructive/10 text-destructive"
+              : "border-amber-500/60 bg-amber-500/15 text-amber-700 dark:text-amber-300"
           }`}
           style={{
             top: minToY(hoverMin),
@@ -2505,7 +2505,7 @@ function ClickToMoveOverlay({
         >
           {valid
             ? `העברה ל-${fmt(hoverMin)}–${fmt(hoverMin + movedDuration)}`
-            : "לא פנוי"}
+            : `⚠️ עקיפת מגבלה — ${fmt(hoverMin)}–${fmt(hoverMin + movedDuration)}`}
         </div>
       )}
     </div>
