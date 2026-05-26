@@ -757,20 +757,40 @@ export default function AdminCalendar() {
       <Dialog open={showTimeline} onOpenChange={setShowTimeline}>
         <DialogContent dir="rtl" className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col p-4">
           <DialogHeader>
-            <DialogTitle className="text-right flex items-start justify-between gap-2">
-              <div>
-                <span>{format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })}</span>
-                <p className="text-sm font-normal text-muted-foreground mt-0.5">{getHebrewDate(selectedDate)}</p>
-              </div>
+            <DialogTitle className="text-right flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 shrink-0"
-                title="חזרה ליומן"
-                onClick={() => setShowTimeline(false)}
+                title="היום הקודם"
+                onClick={() => setSelectedDate((d) => addDays(d, -1))}
               >
-                <CalendarIcon className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
+              <div className="flex-1 text-center">
+                <span>{format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })}</span>
+                <p className="text-sm font-normal text-muted-foreground mt-0.5">{getHebrewDate(selectedDate)}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title="היום הבא"
+                  onClick={() => setSelectedDate((d) => addDays(d, 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title="חזרה ליומן"
+                  onClick={() => setShowTimeline(false)}
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           <div className="flex items-center gap-2 pb-2 border-b border-border flex-wrap">
