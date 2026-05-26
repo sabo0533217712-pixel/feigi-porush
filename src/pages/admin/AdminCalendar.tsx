@@ -317,7 +317,7 @@ export default function AdminCalendar() {
     const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
       supabase
         .from("appointments")
-        .select("*, treatments(name, color)")
+        .select("*, treatments(name, color), appointment_treatments(treatments(name, color))")
         .eq("appointment_date", key)
         .order("start_time")
         .abortSignal(signal as AbortSignal),
