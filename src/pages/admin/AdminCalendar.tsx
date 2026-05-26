@@ -55,6 +55,7 @@ interface Appointment {
   client_id: string;
   profiles: { full_name: string; phone: string; email: string; user_id: string } | null;
   treatments: { name: string; color: string } | null;
+  appointment_treatments?: { treatments: { name: string; color: string } | null }[] | null;
 }
 
 interface Profile {
@@ -316,7 +317,7 @@ export default function AdminCalendar() {
     const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
       supabase
         .from("appointments")
-        .select("*, treatments(name, color)")
+        .select("*, treatments(name, color), appointment_treatments(treatments(name, color))")
         .eq("appointment_date", key)
         .order("start_time")
         .abortSignal(signal as AbortSignal),
@@ -979,7 +980,24 @@ export default function AdminCalendar() {
                 }
 
                 return sorted.map((apt, idx) => {
-                  const color = apt.treatments?.color || "hsl(var(--primary))";
+                  const aptTreatments = (apt.appointment_treatments || [])
+                    .map((at) => at.treatments)
+                    .filter((t): t is { name: string; color: string } => !!t);
+                  const treatmentsList = aptTreatments.length > 0
+                    ? aptTreatments
+                    : (apt.treatments ? [apt.treatments] : []);
+                  const colors = treatmentsList.length > 0
+                    ? treatmentsList.map((t) => t.color || "hsl(var(--primary))")
+                    : ["hsl(var(--primary))"];
+                  const namesLabel = treatmentsList.map((t) => t.name).join(" + ") || apt.treatments?.name || "";
+                  const barBackground = colors.length === 1
+                    ? colors[0]
+                    : `linear-gradient(to bottom, ${colors.map((c, i) => {
+                        const from = (i * 100) / colors.length;
+                        const to = ((i + 1) * 100) / colors.length;
+                        return `${c} ${from}%, ${c} ${to}%`;
+                      }).join(", ")})`;
+                  const accentColor = colors[0];
                   const totalCols = maxCol[idx];
                   const col = cols[idx];
                   const widthPercent = 100 / totalCols;
@@ -1008,14 +1026,14 @@ export default function AdminCalendar() {
 
                         return (
                           <>
-                            <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
+                            <div className="w-1.5 flex-shrink-0" style={{ background: barBackground }} />
                             <div
                               className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-0.5 flex items-center min-w-0 overflow-hidden cursor-pointer"
-                              style={{ borderLeftColor: color }}
+                              style={{ borderLeftColor: accentColor }}
                             >
                               <div className="flex flex-col gap-0 min-w-0 flex-1">
                                 <span className="text-[11px] font-semibold text-foreground truncate flex items-center gap-1">
-                                  {apt.profiles?.full_name || "לקוחה"} - {apt.treatments?.name}
+                                  {apt.profiles?.full_name || "לקוחה"} - {namesLabel}
                                   {apt.status === "cancelled" && (
                                     <Badge variant="destructive" className="text-[9px] h-3.5">
                                       בוטל
