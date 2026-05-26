@@ -160,6 +160,7 @@ export default function ClientBooking() {
       .on("postgres_changes", { event: "*", schema: "public", table: "business_settings" }, () => {
         fetchSettings();
         fetchConfirmationText();
+        fetchExtraShifts();
         if (selectedDateRef.current) fetchBookedSlots(selectedDateRef.current);
       })
       .subscribe();
@@ -369,7 +370,15 @@ export default function ClientBooking() {
   const availableSlots = useMemo(() => {
     if (!settings || !selectedDate || selectedTreatments.length === 0) return [];
     return getAvailableSlots(selectedDate, bookedSlots, totalDuration);
-  }, [settings, selectedDate, selectedTreatments, bookedSlots, blockedSlots, totalDuration]);
+  }, [settings, selectedDate, selectedTreatments, bookedSlots, blockedSlots, extraShifts, totalDuration]);
+
+  // If the previously selected time disappears (admin removed a shift / added a break /
+  // unmarked the working day) — clear the selection so the client cannot proceed.
+  useEffect(() => {
+    if (selectedTime && availableSlots.length > 0 && !availableSlots.includes(selectedTime)) {
+      setSelectedTime(null);
+    }
+  }, [availableSlots, selectedTime]);
 
   // Smart suggestions: 3 closest to preferred time + gap fillers
   const smartSuggestions = useMemo((): SlotSuggestion[] => {
@@ -506,15 +515,20 @@ export default function ClientBooking() {
         .single();
 
       if (error) {
-        const msg = error.message || "";
+        const msg = (error.message || "").toLowerCase();
         if (msg.includes("already booked")) {
           toast.error("השעה הזו כבר נתפסה על ידי לקוחה אחרת. בחרי שעה אחרת");
           setSelectedTime(null);
           if (selectedDate) await fetchBookedSlots(selectedDate);
-        } else if (msg.includes("break") || msg.includes("blocked")) {
-          toast.error("השעה הזו אינה זמינה יותר. הזמינות התעדכנה — בחרי שעה אחרת");
+        } else if (
+          msg.includes("break") ||
+          msg.includes("blocked") ||
+          msg.includes("outside working hours") ||
+          msg.includes("not available")
+        ) {
+          toast.error("השעה הזו כבר אינה זמינה. הזמינות התעדכנה — בחרי שעה אחרת");
           setSelectedTime(null);
-          await fetchSettings();
+          await Promise.all([fetchSettings(), fetchExtraShifts()]);
           if (selectedDate) await fetchBookedSlots(selectedDate);
         } else {
           toast.error("שגיאה בהזמנת התור");
