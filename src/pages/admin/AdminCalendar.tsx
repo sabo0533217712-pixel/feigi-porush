@@ -2412,8 +2412,8 @@ function DayTimeline({
           <p className="text-[11px] text-muted-foreground text-center">
             לחצי על שעה כלשהי בטיימליין כדי להעביר את התור לאותה שעה ({movedDuration} דק׳)
           </p>
-        </>
-      )}
+      </>
+
     </div>
   );
 }
