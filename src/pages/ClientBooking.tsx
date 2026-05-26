@@ -160,6 +160,7 @@ export default function ClientBooking() {
       .on("postgres_changes", { event: "*", schema: "public", table: "business_settings" }, () => {
         fetchSettings();
         fetchConfirmationText();
+        fetchExtraShifts();
         if (selectedDateRef.current) fetchBookedSlots(selectedDateRef.current);
       })
       .subscribe();
