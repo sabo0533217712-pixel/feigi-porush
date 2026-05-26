@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,7 @@ export default function ClientBooking() {
   const [moreDaySuggestions, setMoreDaySuggestions] = useState<{ date: Date; slots: string[] }[]>([]);
   const [loadingMoreDays, setLoadingMoreDays] = useState(false);
   const [clientNote, setClientNote] = useState<string>("");
+  const latestSlotsDateRef = useRef<string | null>(null);
 
   const getDuration = (t: Treatment) => (t.is_variable_duration ? variableDurations[t.id] || 15 : t.duration_minutes);
   const totalDuration = selectedTreatments.reduce((sum, t) => sum + getDuration(t), 0);
@@ -134,6 +135,10 @@ export default function ClientBooking() {
         fetchBookedSlots(selectedDate);
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "time_blocks" }, () => {
+        fetchBookedSlots(selectedDate);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "extra_shifts" }, () => {
+        fetchExtraShifts();
         fetchBookedSlots(selectedDate);
       })
       .subscribe();
@@ -201,10 +206,13 @@ export default function ClientBooking() {
 
   const fetchBookedSlots = async (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
+    latestSlotsDateRef.current = dateStr;
     const [aptsRes, blocksRes] = await Promise.all([
       supabase.rpc("get_busy_slots", { _date: dateStr }),
       supabase.from("time_blocks").select("start_time, end_time").eq("block_date", dateStr),
     ]);
+    // Ignore stale responses if the user has moved to another date in the meantime
+    if (latestSlotsDateRef.current !== dateStr) return;
     if (aptsRes.data) setBookedSlots(aptsRes.data as { start_time: string; end_time: string }[]);
     if (blocksRes.data) setBlockedSlots(blocksRes.data);
   };
@@ -794,6 +802,13 @@ export default function ClientBooking() {
               selected={selectedDate}
               onSelect={(date) => {
                 setSelectedDate(date);
+                setSelectedTime(null);
+                setShowAllSlots(false);
+                setShowMoreDays(false);
+                setMoreDaySuggestions([]);
+                setLoadingMoreDays(false);
+                setBookedSlots([]);
+                setBlockedSlots([]);
                 if (date) setStep("time");
               }}
               disabled={(date) =>
