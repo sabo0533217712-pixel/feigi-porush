@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -9,13 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { he } from "date-fns/locale";
 import { getHebrewDateShort, getHebrewDate, getHolidayInfo } from "@/lib/hebrew-date";
 import { useHolidaySettings } from "@/hooks/useHolidaySettings";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2, Search, Check, Loader2 } from "lucide-react";
+import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2, Search, Check, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -54,6 +55,7 @@ interface Appointment {
   client_id: string;
   profiles: { full_name: string; phone: string; email: string; user_id: string } | null;
   treatments: { name: string; color: string } | null;
+  appointment_treatments?: { treatments: { name: string; color: string } | null }[] | null;
 }
 
 interface Profile {
@@ -98,9 +100,12 @@ interface BusinessSettings {
 export default function AdminCalendar() {
   const holidaySettings = useHolidaySettings();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
-  const [isDayLoading, setIsDayLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const dateKey = format(selectedDate, "yyyy-MM-dd");
+  const invalidateDay = (date?: Date | string) => {
+    const key = typeof date === "string" ? date : format(date ?? selectedDate, "yyyy-MM-dd");
+    queryClient.invalidateQueries({ queryKey: ["admin-day", key], refetchType: "active" });
+  };
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
@@ -132,7 +137,7 @@ export default function AdminCalendar() {
     notes: "",
   });
   const [blockForm, setBlockForm] = useState({ start_time: "09:00", end_time: "10:00", notes: "" });
-  const [extraShifts, setExtraShifts] = useState<ExtraShift[]>([]);
+  // extraShifts comes from the day query below
   const [showShiftDialog, setShowShiftDialog] = useState(false);
   const [shiftForm, setShiftForm] = useState({ start_time: "19:00", end_time: "22:00", notes: "" });
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
@@ -161,9 +166,7 @@ export default function AdminCalendar() {
     }
   }, [showBookDialog, clientSearchOpen]);
 
-  useEffect(() => {
-    fetchDayData();
-  }, [selectedDate]);
+  // (day data is now loaded via useQuery below — no manual effect needed)
 
   useEffect(() => {
     fetchMonthCounts();
@@ -181,11 +184,11 @@ export default function AdminCalendar() {
     const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
 
     const refreshDay = () => {
-      fetchDayData();
+      invalidateDay();
     };
 
     const refreshAll = () => {
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     };
 
@@ -309,48 +312,77 @@ export default function AdminCalendar() {
     }
   };
 
-  const fetchDayData = async () => {
-    const dateStr = format(selectedDate, "yyyy-MM-dd");
-    // Clear stale data from previous day immediately so it doesn't flash
-    setIsDayLoading(true);
-    setAppointments([]);
-    setTimeBlocks([]);
-    setExtraShifts([]);
-    try {
-      const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
-        supabase
-          .from("appointments")
-          .select("*, treatments(name, color)")
-          .eq("appointment_date", dateStr)
-          .order("start_time"),
-        supabase.from("time_blocks").select("*").eq("block_date", dateStr).order("start_time"),
-        supabase.from("extra_shifts").select("*").eq("shift_date", dateStr).order("start_time"),
-      ]);
+  // Day data via React Query: per-date queryKey + AbortController = safe against race conditions.
+  const fetchDayDataFor = async (key: string, signal?: AbortSignal) => {
+    const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
+      supabase
+        .from("appointments")
+        .select("*, treatments(name, color), appointment_treatments(treatments(name, color))")
+        .eq("appointment_date", key)
+        .order("start_time")
+        .abortSignal(signal as AbortSignal),
+      supabase
+        .from("time_blocks")
+        .select("*")
+        .eq("block_date", key)
+        .order("start_time")
+        .abortSignal(signal as AbortSignal),
+      supabase
+        .from("extra_shifts")
+        .select("*")
+        .eq("shift_date", key)
+        .order("start_time")
+        .abortSignal(signal as AbortSignal),
+    ]);
 
-      // Guard against race: if the user already switched to another day, drop this result
-      if (format(selectedDate, "yyyy-MM-dd") !== dateStr) return;
-
-      if (aptsRes.data && aptsRes.data.length > 0) {
-        const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, full_name, phone, email")
-          .in("user_id", clientIds);
-        if (format(selectedDate, "yyyy-MM-dd") !== dateStr) return;
-        const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
-        setAppointments(
-          aptsRes.data.map((a) => ({ ...a, profiles: profileMap.get(a.client_id) || null })) as unknown as Appointment[],
-        );
-      } else {
-        setAppointments([]);
-      }
-
-      setTimeBlocks((blocksRes.data || []) as unknown as TimeBlock[]);
-      setExtraShifts((shiftsRes.data || []) as unknown as ExtraShift[]);
-    } finally {
-      setIsDayLoading(false);
+    let appointments: Appointment[] = [];
+    if (aptsRes.data && aptsRes.data.length > 0) {
+      const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, phone, email")
+        .in("user_id", clientIds)
+        .abortSignal(signal as AbortSignal);
+      const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
+      appointments = aptsRes.data.map((a) => ({
+        ...a,
+        profiles: profileMap.get(a.client_id) || null,
+      })) as unknown as Appointment[];
     }
+
+    return {
+      appointments,
+      timeBlocks: (blocksRes.data || []) as unknown as TimeBlock[],
+      extraShifts: (shiftsRes.data || []) as unknown as ExtraShift[],
+    };
   };
+
+  const { data: dayData, isLoading: isDayLoading } = useQuery({
+    queryKey: ["admin-day", dateKey],
+    queryFn: ({ signal }) => fetchDayDataFor(dateKey, signal),
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+  });
+
+  // Stage 2: prefetch adjacent days (next/previous) after a short delay
+  useEffect(() => {
+    const t = setTimeout(() => {
+      [addDays(selectedDate, 1), addDays(selectedDate, -1)].forEach((d) => {
+        const key = format(d, "yyyy-MM-dd");
+        queryClient.prefetchQuery({
+          queryKey: ["admin-day", key],
+          queryFn: ({ signal }) => fetchDayDataFor(key, signal),
+          staleTime: 30_000,
+        });
+      });
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateKey]);
+
+  const appointments = dayData?.appointments ?? [];
+  const timeBlocks = dayData?.timeBlocks ?? [];
+  const extraShifts = dayData?.extraShifts ?? [];
 
   // Get day hours from settings — must mirror AdminSettings exactly:
   // if no per-day schedule exists for this DOW, use DEFAULT 09:00–18:00 (same as settings UI),
@@ -436,7 +468,7 @@ export default function AdminCalendar() {
       }
       setShowBookDialog(false);
       setBookForm({ client_id: "", treatment_id: "", start_time: "09:00", end_time: "09:30", notes: "" });
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     }
   };
@@ -454,7 +486,7 @@ export default function AdminCalendar() {
       toast.success("הזמן נחסם");
       setShowBlockDialog(false);
       setBlockForm({ start_time: "09:00", end_time: "10:00", notes: "" });
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -464,7 +496,7 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה במחיקה");
     else {
       toast.success("החסימה הוסרה");
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -484,7 +516,7 @@ export default function AdminCalendar() {
     else {
       toast.success("המשמרת נוספה");
       setShowShiftDialog(false);
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -493,7 +525,7 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה במחיקה");
     else {
       toast.success("המשמרת הוסרה");
-      fetchDayData();
+      invalidateDay();
     }
   };
 
@@ -536,7 +568,7 @@ export default function AdminCalendar() {
       }
       setShowEditDialog(false);
       setEditForm(null);
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     }
   };
@@ -562,7 +594,7 @@ export default function AdminCalendar() {
       setShowEditDialog(false);
       setEditingAppointment(null);
       setEditForm(null);
-      fetchDayData();
+      invalidateDay();
       fetchMonthCounts();
     }
   };
@@ -605,9 +637,11 @@ export default function AdminCalendar() {
       setShowEditDialog(false);
       setEditingAppointment(null);
       setEditForm(null);
+      // Invalidate both source and destination days; setSelectedDate triggers refetch of destination.
+      invalidateDay(original.appointment_date);
+      invalidateDay(newDateStr);
       setSelectedDate(newDate);
       fetchMonthCounts();
-      fetchDayData();
     }
   };
 
@@ -724,20 +758,40 @@ export default function AdminCalendar() {
       <Dialog open={showTimeline} onOpenChange={setShowTimeline}>
         <DialogContent dir="rtl" className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col p-4">
           <DialogHeader>
-            <DialogTitle className="text-right flex items-start justify-between gap-2">
-              <div>
-                <span>{format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })}</span>
-                <p className="text-sm font-normal text-muted-foreground mt-0.5">{getHebrewDate(selectedDate)}</p>
-              </div>
+            <DialogTitle className="text-right flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 shrink-0"
-                title="חזרה ליומן"
-                onClick={() => setShowTimeline(false)}
+                title="היום הקודם"
+                onClick={() => setSelectedDate((d) => addDays(d, -1))}
               >
-                <CalendarIcon className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
+              <div className="flex-1 text-center">
+                <span>{format(selectedDate, "EEEE, d בMMMM yyyy", { locale: he })}</span>
+                <p className="text-sm font-normal text-muted-foreground mt-0.5">{getHebrewDate(selectedDate)}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title="היום הבא"
+                  onClick={() => setSelectedDate((d) => addDays(d, 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title="חזרה ליומן"
+                  onClick={() => setShowTimeline(false)}
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           <div className="flex items-center gap-2 pb-2 border-b border-border flex-wrap">
@@ -926,7 +980,24 @@ export default function AdminCalendar() {
                 }
 
                 return sorted.map((apt, idx) => {
-                  const color = apt.treatments?.color || "hsl(var(--primary))";
+                  const aptTreatments = (apt.appointment_treatments || [])
+                    .map((at) => at.treatments)
+                    .filter((t): t is { name: string; color: string } => !!t);
+                  const treatmentsList = aptTreatments.length > 0
+                    ? aptTreatments
+                    : (apt.treatments ? [apt.treatments] : []);
+                  const colors = treatmentsList.length > 0
+                    ? treatmentsList.map((t) => t.color || "hsl(var(--primary))")
+                    : ["hsl(var(--primary))"];
+                  const namesLabel = treatmentsList.map((t) => t.name).join(" + ") || apt.treatments?.name || "";
+                  const barBackground = colors.length === 1
+                    ? colors[0]
+                    : `linear-gradient(to bottom, ${colors.map((c, i) => {
+                        const from = (i * 100) / colors.length;
+                        const to = ((i + 1) * 100) / colors.length;
+                        return `${c} ${from}%, ${c} ${to}%`;
+                      }).join(", ")})`;
+                  const accentColor = colors[0];
                   const totalCols = maxCol[idx];
                   const col = cols[idx];
                   const widthPercent = 100 / totalCols;
@@ -955,14 +1026,14 @@ export default function AdminCalendar() {
 
                         return (
                           <>
-                            <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
+                            <div className="w-1.5 flex-shrink-0" style={{ background: barBackground }} />
                             <div
                               className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-0.5 flex items-center min-w-0 overflow-hidden cursor-pointer"
-                              style={{ borderLeftColor: color }}
+                              style={{ borderLeftColor: accentColor }}
                             >
                               <div className="flex flex-col gap-0 min-w-0 flex-1">
                                 <span className="text-[11px] font-semibold text-foreground truncate flex items-center gap-1">
-                                  {apt.profiles?.full_name || "לקוחה"} - {apt.treatments?.name}
+                                  {apt.profiles?.full_name || "לקוחה"} - {namesLabel}
                                   {apt.status === "cancelled" && (
                                     <Badge variant="destructive" className="text-[9px] h-3.5">
                                       בוטל
@@ -1148,7 +1219,7 @@ export default function AdminCalendar() {
                 <SelectContent>
                   {treatments.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
-                      {t.name} ({t.duration_minutes} דק׳)
+                      {t.is_variable_duration ? `${t.name} (משך גמיש)` : `${t.name} (${t.duration_minutes} דק׳)`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1157,10 +1228,9 @@ export default function AdminCalendar() {
             {(() => {
               const selectedTreatment = treatments.find((t) => t.id === bookForm.treatment_id);
               if (!selectedTreatment?.is_variable_duration) return null;
-              const minDur = selectedTreatment.duration_minutes;
               const maxDur = 180;
               const options: number[] = [];
-              for (let d = minDur; d <= maxDur; d += 5) options.push(d);
+              for (let d = 5; d <= maxDur; d += 5) options.push(d);
               return (
                 <div className="space-y-2">
                   <Label>משך הטיפול (דקות)</Label>
@@ -2157,7 +2227,6 @@ function DayTimeline({
   };
 
   const freeWindows = useMemo(() => {
-    if (!isWorkingDay) return [] as { start: string; end: string }[];
     const toMin = (t: string) => {
       const [h, m] = t.substring(0, 5).split(":").map(Number);
       return h * 60 + m;
@@ -2207,10 +2276,15 @@ function DayTimeline({
         <p className="text-[11px] text-muted-foreground">{getHebrewDate(viewDate)}</p>
       </div>
 
-      {!isWorkingDay ? (
-        <p className="text-sm text-muted-foreground text-center py-4">יום זה אינו יום עבודה</p>
-      ) : (
-        <>
+      {!isWorkingDay && (
+        <p className="text-[11px] text-amber-600 dark:text-amber-400 text-center bg-amber-500/10 rounded py-1">
+          ⚠️ יום שאינו יום עבודה — ניתן להעביר ידנית
+        </p>
+      )}
+      <>
+
+
+
           <div className="relative overflow-y-auto max-h-[60vh] border border-border rounded-lg" dir="rtl">
             <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
               {timelineHours.map((hour, i) => (
@@ -2355,8 +2429,8 @@ function DayTimeline({
           <p className="text-[11px] text-muted-foreground text-center">
             לחצי על שעה כלשהי בטיימליין כדי להעביר את התור לאותה שעה ({movedDuration} דק׳)
           </p>
-        </>
-      )}
+      </>
+
     </div>
   );
 }
@@ -2402,7 +2476,7 @@ function ClickToMoveOverlay({
 
   const fitsInFreeWindow = (startMin: number) => {
     const endMin = startMin + movedDuration;
-    if (startMin < daySchedule.startMin || endMin > daySchedule.endMin) return false;
+    if (startMin < 0 || endMin > 24 * 60) return false;
     return freeWindows.some((w) => {
       const ws = toMin(w.start);
       const we = toMin(w.end);
@@ -2418,7 +2492,10 @@ function ClickToMoveOverlay({
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const start = yToMin(e.clientY - rect.top);
-    if (!fitsInFreeWindow(start)) return;
+    const endMin = start + movedDuration;
+    // Admin override: allow click anywhere within the timeline bounds,
+    // even on breaks/blocks/non-working hours.
+    if (start < 0 || endMin > 24 * 60) return;
     onPick(fmt(start));
   };
 
@@ -2437,7 +2514,7 @@ function ClickToMoveOverlay({
           className={`absolute left-0 right-0 rounded-md border-2 pointer-events-none flex items-center justify-center text-[11px] font-semibold transition-colors ${
             valid
               ? "border-primary bg-primary/15 text-primary"
-              : "border-destructive/50 bg-destructive/10 text-destructive"
+              : "border-amber-500/60 bg-amber-500/15 text-amber-700 dark:text-amber-300"
           }`}
           style={{
             top: minToY(hoverMin),
@@ -2446,7 +2523,7 @@ function ClickToMoveOverlay({
         >
           {valid
             ? `העברה ל-${fmt(hoverMin)}–${fmt(hoverMin + movedDuration)}`
-            : "לא פנוי"}
+            : `⚠️ עקיפת מגבלה — ${fmt(hoverMin)}–${fmt(hoverMin + movedDuration)}`}
         </div>
       )}
     </div>
