@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { he } from "date-fns/locale";
 import { getHebrewDateShort, getHebrewDate, getHolidayInfo } from "@/lib/hebrew-date";
 import { useHolidaySettings } from "@/hooks/useHolidaySettings";
@@ -312,54 +312,72 @@ export default function AdminCalendar() {
   };
 
   // Day data via React Query: per-date queryKey + AbortController = safe against race conditions.
+  const fetchDayDataFor = async (key: string, signal?: AbortSignal) => {
+    const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
+      supabase
+        .from("appointments")
+        .select("*, treatments(name, color)")
+        .eq("appointment_date", key)
+        .order("start_time")
+        .abortSignal(signal as AbortSignal),
+      supabase
+        .from("time_blocks")
+        .select("*")
+        .eq("block_date", key)
+        .order("start_time")
+        .abortSignal(signal as AbortSignal),
+      supabase
+        .from("extra_shifts")
+        .select("*")
+        .eq("shift_date", key)
+        .order("start_time")
+        .abortSignal(signal as AbortSignal),
+    ]);
+
+    let appointments: Appointment[] = [];
+    if (aptsRes.data && aptsRes.data.length > 0) {
+      const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, phone, email")
+        .in("user_id", clientIds)
+        .abortSignal(signal as AbortSignal);
+      const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
+      appointments = aptsRes.data.map((a) => ({
+        ...a,
+        profiles: profileMap.get(a.client_id) || null,
+      })) as unknown as Appointment[];
+    }
+
+    return {
+      appointments,
+      timeBlocks: (blocksRes.data || []) as unknown as TimeBlock[],
+      extraShifts: (shiftsRes.data || []) as unknown as ExtraShift[],
+    };
+  };
+
   const { data: dayData, isLoading: isDayLoading } = useQuery({
     queryKey: ["admin-day", dateKey],
-    queryFn: async ({ signal }) => {
-      const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
-        supabase
-          .from("appointments")
-          .select("*, treatments(name, color)")
-          .eq("appointment_date", dateKey)
-          .order("start_time")
-          .abortSignal(signal),
-        supabase
-          .from("time_blocks")
-          .select("*")
-          .eq("block_date", dateKey)
-          .order("start_time")
-          .abortSignal(signal),
-        supabase
-          .from("extra_shifts")
-          .select("*")
-          .eq("shift_date", dateKey)
-          .order("start_time")
-          .abortSignal(signal),
-      ]);
-
-      let appointments: Appointment[] = [];
-      if (aptsRes.data && aptsRes.data.length > 0) {
-        const clientIds = [...new Set(aptsRes.data.map((a) => a.client_id))];
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, full_name, phone, email")
-          .in("user_id", clientIds)
-          .abortSignal(signal);
-        const profileMap = new Map(profs?.map((p) => [p.user_id, p]) || []);
-        appointments = aptsRes.data.map((a) => ({
-          ...a,
-          profiles: profileMap.get(a.client_id) || null,
-        })) as unknown as Appointment[];
-      }
-
-      return {
-        appointments,
-        timeBlocks: (blocksRes.data || []) as unknown as TimeBlock[],
-        extraShifts: (shiftsRes.data || []) as unknown as ExtraShift[],
-      };
-    },
+    queryFn: ({ signal }) => fetchDayDataFor(dateKey, signal),
     staleTime: 30_000,
     gcTime: 5 * 60_000,
   });
+
+  // Stage 2: prefetch adjacent days (next/previous) after a short delay
+  useEffect(() => {
+    const t = setTimeout(() => {
+      [addDays(selectedDate, 1), addDays(selectedDate, -1)].forEach((d) => {
+        const key = format(d, "yyyy-MM-dd");
+        queryClient.prefetchQuery({
+          queryKey: ["admin-day", key],
+          queryFn: ({ signal }) => fetchDayDataFor(key, signal),
+          staleTime: 30_000,
+        });
+      });
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateKey]);
 
   const appointments = dayData?.appointments ?? [];
   const timeBlocks = dayData?.timeBlocks ?? [];
