@@ -1201,7 +1201,7 @@ export default function AdminCalendar() {
                 <SelectContent>
                   {treatments.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
-                      {t.name} ({t.duration_minutes} דק׳)
+                      {t.is_variable_duration ? `${t.name} (משך גמיש)` : `${t.name} (${t.duration_minutes} דק׳)`}
                     </SelectItem>
                   ))}
                 </SelectContent>
