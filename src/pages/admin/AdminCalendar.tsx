@@ -1190,10 +1190,9 @@ export default function AdminCalendar() {
             {(() => {
               const selectedTreatment = treatments.find((t) => t.id === bookForm.treatment_id);
               if (!selectedTreatment?.is_variable_duration) return null;
-              const minDur = selectedTreatment.duration_minutes;
               const maxDur = 180;
               const options: number[] = [];
-              for (let d = minDur; d <= maxDur; d += 5) options.push(d);
+              for (let d = 5; d <= maxDur; d += 5) options.push(d);
               return (
                 <div className="space-y-2">
                   <Label>משך הטיפול (דקות)</Label>
