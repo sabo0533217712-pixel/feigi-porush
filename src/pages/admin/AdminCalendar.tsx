@@ -2267,6 +2267,7 @@ function DayTimeline({
       {(
         <>
 
+
           <div className="relative overflow-y-auto max-h-[60vh] border border-border rounded-lg" dir="rtl">
             <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
               {timelineHours.map((hour, i) => (
