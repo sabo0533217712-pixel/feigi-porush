@@ -670,6 +670,7 @@ export type Database = {
         Args: { _appointment_id: string }
         Returns: undefined
       }
+      cleanup_old_records: { Args: never; Returns: undefined }
       get_admin_contact: {
         Args: never
         Returns: {
