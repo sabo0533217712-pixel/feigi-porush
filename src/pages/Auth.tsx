@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import Brand from "@/components/Brand";
 
@@ -27,6 +28,7 @@ export default function Auth() {
   const [regPhone, setRegPhone] = useState("");
   const [regQuestion, setRegQuestion] = useState("");
   const [regAnswer, setRegAnswer] = useState("");
+  const [regReminderPref, setRegReminderPref] = useState("whatsapp");
 
   // Forgot password (phone-based)
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -71,7 +73,7 @@ export default function Auth() {
     if (regAnswer.trim().length < 2) return toast.error("תשובה לשאלת האבטחה קצרה מדי");
     setLoading(true);
     try {
-      await signUp(regEmail, regPassword, regName, regPhone, regQuestion, regAnswer);
+      await signUp(regEmail, regPassword, regName, regPhone, regQuestion, regAnswer, regReminderPref);
       toast.success("נרשמת בהצלחה!");
       navigate("/");
     } catch (err: any) {
@@ -301,6 +303,28 @@ export default function Auth() {
                       required
                       placeholder="התשובה הסודית שלך"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>איך לשלוח תזכורות?</Label>
+                    <RadioGroup
+                      dir="rtl"
+                      value={regReminderPref}
+                      onValueChange={setRegReminderPref}
+                      className="flex gap-6"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="whatsapp" id="r-whatsapp" />
+                        <Label htmlFor="r-whatsapp" className="font-normal cursor-pointer">
+                          וואטסאפ
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="email" id="r-email" />
+                        <Label htmlFor="r-email" className="font-normal cursor-pointer">
+                          אימייל
+                        </Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                   <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={loading}>
                     {loading ? "נרשם..." : "הרשמי"}
