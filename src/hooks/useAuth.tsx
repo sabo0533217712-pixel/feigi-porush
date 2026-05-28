@@ -7,7 +7,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
-  signUp: (email: string, password: string, fullName: string, phone: string, securityQuestion: string, securityAnswer: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, phone: string, securityQuestion: string, securityAnswer: string, reminderPreference?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, phone: string, securityQuestion: string, securityAnswer: string) => {
+  const signUp = async (email: string, password: string, fullName: string, phone: string, securityQuestion: string, securityAnswer: string, reminderPreference?: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: {
           full_name: fullName,
           phone,
-          reminder_preference: 'whatsapp',
+          reminder_preference: reminderPreference || 'whatsapp',
           security_question: securityQuestion,
           security_answer: securityAnswer,
         },
