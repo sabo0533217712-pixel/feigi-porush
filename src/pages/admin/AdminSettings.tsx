@@ -151,22 +151,30 @@ export default function AdminSettings() {
     });
   };
 
+  const ensureSchedule = (prev: typeof settings, day: number): DaySchedule => {
+    const existing = prev.day_schedules[String(day)];
+    if (existing) {
+      return { ...existing, breaks: Array.isArray(existing.breaks) ? existing.breaks : [] };
+    }
+    return { ...DEFAULT_SCHEDULE, breaks: [...DEFAULT_SCHEDULE.breaks] };
+  };
+
   const updateDaySchedule = (day: number, field: "start" | "end", value: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      day_schedules: {
-        ...prev.day_schedules,
-        [String(day)]: {
-          ...(prev.day_schedules[String(day)] || DEFAULT_SCHEDULE),
-          [field]: value,
+    setSettings((prev) => {
+      const sch = ensureSchedule(prev, day);
+      return {
+        ...prev,
+        day_schedules: {
+          ...prev.day_schedules,
+          [String(day)]: { ...sch, [field]: value },
         },
-      },
-    }));
+      };
+    });
   };
 
   const addBreak = (day: number) => {
     setSettings((prev) => {
-      const sch = prev.day_schedules[String(day)] || { ...DEFAULT_SCHEDULE };
+      const sch = ensureSchedule(prev, day);
       return {
         ...prev,
         day_schedules: {
@@ -179,8 +187,7 @@ export default function AdminSettings() {
 
   const removeBreak = (day: number, index: number) => {
     setSettings((prev) => {
-      const sch = prev.day_schedules[String(day)];
-      if (!sch) return prev;
+      const sch = ensureSchedule(prev, day);
       return {
         ...prev,
         day_schedules: {
@@ -193,8 +200,7 @@ export default function AdminSettings() {
 
   const updateBreak = (day: number, index: number, field: "start" | "end", value: string) => {
     setSettings((prev) => {
-      const sch = prev.day_schedules[String(day)];
-      if (!sch) return prev;
+      const sch = ensureSchedule(prev, day);
       const newBreaks = [...sch.breaks];
       newBreaks[index] = { ...newBreaks[index], [field]: value };
       return {
