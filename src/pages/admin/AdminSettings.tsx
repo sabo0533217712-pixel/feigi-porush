@@ -360,7 +360,7 @@ export default function AdminSettings() {
                                 value={schedule.start}
                                 onChange={(e) => updateDaySchedule(i, "start", e.target.value)}
                                 dir="ltr"
-                                className="h-8 text-base"
+                                className="h-10 text-sm"
                               />
                             </div>
                             <div className="space-y-1">
@@ -370,39 +370,39 @@ export default function AdminSettings() {
                                 value={schedule.end}
                                 onChange={(e) => updateDaySchedule(i, "end", e.target.value)}
                                 dir="ltr"
-                                className="h-8 text-sm"
+                                className="h-10 text-sm"
                               />
                             </div>
                           </div>
                           {/* Breaks */}
                           {schedule.breaks.map((brk, bi) => (
                             <div key={bi} className="flex items-end gap-2">
-                              <div className="flex-1 grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
+                              <div className="flex-1 grid grid-cols-2 gap-2 min-w-0">
+                                <div className="space-y-1 min-w-0">
                                   <Label className="text-xs">הפסקה {bi + 1} - התחלה</Label>
                                   <Input
                                     type="time"
                                     value={brk.start}
                                     onChange={(e) => updateBreak(i, bi, "start", e.target.value)}
                                     dir="ltr"
-                                    className="h-8 text-sm"
+                                    className="h-10 text-sm w-full"
                                   />
                                 </div>
-                                <div className="space-y-1">
+                                <div className="space-y-1 min-w-0">
                                   <Label className="text-xs">סיום</Label>
                                   <Input
                                     type="time"
                                     value={brk.end}
                                     onChange={(e) => updateBreak(i, bi, "end", e.target.value)}
                                     dir="ltr"
-                                    className="h-8 text-sm"
+                                    className="h-10 text-sm w-full"
                                   />
                                 </div>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive"
+                                className="h-10 w-10 shrink-0 text-destructive"
                                 onClick={() => removeBreak(i, bi)}
                               >
                                 <X className="h-4 w-4" />
