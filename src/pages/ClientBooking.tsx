@@ -700,7 +700,7 @@ export default function ClientBooking() {
               </div>
               <span
                 className={cn(
-                  "text-sm hidden sm:inline",
+                  "text-xs sm:text-sm",
                   isActive ? "text-foreground font-medium" : "text-muted-foreground",
                 )}
               >
