@@ -923,7 +923,7 @@ export default function ClientBooking() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Preferred time input */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <Label className="text-sm whitespace-nowrap">שעה מועדפת:</Label>
               <input
                 type="time"
