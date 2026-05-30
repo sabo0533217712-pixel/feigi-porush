@@ -310,7 +310,7 @@ export default function Auth() {
                       dir="rtl"
                       value={regReminderPref}
                       onValueChange={setRegReminderPref}
-                      className="flex gap-6"
+                      className="flex flex-wrap gap-3 sm:gap-6"
                     >
                       <div className="flex items-center gap-2">
                         <RadioGroupItem value="whatsapp" id="r-whatsapp" />
