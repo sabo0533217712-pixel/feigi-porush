@@ -83,17 +83,19 @@ export default function HolidaySettings() {
                 className="grid grid-cols-[1fr_auto_auto] items-center gap-4 p-2 rounded-md hover:bg-muted/50"
               >
                 <span className="text-sm">{r.display_name || r.holiday_desc}</span>
-                <div className="w-20 flex justify-center">
+                <div className="w-20 flex flex-col items-center gap-1">
                   <Switch
                     checked={r.show_in_calendar}
                     onCheckedChange={(v) => updateRow(r.holiday_desc, "show_in_calendar", v)}
                   />
+                  <span className="text-[10px] text-muted-foreground sm:hidden">הצג בלוח</span>
                 </div>
-                <div className="w-20 flex justify-center">
+                <div className="w-20 flex flex-col items-center gap-1">
                   <Switch
                     checked={r.blocks_booking}
                     onCheckedChange={(v) => updateRow(r.holiday_desc, "blocks_booking", v)}
                   />
+                  <span className="text-[10px] text-muted-foreground sm:hidden">חסום הזמנה</span>
                 </div>
               </div>
             ))}
