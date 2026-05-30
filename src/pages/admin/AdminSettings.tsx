@@ -452,7 +452,7 @@ export default function AdminSettings() {
                     קובע את הצפיפות של השעות המוצעות ללקוחות (קטן יותר = יותר אופציות)
                   </p>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>יחידת זמן (דקות)</Label>
                     <Input
