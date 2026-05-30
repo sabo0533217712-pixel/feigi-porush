@@ -12,7 +12,6 @@ import { applyThemeFromImage } from "@/hooks/useBusinessTheme";
 import HolidaySettings from "./HolidaySettings";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
-
 const DAY_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
 interface DayBreak {
@@ -361,7 +360,7 @@ export default function AdminSettings() {
                                 value={schedule.start}
                                 onChange={(e) => updateDaySchedule(i, "start", e.target.value)}
                                 dir="ltr"
-                                className="h-8 text-sm"
+                                className="h-8 text-base"
                               />
                             </div>
                             <div className="space-y-1">
@@ -441,7 +440,9 @@ export default function AdminSettings() {
                         variant={settings.slot_step_minutes === step ? "default" : "outline"}
                         size="sm"
                         onClick={() => setSettings({ ...settings, slot_step_minutes: step })}
-                        className={settings.slot_step_minutes === step ? "gradient-primary text-primary-foreground" : ""}
+                        className={
+                          settings.slot_step_minutes === step ? "gradient-primary text-primary-foreground" : ""
+                        }
                       >
                         {step} דק׳
                       </Button>
