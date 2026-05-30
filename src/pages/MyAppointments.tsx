@@ -220,7 +220,7 @@ function AppointmentCard({ appointment: apt, onCancel, cancelStatus }: {
                 </Button>
               )}
               {cancelStatus.reason && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground max-w-[140px] text-left">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground sm:max-w-[140px] sm:text-left">
                   <AlertCircle className="h-3 w-3 flex-shrink-0" />
                   <span>{cancelStatus.reason}</span>
                 </div>
