@@ -513,9 +513,9 @@ export default function AdminSettings() {
                   <Input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploading} />
                 </div>
                 {logoUrl && (
-                  <div className="flex items-start gap-4 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 p-3 bg-muted/50 rounded-lg">
                     <img src={logoUrl} alt="לוגו" className="h-20 w-20 object-contain rounded" />
-                    <Button variant="ghost" size="sm" className="text-destructive gap-1" onClick={handleDeleteLogo}>
+                    <Button variant="ghost" size="sm" className="text-destructive gap-1 self-start" onClick={handleDeleteLogo}>
                       <Trash2 className="h-4 w-4" /> מחיקת לוגו
                     </Button>
                   </div>
@@ -526,13 +526,14 @@ export default function AdminSettings() {
                   <Input type="file" accept="image/*" multiple onChange={handleGalleryUpload} disabled={uploading} />
                 </div>
                 {galleryImages.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {galleryImages.map((img) => (
                       <div key={img.name} className="relative group">
                         <img src={img.url} alt="" className="h-20 w-full object-cover rounded" />
                         <button
                           onClick={() => handleDeleteGalleryImage(img.name)}
-                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                          aria-label="מחיקה"
                         >
                           <X className="h-3 w-3" />
                         </button>
