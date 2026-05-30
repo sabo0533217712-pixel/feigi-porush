@@ -360,7 +360,7 @@ export default function AdminSettings() {
                                 value={schedule.start}
                                 onChange={(e) => updateDaySchedule(i, "start", e.target.value)}
                                 dir="ltr"
-                                className="h-8 text-base"
+                                className="h-10 text-sm"
                               />
                             </div>
                             <div className="space-y-1">
@@ -370,39 +370,39 @@ export default function AdminSettings() {
                                 value={schedule.end}
                                 onChange={(e) => updateDaySchedule(i, "end", e.target.value)}
                                 dir="ltr"
-                                className="h-8 text-sm"
+                                className="h-10 text-sm"
                               />
                             </div>
                           </div>
                           {/* Breaks */}
                           {schedule.breaks.map((brk, bi) => (
                             <div key={bi} className="flex items-end gap-2">
-                              <div className="flex-1 grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
+                              <div className="flex-1 grid grid-cols-2 gap-2 min-w-0">
+                                <div className="space-y-1 min-w-0">
                                   <Label className="text-xs">הפסקה {bi + 1} - התחלה</Label>
                                   <Input
                                     type="time"
                                     value={brk.start}
                                     onChange={(e) => updateBreak(i, bi, "start", e.target.value)}
                                     dir="ltr"
-                                    className="h-8 text-sm"
+                                    className="h-10 text-sm w-full"
                                   />
                                 </div>
-                                <div className="space-y-1">
+                                <div className="space-y-1 min-w-0">
                                   <Label className="text-xs">סיום</Label>
                                   <Input
                                     type="time"
                                     value={brk.end}
                                     onChange={(e) => updateBreak(i, bi, "end", e.target.value)}
                                     dir="ltr"
-                                    className="h-8 text-sm"
+                                    className="h-10 text-sm w-full"
                                   />
                                 </div>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive"
+                                className="h-10 w-10 shrink-0 text-destructive"
                                 onClick={() => removeBreak(i, bi)}
                               >
                                 <X className="h-4 w-4" />
@@ -452,7 +452,7 @@ export default function AdminSettings() {
                     קובע את הצפיפות של השעות המוצעות ללקוחות (קטן יותר = יותר אופציות)
                   </p>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>יחידת זמן (דקות)</Label>
                     <Input
@@ -513,9 +513,9 @@ export default function AdminSettings() {
                   <Input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploading} />
                 </div>
                 {logoUrl && (
-                  <div className="flex items-start gap-4 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 p-3 bg-muted/50 rounded-lg">
                     <img src={logoUrl} alt="לוגו" className="h-20 w-20 object-contain rounded" />
-                    <Button variant="ghost" size="sm" className="text-destructive gap-1" onClick={handleDeleteLogo}>
+                    <Button variant="ghost" size="sm" className="text-destructive gap-1 self-start" onClick={handleDeleteLogo}>
                       <Trash2 className="h-4 w-4" /> מחיקת לוגו
                     </Button>
                   </div>
@@ -526,13 +526,14 @@ export default function AdminSettings() {
                   <Input type="file" accept="image/*" multiple onChange={handleGalleryUpload} disabled={uploading} />
                 </div>
                 {galleryImages.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {galleryImages.map((img) => (
                       <div key={img.name} className="relative group">
                         <img src={img.url} alt="" className="h-20 w-full object-cover rounded" />
                         <button
                           onClick={() => handleDeleteGalleryImage(img.name)}
-                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                          aria-label="מחיקה"
                         >
                           <X className="h-3 w-3" />
                         </button>

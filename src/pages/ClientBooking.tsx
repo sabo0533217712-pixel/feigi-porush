@@ -765,7 +765,7 @@ export default function ClientBooking() {
                     {/* Inline duration picker for variable-duration treatments */}
                     {isSelected && t.is_variable_duration && (
                       <div className="mt-3 pt-3 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <Label className="text-sm whitespace-nowrap">בחרי משך:</Label>
                           <select
                             value={variableDurations[t.id] || ""}
@@ -923,7 +923,7 @@ export default function ClientBooking() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Preferred time input */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <Label className="text-sm whitespace-nowrap">שעה מועדפת:</Label>
               <input
                 type="time"

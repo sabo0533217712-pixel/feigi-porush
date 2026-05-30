@@ -128,16 +128,16 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map(s => (
           <Card key={s.label} className="shadow-card">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{s.label}</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">{s.value}</p>
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">{s.label}</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{s.value}</p>
                 </div>
-                <s.icon className={`h-10 w-10 ${s.color} opacity-30`} />
+                <s.icon className={`h-7 w-7 sm:h-10 sm:w-10 shrink-0 ${s.color} opacity-30`} />
               </div>
             </CardContent>
           </Card>

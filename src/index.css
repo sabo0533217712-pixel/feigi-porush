@@ -104,6 +104,26 @@
   h1, h2, h3, h4 {
     @apply font-display;
   }
+
+  /* Prevent iOS Safari from auto-zooming when focusing form fields.
+     iOS zooms in whenever an input's font-size is < 16px. */
+  @media (max-width: 640px) {
+    input, select, textarea {
+      font-size: 16px;
+    }
+  }
+
+  /* Make native time/date pickers render consistently on iOS Safari */
+  input[type="time"],
+  input[type="date"] {
+    min-height: 2.5rem;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: hsl(var(--background));
+  }
+  input[type="time"]::-webkit-date-and-time-value {
+    text-align: center;
+  }
 }
 
 @layer utilities {
