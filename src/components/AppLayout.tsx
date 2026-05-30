@@ -56,7 +56,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       {/* Mobile nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-card/95 backdrop-blur-sm">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-card/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center justify-around h-14">
           {navItems.map(item => (
             <Link key={item.to} to={item.to} className="flex-1">
@@ -70,7 +70,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </nav>
 
       {/* Content */}
-      <main className="container px-4 py-6 pb-20 md:pb-6">
+      <main className="container px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6">
         {children}
       </main>
     </div>

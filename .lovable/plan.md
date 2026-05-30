@@ -1,33 +1,22 @@
-## מטרה
+# תיקון תצוגת מובייל
 
-ניקוי אוטומטי חודשי של נתונים מעל גיל שנה, כולל רשומות מקושרות, כדי שהמסד לא יתפח.
+## תיקונים שיבוצעו
 
-## מתי זה רץ
+### 1. מסך "חגים ומועדים" (`src/pages/admin/HolidaySettings.tsx`)
+הוספת תוויות זעירות מתחת לכל סוויץ' במובייל (`text-[10px] text-muted-foreground sm:hidden`) כדי שיהיה ברור מי "הצג בלוח" ומי "חסום הזמנה". הכותרות העליונות נשארות לדסקטופ.
 
-ב־1 לכל חודש בלילה (02:00 שעון ישראל / 00:00 UTC) — משימת `pg_cron`.
+### 2. אינדיקטור שלבים בהזמנה (`src/pages/ClientBooking.tsx`, שורה ~701)
+הסרת `hidden sm:inline` מתוויות "טיפול / מועד / אישור" כדי שיופיעו גם במובייל. הקטנה במובייל: `text-xs sm:text-sm`.
 
-## מה נמחק
+### 3. תמיכה ב-safe area של אייפון
+- `src/components/AppLayout.tsx`: הוספת `pb-[env(safe-area-inset-bottom)]` לניווט התחתון, והחלפת `pb-20` ב-`pb-[calc(5rem+env(safe-area-inset-bottom))]` ב-`<main>`.
+- `index.html`: הוספת `viewport-fit=cover` ל-meta viewport.
 
-כל הרשומות שתאריכן ישן מ־`now() - interval '1 year'`:
+## קבצים שישתנו
+1. `src/pages/admin/HolidaySettings.tsx`
+2. `src/pages/ClientBooking.tsx`
+3. `src/components/AppLayout.tsx`
+4. `index.html`
 
-| טבלה | תנאי מחיקה |
-|------|------------|
-| `appointments` | `appointment_date < today - 1 year` |
-| `appointment_treatments` | מקושר ל־appointment שנמחק |
-| `reminder_log` | מקושר ל־appointment שנמחק |
-| `time_blocks` | `block_date < today - 1 year` |
-| `extra_shifts` | `shift_date < today - 1 year` |
-| `webhook_events` | `created_at < today - 1 year` (ניקוי כללי, מתפחים מהר) |
-
-`appointment_treatments` ו־`reminder_log` יימחקו **לפני** ה־appointments כדי שלא יישארו יתומים (אין FK cascade בטבלאות האלה).
-
-## איך זה ייושם
-
-1. **Migration**: פונקציה חדשה `public.cleanup_old_records()` (SECURITY DEFINER, search_path=public) שמבצעת את ה־DELETE-ים בסדר הנכון בתוך טרנזקציה אחת.
-2. **Cron job** דרך כלי insert (לא migration, כי תלוי ב־project ref/anon key): `cron.schedule('cleanup-old-records', '0 0 1 * *', $$ SELECT public.cleanup_old_records(); $$)` — קריאה ישירה ל־SQL, ללא net.http_post (לא צריך edge function כי הכל ב־DB).
-
-## הערות
-
-- **המחיקה בלתי הפיכה.** אין שחזור לרשומות שנמחקו.
-- אם בעתיד תרצי לשמור תקופה אחרת (שנתיים, חצי שנה) — שינוי של מספר אחד בפונקציה.
-- הריצה הראשונה תהיה ב־1.7.2026; אם תרצי שגם תתבצע ריצה ראשונית מיידית על הנתונים הקיימים — אפשר להוסיף.
+ללא שינויי DB וללא שינוי לוגיקה — שינויי CSS/presentation בלבד.
+סעיף טבלת הלקוחות בלוח הבקרה הוסר לפי בקשתך.
