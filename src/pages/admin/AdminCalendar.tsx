@@ -95,6 +95,8 @@ interface BusinessSettings {
   working_days: number[];
   break_start?: string | null;
   break_end?: string | null;
+  calendar_view_start?: string | null;
+  calendar_view_end?: string | null;
 }
 
 export default function AdminCalendar() {
@@ -265,7 +267,7 @@ export default function AdminCalendar() {
   const fetchSettings = async () => {
     const { data } = await supabase
       .from("business_settings")
-      .select("start_time, end_time, day_schedules, working_days, break_start, break_end")
+      .select("start_time, end_time, day_schedules, working_days, break_start, break_end, calendar_view_start, calendar_view_end")
       .limit(1)
       .single();
     if (data) setSettings(data as unknown as BusinessSettings);
@@ -389,23 +391,31 @@ export default function AdminCalendar() {
   // NOT the global start_time/end_time which may be a stale fallback.
   const daySchedule = useMemo(() => {
     const DEFAULT = { start: "09:00", end: "18:00", breaks: [{ start: "13:00", end: "14:00" }] };
-    if (!settings) return { startHour: 9, endHour: 18, breaks: [] as { start: string; end: string }[] };
+    if (!settings) return { startHour: 9, endHour: 18, workStartHour: 9, workEndHour: 18, breaks: [] as { start: string; end: string }[] };
     const dow = selectedDate.getDay();
     const ds = settings.day_schedules?.[String(dow)];
     const startTime = ds?.start || DEFAULT.start;
     const endTime = ds?.end || DEFAULT.end;
     const breaks = ds?.breaks ?? DEFAULT.breaks;
-    let startHour = parseInt(startTime.split(":")[0]);
-    let endHour = parseInt(endTime.split(":")[0]) + (parseInt(endTime.split(":")[1]) > 0 ? 1 : 0);
-    // Extend to cover extra shifts (so shift windows are visible on the timeline)
+    let workStartHour = parseInt(startTime.split(":")[0]);
+    let workEndHour = parseInt(endTime.split(":")[0]) + (parseInt(endTime.split(":")[1]) > 0 ? 1 : 0);
+    // Extend work window to cover extra shifts (so shift windows are visible on the timeline)
     extraShifts.forEach((s) => {
       const sH = parseInt(s.start_time.split(":")[0]);
       const eRaw = s.end_time.split(":");
       const eH = parseInt(eRaw[0]) + (parseInt(eRaw[1]) > 0 ? 1 : 0);
-      if (sH < startHour) startHour = sH;
-      if (eH > endHour) endHour = eH;
+      if (sH < workStartHour) workStartHour = sH;
+      if (eH > workEndHour) workEndHour = eH;
     });
-    return { startHour, endHour, breaks };
+    // Admin-only calendar view range — widens (or narrows back to) the visible timeline
+    const viewStart = (settings.calendar_view_start || "07:00").substring(0, 5);
+    const viewEnd = (settings.calendar_view_end || "22:00").substring(0, 5);
+    const vsH = parseInt(viewStart.split(":")[0]);
+    const veRaw = viewEnd.split(":");
+    const veH = parseInt(veRaw[0]) + (parseInt(veRaw[1]) > 0 ? 1 : 0);
+    const startHour = Math.min(workStartHour, vsH);
+    const endHour = Math.max(workEndHour, veH);
+    return { startHour, endHour, workStartHour, workEndHour, breaks };
   }, [settings, selectedDate, extraShifts]);
 
   const timelineHours = useMemo(() => {
@@ -849,6 +859,24 @@ export default function AdminCalendar() {
               </div>
             )}
             <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
+              {/* Subtle marking for hours outside working hours (admin-only view extension) */}
+              {daySchedule.workStartHour > daySchedule.startHour && (
+                <div
+                  className="absolute inset-x-0 pointer-events-none bg-muted/40 z-0"
+                  style={{ top: 0, height: (daySchedule.workStartHour - daySchedule.startHour) * HOUR_HEIGHT }}
+                  title="מחוץ לשעות עבודה"
+                />
+              )}
+              {daySchedule.workEndHour < daySchedule.endHour && (
+                <div
+                  className="absolute inset-x-0 pointer-events-none bg-muted/40 z-0"
+                  style={{
+                    top: (daySchedule.workEndHour - daySchedule.startHour) * HOUR_HEIGHT,
+                    height: (daySchedule.endHour - daySchedule.workEndHour) * HOUR_HEIGHT,
+                  }}
+                  title="מחוץ לשעות עבודה"
+                />
+              )}
               {/* Hour lines */}
               {timelineHours.map((hour, i) => (
                 <div

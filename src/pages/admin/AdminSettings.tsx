@@ -44,6 +44,8 @@ export default function AdminSettings() {
     day_schedules: {} as DaySchedules,
     slot_step_minutes: 15,
     appointment_buffer_minutes: 5,
+    calendar_view_start: "07:00",
+    calendar_view_end: "22:00",
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -77,6 +79,8 @@ export default function AdminSettings() {
         day_schedules: ds,
         slot_step_minutes: (data as any).slot_step_minutes || 15,
         appointment_buffer_minutes: (data as any).appointment_buffer_minutes ?? 5,
+        calendar_view_start: ((data as any).calendar_view_start || "07:00").substring(0, 5),
+        calendar_view_end: ((data as any).calendar_view_end || "22:00").substring(0, 5),
       });
     }
   };
@@ -122,6 +126,8 @@ export default function AdminSettings() {
         day_schedules: settings.day_schedules,
         slot_step_minutes: settings.slot_step_minutes,
         appointment_buffer_minutes: settings.appointment_buffer_minutes,
+        calendar_view_start: settings.calendar_view_start,
+        calendar_view_end: settings.calendar_view_end,
         // Keep legacy fields synced from first working day as fallback
         start_time: Object.values(settings.day_schedules)[0]?.start || "09:00",
         end_time: Object.values(settings.day_schedules)[0]?.end || "18:00",
@@ -341,6 +347,38 @@ export default function AdminSettings() {
             </AccordionTrigger>
             <AccordionContent>
               <CardContent className="space-y-4">
+                {/* Calendar view range — admin only, display only */}
+                <div className="p-3 bg-accent/30 border border-border/60 rounded-lg space-y-2">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">טווח תצוגת היומן (לך בלבד)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      קובע אילו שעות יוצגו ביומן הניהול שלך. השעות שמוצגות ללקוחות נקבעות לפי שעות העבודה למטה.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">מ-</Label>
+                      <Input
+                        type="time"
+                        value={settings.calendar_view_start}
+                        onChange={(e) => setSettings({ ...settings, calendar_view_start: e.target.value })}
+                        dir="ltr"
+                        className="h-10 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">עד-</Label>
+                      <Input
+                        type="time"
+                        value={settings.calendar_view_end}
+                        onChange={(e) => setSettings({ ...settings, calendar_view_end: e.target.value })}
+                        dir="ltr"
+                        className="h-10 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {DAY_NAMES.map((name, i) => {
                   const isActive = settings.working_days.includes(i);
                   const schedule = settings.day_schedules[String(i)] || DEFAULT_SCHEDULE;
