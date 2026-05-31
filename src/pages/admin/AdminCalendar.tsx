@@ -16,7 +16,7 @@ import { getHebrewDateShort, getHebrewDate, getHolidayInfo } from "@/lib/hebrew-
 import { useHolidaySettings } from "@/hooks/useHolidaySettings";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2, Search, Check, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Bell, Edit, User, ChevronUp, ListChecks, CalendarIcon, Trash2, Search, Check, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -81,6 +81,14 @@ interface ExtraShift {
   notes: string;
 }
 
+interface PersonalReminder {
+  id: string;
+  reminder_date: string;
+  start_time: string;
+  end_time: string;
+  notes: string;
+}
+
 interface DaySchedule {
   start: string;
   end: string;
@@ -139,6 +147,8 @@ export default function AdminCalendar() {
     notes: "",
   });
   const [blockForm, setBlockForm] = useState({ start_time: "09:00", end_time: "10:00", notes: "" });
+  const [showReminderDialog, setShowReminderDialog] = useState(false);
+  const [reminderForm, setReminderForm] = useState({ start_time: "09:00", end_time: "10:00", notes: "" });
   // extraShifts comes from the day query below
   const [showShiftDialog, setShowShiftDialog] = useState(false);
   const [shiftForm, setShiftForm] = useState({ start_time: "19:00", end_time: "22:00", notes: "" });
@@ -213,6 +223,16 @@ export default function AdminCalendar() {
           schema: "public",
           table: "time_blocks",
           filter: `block_date=eq.${selectedDateStr}`,
+        },
+        refreshDay,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "personal_reminders",
+          filter: `reminder_date=eq.${selectedDateStr}`,
         },
         refreshDay,
       )
@@ -318,7 +338,7 @@ export default function AdminCalendar() {
 
   // Day data via React Query: per-date queryKey + AbortController = safe against race conditions.
   const fetchDayDataFor = async (key: string, signal?: AbortSignal) => {
-    const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
+    const [aptsRes, blocksRes, shiftsRes, remindersRes] = await Promise.all([
       supabase
         .from("appointments")
         .select("*, treatments(name, color), appointment_treatments(treatments(name, color))")
@@ -335,6 +355,12 @@ export default function AdminCalendar() {
         .from("extra_shifts")
         .select("*")
         .eq("shift_date", key)
+        .order("start_time")
+        .abortSignal(signal as AbortSignal),
+      supabase
+        .from("personal_reminders")
+        .select("*")
+        .eq("reminder_date", key)
         .order("start_time")
         .abortSignal(signal as AbortSignal),
     ]);
@@ -358,8 +384,10 @@ export default function AdminCalendar() {
       appointments,
       timeBlocks: (blocksRes.data || []) as unknown as TimeBlock[],
       extraShifts: (shiftsRes.data || []) as unknown as ExtraShift[],
+      personalReminders: (remindersRes.data || []) as unknown as PersonalReminder[],
     };
   };
+
 
   const { data: dayData, isLoading: isDayLoading } = useQuery({
     queryKey: ["admin-day", dateKey],
@@ -387,6 +415,7 @@ export default function AdminCalendar() {
   const appointments = dayData?.appointments ?? [];
   const timeBlocks = dayData?.timeBlocks ?? [];
   const extraShifts = dayData?.extraShifts ?? [];
+  const personalReminders = dayData?.personalReminders ?? [];
 
   // Get day hours from settings — must mirror AdminSettings exactly:
   // if no per-day schedule exists for this DOW, use DEFAULT 09:00–18:00 (same as settings UI),
@@ -508,6 +537,36 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה במחיקה");
     else {
       toast.success("החסימה הוסרה");
+      invalidateDay();
+    }
+  };
+
+  // Add personal reminder (display-only, does NOT block availability)
+  const handleAddReminder = async () => {
+    if (reminderForm.start_time >= reminderForm.end_time) {
+      toast.error("שעת סיום חייבת להיות אחרי שעת התחלה");
+      return;
+    }
+    const { error } = await supabase.from("personal_reminders").insert({
+      reminder_date: format(selectedDate, "yyyy-MM-dd"),
+      start_time: reminderForm.start_time,
+      end_time: reminderForm.end_time,
+      notes: reminderForm.notes,
+    });
+    if (error) toast.error("שגיאה בהוספת תזכורת");
+    else {
+      toast.success("התזכורת נוספה");
+      setShowReminderDialog(false);
+      setReminderForm({ start_time: "09:00", end_time: "10:00", notes: "" });
+      invalidateDay();
+    }
+  };
+
+  const handleDeleteReminder = async (id: string) => {
+    const { error } = await supabase.from("personal_reminders").delete().eq("id", id);
+    if (error) toast.error("שגיאה במחיקה");
+    else {
+      toast.success("התזכורת נמחקה");
       invalidateDay();
     }
   };
@@ -839,6 +898,17 @@ export default function AdminCalendar() {
             >
               <Plus className="h-3.5 w-3.5" /> הוספת משמרת
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-amber-500/50 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200"
+              onClick={() => {
+                setReminderForm({ start_time: "09:00", end_time: "10:00", notes: "" });
+                setShowReminderDialog(true);
+              }}
+            >
+              <Bell className="h-3.5 w-3.5" /> תזכורת אישית
+            </Button>
           </div>
 
           {/* Legend */}
@@ -888,7 +958,7 @@ export default function AdminCalendar() {
                   onClick={() => handleTimelineClick(hour)}
                 >
                   <div
-                    className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-l border-border/50 font-mono"
+                    className="w-16 flex-shrink-0 text-xs text-foreground/90 font-semibold p-2 border-l border-border/50 font-mono"
                     dir="ltr"
                   >
                     {hour}
@@ -965,6 +1035,44 @@ export default function AdminCalendar() {
                   >
                     <X className="h-3 w-3" />
                   </Button>
+                </div>
+              ))}
+
+              {/* Personal reminders — display-only, do NOT block availability */}
+              {personalReminders.map((reminder) => (
+                <div
+                  key={reminder.id}
+                  className="absolute right-16 left-4 rounded-md z-[2] flex items-stretch overflow-hidden pointer-events-none"
+                  style={{
+                    top: getTopOffset(reminder.start_time),
+                    height: getHeight(reminder.start_time, reminder.end_time),
+                  }}
+                >
+                  <div className="w-1.5 flex-shrink-0 bg-amber-500" />
+                  <div className="flex-1 bg-amber-100/70 dark:bg-amber-500/15 border border-amber-500/50 border-r-0 px-2 py-0.5 flex items-center justify-between gap-1 min-w-0 overflow-hidden group">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <Bell className="h-3 w-3 flex-shrink-0 text-amber-700 dark:text-amber-300" />
+                      <div className="flex flex-col gap-0 min-w-0 flex-1">
+                        <span className="text-[11px] font-semibold text-amber-900 dark:text-amber-100 truncate">
+                          {reminder.notes || "תזכורת אישית"}
+                        </span>
+                        <span className="text-[10px] font-mono text-amber-800/90 dark:text-amber-200/90 font-medium">
+                          {reminder.start_time.substring(0, 5)}-{reminder.end_time.substring(0, 5)}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity text-amber-800 hover:text-amber-900 hover:bg-amber-500/20 dark:text-amber-200"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteReminder(reminder.id);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               ))}
 
@@ -1070,7 +1178,7 @@ export default function AdminCalendar() {
                                     </Badge>
                                   )}
                                 </span>
-                                <span className="text-[10px] font-mono text-muted-foreground">
+                                <span className="text-[10px] font-mono text-foreground/80 font-medium">
                                   {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)} ({dur} דק׳)
                                 </span>
                               </div>
@@ -1364,6 +1472,57 @@ export default function AdminCalendar() {
             </div>
             <Button className="w-full" variant="outline" onClick={handleAddBlock}>
               חסימת זמן
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Personal Reminder Dialog — display-only, does NOT block availability */}
+      <Dialog open={showReminderDialog} onOpenChange={setShowReminderDialog}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              תזכורת אישית
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              התזכורת תופיע ביומן שלך בלבד ולא תחסום את הזמן ללקוחות.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>שעת התחלה</Label>
+                <Input
+                  type="time"
+                  value={reminderForm.start_time}
+                  onChange={(e) => setReminderForm((prev) => ({ ...prev, start_time: e.target.value }))}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>שעת סיום</Label>
+                <Input
+                  type="time"
+                  value={reminderForm.end_time}
+                  onChange={(e) => setReminderForm((prev) => ({ ...prev, end_time: e.target.value }))}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>תוכן התזכורת</Label>
+              <Input
+                value={reminderForm.notes}
+                onChange={(e) => setReminderForm((prev) => ({ ...prev, notes: e.target.value }))}
+                placeholder="לדוגמה: להזכיר ליעל מתנה"
+              />
+            </div>
+            <Button
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={handleAddReminder}
+            >
+              הוספת תזכורת
             </Button>
           </div>
         </DialogContent>
@@ -2324,7 +2483,7 @@ function DayTimeline({
                   style={{ top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }}
                 >
                   <div
-                    className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-l border-border/50 font-mono"
+                    className="w-16 flex-shrink-0 text-xs text-foreground/90 font-semibold p-2 border-l border-border/50 font-mono"
                     dir="ltr"
                   >
                     {hour}
@@ -2444,7 +2603,7 @@ function DayTimeline({
                           <span className="text-[11px] font-semibold text-foreground truncate">
                             {apt.client_name} - {apt.treatment_name}
                           </span>
-                          <span className="text-[10px] font-mono text-muted-foreground">
+                          <span className="text-[10px] font-mono text-foreground/80 font-medium">
                             {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
                           </span>
                         </div>
