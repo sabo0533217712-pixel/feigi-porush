@@ -859,6 +859,24 @@ export default function AdminCalendar() {
               </div>
             )}
             <div className="relative" style={{ height: timelineHours.length * HOUR_HEIGHT }}>
+              {/* Subtle marking for hours outside working hours (admin-only view extension) */}
+              {daySchedule.workStartHour > daySchedule.startHour && (
+                <div
+                  className="absolute inset-x-0 pointer-events-none bg-muted/40 z-0"
+                  style={{ top: 0, height: (daySchedule.workStartHour - daySchedule.startHour) * HOUR_HEIGHT }}
+                  title="מחוץ לשעות עבודה"
+                />
+              )}
+              {daySchedule.workEndHour < daySchedule.endHour && (
+                <div
+                  className="absolute inset-x-0 pointer-events-none bg-muted/40 z-0"
+                  style={{
+                    top: (daySchedule.workEndHour - daySchedule.startHour) * HOUR_HEIGHT,
+                    height: (daySchedule.endHour - daySchedule.workEndHour) * HOUR_HEIGHT,
+                  }}
+                  title="מחוץ לשעות עבודה"
+                />
+              )}
               {/* Hour lines */}
               {timelineHours.map((hour, i) => (
                 <div
