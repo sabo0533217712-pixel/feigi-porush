@@ -126,6 +126,8 @@ export default function AdminSettings() {
         day_schedules: settings.day_schedules,
         slot_step_minutes: settings.slot_step_minutes,
         appointment_buffer_minutes: settings.appointment_buffer_minutes,
+        calendar_view_start: settings.calendar_view_start,
+        calendar_view_end: settings.calendar_view_end,
         // Keep legacy fields synced from first working day as fallback
         start_time: Object.values(settings.day_schedules)[0]?.start || "09:00",
         end_time: Object.values(settings.day_schedules)[0]?.end || "18:00",
