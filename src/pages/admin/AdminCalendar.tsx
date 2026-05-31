@@ -1477,6 +1477,57 @@ export default function AdminCalendar() {
         </DialogContent>
       </Dialog>
 
+      {/* Personal Reminder Dialog — display-only, does NOT block availability */}
+      <Dialog open={showReminderDialog} onOpenChange={setShowReminderDialog}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              תזכורת אישית
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              התזכורת תופיע ביומן שלך בלבד ולא תחסום את הזמן ללקוחות.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>שעת התחלה</Label>
+                <Input
+                  type="time"
+                  value={reminderForm.start_time}
+                  onChange={(e) => setReminderForm((prev) => ({ ...prev, start_time: e.target.value }))}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>שעת סיום</Label>
+                <Input
+                  type="time"
+                  value={reminderForm.end_time}
+                  onChange={(e) => setReminderForm((prev) => ({ ...prev, end_time: e.target.value }))}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>תוכן התזכורת</Label>
+              <Input
+                value={reminderForm.notes}
+                onChange={(e) => setReminderForm((prev) => ({ ...prev, notes: e.target.value }))}
+                placeholder="לדוגמה: להזכיר ליעל מתנה"
+              />
+            </div>
+            <Button
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={handleAddReminder}
+            >
+              הוספת תזכורת
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Add Shift Dialog */}
       <Dialog open={showShiftDialog} onOpenChange={setShowShiftDialog}>
         <DialogContent dir="rtl" className="sm:max-w-sm">
