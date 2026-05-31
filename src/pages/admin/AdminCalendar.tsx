@@ -226,6 +226,16 @@ export default function AdminCalendar() {
         },
         refreshDay,
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "personal_reminders",
+          filter: `reminder_date=eq.${selectedDateStr}`,
+        },
+        refreshDay,
+      )
       .subscribe();
 
     const handleVisibilityChange = () => {
