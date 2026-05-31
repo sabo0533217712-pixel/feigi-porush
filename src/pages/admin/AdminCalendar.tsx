@@ -405,6 +405,7 @@ export default function AdminCalendar() {
   const appointments = dayData?.appointments ?? [];
   const timeBlocks = dayData?.timeBlocks ?? [];
   const extraShifts = dayData?.extraShifts ?? [];
+  const personalReminders = dayData?.personalReminders ?? [];
 
   // Get day hours from settings — must mirror AdminSettings exactly:
   // if no per-day schedule exists for this DOW, use DEFAULT 09:00–18:00 (same as settings UI),
