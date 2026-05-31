@@ -2514,7 +2514,7 @@ function DayTimeline({
                           <span className="text-[11px] font-semibold text-foreground truncate">
                             {apt.client_name} - {apt.treatment_name}
                           </span>
-                          <span className="text-[10px] font-mono text-muted-foreground">
+                          <span className="text-[10px] font-mono text-foreground/80 font-medium">
                             {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)}
                           </span>
                         </div>
