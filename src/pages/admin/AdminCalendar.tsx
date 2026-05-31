@@ -328,7 +328,7 @@ export default function AdminCalendar() {
 
   // Day data via React Query: per-date queryKey + AbortController = safe against race conditions.
   const fetchDayDataFor = async (key: string, signal?: AbortSignal) => {
-    const [aptsRes, blocksRes, shiftsRes] = await Promise.all([
+    const [aptsRes, blocksRes, shiftsRes, remindersRes] = await Promise.all([
       supabase
         .from("appointments")
         .select("*, treatments(name, color), appointment_treatments(treatments(name, color))")
@@ -345,6 +345,12 @@ export default function AdminCalendar() {
         .from("extra_shifts")
         .select("*")
         .eq("shift_date", key)
+        .order("start_time")
+        .abortSignal(signal as AbortSignal),
+      supabase
+        .from("personal_reminders")
+        .select("*")
+        .eq("reminder_date", key)
         .order("start_time")
         .abortSignal(signal as AbortSignal),
     ]);
@@ -368,8 +374,10 @@ export default function AdminCalendar() {
       appointments,
       timeBlocks: (blocksRes.data || []) as unknown as TimeBlock[],
       extraShifts: (shiftsRes.data || []) as unknown as ExtraShift[],
+      personalReminders: (remindersRes.data || []) as unknown as PersonalReminder[],
     };
   };
+
 
   const { data: dayData, isLoading: isDayLoading } = useQuery({
     queryKey: ["admin-day", dateKey],
