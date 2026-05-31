@@ -1140,7 +1140,7 @@ export default function AdminCalendar() {
                                     </Badge>
                                   )}
                                 </span>
-                                <span className="text-[10px] font-mono text-muted-foreground">
+                                <span className="text-[10px] font-mono text-foreground/80 font-medium">
                                   {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)} ({dur} דק׳)
                                 </span>
                               </div>
