@@ -125,6 +125,8 @@ export type Database = {
           break_start: string | null
           business_address: string | null
           business_name: string
+          calendar_view_end: string
+          calendar_view_start: string
           cancellation_hours: number
           created_at: string
           custom_texts: Json | null
@@ -149,6 +151,8 @@ export type Database = {
           break_start?: string | null
           business_address?: string | null
           business_name?: string
+          calendar_view_end?: string
+          calendar_view_start?: string
           cancellation_hours?: number
           created_at?: string
           custom_texts?: Json | null
@@ -173,6 +177,8 @@ export type Database = {
           break_start?: string | null
           business_address?: string | null
           business_name?: string
+          calendar_view_end?: string
+          calendar_view_start?: string
           cancellation_hours?: number
           created_at?: string
           custom_texts?: Json | null
