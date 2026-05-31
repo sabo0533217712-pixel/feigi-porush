@@ -1038,6 +1038,44 @@ export default function AdminCalendar() {
                 </div>
               ))}
 
+              {/* Personal reminders — display-only, do NOT block availability */}
+              {personalReminders.map((reminder) => (
+                <div
+                  key={reminder.id}
+                  className="absolute right-16 left-4 rounded-md z-[2] flex items-stretch overflow-hidden pointer-events-none"
+                  style={{
+                    top: getTopOffset(reminder.start_time),
+                    height: getHeight(reminder.start_time, reminder.end_time),
+                  }}
+                >
+                  <div className="w-1.5 flex-shrink-0 bg-amber-500" />
+                  <div className="flex-1 bg-amber-100/70 dark:bg-amber-500/15 border border-amber-500/50 border-r-0 px-2 py-0.5 flex items-center justify-between gap-1 min-w-0 overflow-hidden group">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <Bell className="h-3 w-3 flex-shrink-0 text-amber-700 dark:text-amber-300" />
+                      <div className="flex flex-col gap-0 min-w-0 flex-1">
+                        <span className="text-[11px] font-semibold text-amber-900 dark:text-amber-100 truncate">
+                          {reminder.notes || "תזכורת אישית"}
+                        </span>
+                        <span className="text-[10px] font-mono text-amber-800/90 dark:text-amber-200/90 font-medium">
+                          {reminder.start_time.substring(0, 5)}-{reminder.end_time.substring(0, 5)}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity text-amber-800 hover:text-amber-900 hover:bg-amber-500/20 dark:text-amber-200"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteReminder(reminder.id);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
               {/* Appointments */}
               {(() => {
                 // Detect overlaps and assign columns
