@@ -347,6 +347,38 @@ export default function AdminSettings() {
             </AccordionTrigger>
             <AccordionContent>
               <CardContent className="space-y-4">
+                {/* Calendar view range — admin only, display only */}
+                <div className="p-3 bg-accent/30 border border-border/60 rounded-lg space-y-2">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">טווח תצוגת היומן (לך בלבד)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      קובע אילו שעות יוצגו ביומן הניהול שלך. השעות שמוצגות ללקוחות נקבעות לפי שעות העבודה למטה.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">מ-</Label>
+                      <Input
+                        type="time"
+                        value={settings.calendar_view_start}
+                        onChange={(e) => setSettings({ ...settings, calendar_view_start: e.target.value })}
+                        dir="ltr"
+                        className="h-10 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">עד-</Label>
+                      <Input
+                        type="time"
+                        value={settings.calendar_view_end}
+                        onChange={(e) => setSettings({ ...settings, calendar_view_end: e.target.value })}
+                        dir="ltr"
+                        className="h-10 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {DAY_NAMES.map((name, i) => {
                   const isActive = settings.working_days.includes(i);
                   const schedule = settings.day_schedules[String(i)] || DEFAULT_SCHEDULE;
