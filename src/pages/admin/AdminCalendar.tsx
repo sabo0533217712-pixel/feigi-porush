@@ -903,7 +903,7 @@ export default function AdminCalendar() {
               size="sm"
               className="gap-1.5 border-amber-500/50 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200"
               onClick={() => {
-                setReminderForm({ start_time: "09:00", end_time: "10:00", notes: "" });
+                setReminderForm({ start_time: "09:00", end_time: "09:10", notes: "" });
                 setShowReminderDialog(true);
               }}
             >
