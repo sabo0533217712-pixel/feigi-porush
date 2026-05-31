@@ -1064,7 +1064,7 @@ export default function AdminCalendar() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-5 w-5 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity text-amber-800 hover:text-amber-900 hover:bg-amber-500/20 dark:text-amber-200"
+                      className="h-5 w-5 pointer-events-auto text-amber-800 hover:text-amber-900 hover:bg-amber-500/20 dark:text-amber-200"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteReminder(reminder.id);
