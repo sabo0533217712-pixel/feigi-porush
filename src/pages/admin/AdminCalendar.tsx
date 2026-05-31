@@ -81,6 +81,14 @@ interface ExtraShift {
   notes: string;
 }
 
+interface PersonalReminder {
+  id: string;
+  reminder_date: string;
+  start_time: string;
+  end_time: string;
+  notes: string;
+}
+
 interface DaySchedule {
   start: string;
   end: string;
