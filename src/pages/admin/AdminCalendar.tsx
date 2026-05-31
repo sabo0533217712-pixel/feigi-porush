@@ -2394,7 +2394,7 @@ function DayTimeline({
                   style={{ top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }}
                 >
                   <div
-                    className="w-16 flex-shrink-0 text-xs text-muted-foreground p-2 border-l border-border/50 font-mono"
+                    className="w-16 flex-shrink-0 text-xs text-foreground/90 font-semibold p-2 border-l border-border/50 font-mono"
                     dir="ltr"
                   >
                     {hour}
