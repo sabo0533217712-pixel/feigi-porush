@@ -391,23 +391,31 @@ export default function AdminCalendar() {
   // NOT the global start_time/end_time which may be a stale fallback.
   const daySchedule = useMemo(() => {
     const DEFAULT = { start: "09:00", end: "18:00", breaks: [{ start: "13:00", end: "14:00" }] };
-    if (!settings) return { startHour: 9, endHour: 18, breaks: [] as { start: string; end: string }[] };
+    if (!settings) return { startHour: 9, endHour: 18, workStartHour: 9, workEndHour: 18, breaks: [] as { start: string; end: string }[] };
     const dow = selectedDate.getDay();
     const ds = settings.day_schedules?.[String(dow)];
     const startTime = ds?.start || DEFAULT.start;
     const endTime = ds?.end || DEFAULT.end;
     const breaks = ds?.breaks ?? DEFAULT.breaks;
-    let startHour = parseInt(startTime.split(":")[0]);
-    let endHour = parseInt(endTime.split(":")[0]) + (parseInt(endTime.split(":")[1]) > 0 ? 1 : 0);
-    // Extend to cover extra shifts (so shift windows are visible on the timeline)
+    let workStartHour = parseInt(startTime.split(":")[0]);
+    let workEndHour = parseInt(endTime.split(":")[0]) + (parseInt(endTime.split(":")[1]) > 0 ? 1 : 0);
+    // Extend work window to cover extra shifts (so shift windows are visible on the timeline)
     extraShifts.forEach((s) => {
       const sH = parseInt(s.start_time.split(":")[0]);
       const eRaw = s.end_time.split(":");
       const eH = parseInt(eRaw[0]) + (parseInt(eRaw[1]) > 0 ? 1 : 0);
-      if (sH < startHour) startHour = sH;
-      if (eH > endHour) endHour = eH;
+      if (sH < workStartHour) workStartHour = sH;
+      if (eH > workEndHour) workEndHour = eH;
     });
-    return { startHour, endHour, breaks };
+    // Admin-only calendar view range — widens (or narrows back to) the visible timeline
+    const viewStart = (settings.calendar_view_start || "07:00").substring(0, 5);
+    const viewEnd = (settings.calendar_view_end || "22:00").substring(0, 5);
+    const vsH = parseInt(viewStart.split(":")[0]);
+    const veRaw = viewEnd.split(":");
+    const veH = parseInt(veRaw[0]) + (parseInt(veRaw[1]) > 0 ? 1 : 0);
+    const startHour = Math.min(workStartHour, vsH);
+    const endHour = Math.max(workEndHour, veH);
+    return { startHour, endHour, workStartHour, workEndHour, breaks };
   }, [settings, selectedDate, extraShifts]);
 
   const timelineHours = useMemo(() => {
