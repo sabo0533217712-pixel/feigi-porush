@@ -79,6 +79,8 @@ export default function AdminSettings() {
         day_schedules: ds,
         slot_step_minutes: (data as any).slot_step_minutes || 15,
         appointment_buffer_minutes: (data as any).appointment_buffer_minutes ?? 5,
+        calendar_view_start: ((data as any).calendar_view_start || "07:00").substring(0, 5),
+        calendar_view_end: ((data as any).calendar_view_end || "22:00").substring(0, 5),
       });
     }
   };
