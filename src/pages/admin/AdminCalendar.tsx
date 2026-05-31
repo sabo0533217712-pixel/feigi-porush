@@ -557,7 +557,7 @@ export default function AdminCalendar() {
     else {
       toast.success("התזכורת נוספה");
       setShowReminderDialog(false);
-      setReminderForm({ start_time: "09:00", end_time: "10:00", notes: "" });
+      setReminderForm({ start_time: "09:00", end_time: "09:10", notes: "" });
       invalidateDay();
     }
   };
