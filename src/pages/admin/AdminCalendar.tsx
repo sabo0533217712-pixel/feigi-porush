@@ -276,8 +276,10 @@ export default function AdminCalendar() {
   const fetchTreatments = async () => {
     const { data } = await supabase
       .from("treatments")
-      .select("id, name, color, duration_minutes, price, is_variable_duration")
-      .eq("is_active", true);
+      .select("id, name, color, duration_minutes, price, is_variable_duration, display_order")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      .order("created_at", { ascending: true });
     if (data) setTreatments(data as Treatment[]);
   };
 
