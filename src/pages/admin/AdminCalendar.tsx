@@ -95,6 +95,8 @@ interface BusinessSettings {
   working_days: number[];
   break_start?: string | null;
   break_end?: string | null;
+  calendar_view_start?: string | null;
+  calendar_view_end?: string | null;
 }
 
 export default function AdminCalendar() {
