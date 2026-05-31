@@ -1496,7 +1496,23 @@ export default function AdminCalendar() {
                 <Input
                   type="time"
                   value={reminderForm.start_time}
-                  onChange={(e) => setReminderForm((prev) => ({ ...prev, start_time: e.target.value }))}
+                  onChange={(e) => {
+                    const newStart = e.target.value;
+                    setReminderForm((prev) => {
+                      const toMin = (t: string) => {
+                        const [h, m] = t.split(":").map(Number);
+                        return h * 60 + m;
+                      };
+                      const fmt = (mins: number) => {
+                        const clamped = Math.min(Math.max(mins, 0), 23 * 60 + 59);
+                        return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
+                      };
+                      const prevStart = toMin(prev.start_time);
+                      const prevEnd = toMin(prev.end_time);
+                      const duration = Math.max(prevEnd - prevStart, 10);
+                      return { ...prev, start_time: newStart, end_time: fmt(toMin(newStart) + duration) };
+                    });
+                  }}
                   dir="ltr"
                 />
               </div>
@@ -1518,12 +1534,21 @@ export default function AdminCalendar() {
                 placeholder="לדוגמה: להזכיר ליעל מתנה"
               />
             </div>
-            <Button
-              className="w-full bg-amber-500 hover:bg-amber-600 text-white"
-              onClick={handleAddReminder}
-            >
-              הוספת תזכורת
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowReminderDialog(false)}
+              >
+                ביטול
+              </Button>
+              <Button
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+                onClick={handleAddReminder}
+              >
+                הוספת תזכורת
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
