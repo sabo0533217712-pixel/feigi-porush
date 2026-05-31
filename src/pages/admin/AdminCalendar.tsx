@@ -531,6 +531,36 @@ export default function AdminCalendar() {
     }
   };
 
+  // Add personal reminder (display-only, does NOT block availability)
+  const handleAddReminder = async () => {
+    if (reminderForm.start_time >= reminderForm.end_time) {
+      toast.error("שעת סיום חייבת להיות אחרי שעת התחלה");
+      return;
+    }
+    const { error } = await supabase.from("personal_reminders").insert({
+      reminder_date: format(selectedDate, "yyyy-MM-dd"),
+      start_time: reminderForm.start_time,
+      end_time: reminderForm.end_time,
+      notes: reminderForm.notes,
+    });
+    if (error) toast.error("שגיאה בהוספת תזכורת");
+    else {
+      toast.success("התזכורת נוספה");
+      setShowReminderDialog(false);
+      setReminderForm({ start_time: "09:00", end_time: "10:00", notes: "" });
+      invalidateDay();
+    }
+  };
+
+  const handleDeleteReminder = async (id: string) => {
+    const { error } = await supabase.from("personal_reminders").delete().eq("id", id);
+    if (error) toast.error("שגיאה במחיקה");
+    else {
+      toast.success("התזכורת נמחקה");
+      invalidateDay();
+    }
+  };
+
   // Add extra shift
   const handleAddShift = async () => {
     if (shiftForm.start_time >= shiftForm.end_time) {
