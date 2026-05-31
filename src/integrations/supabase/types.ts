@@ -378,6 +378,33 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_reminders: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          notes: string
+          reminder_date: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          notes?: string
+          reminder_date: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          notes?: string
+          reminder_date?: string
+          start_time?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
