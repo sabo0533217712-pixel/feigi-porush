@@ -44,6 +44,8 @@ export default function AdminSettings() {
     day_schedules: {} as DaySchedules,
     slot_step_minutes: 15,
     appointment_buffer_minutes: 5,
+    calendar_view_start: "07:00",
+    calendar_view_end: "22:00",
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
