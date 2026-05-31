@@ -898,6 +898,17 @@ export default function AdminCalendar() {
             >
               <Plus className="h-3.5 w-3.5" /> הוספת משמרת
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-amber-500/50 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200"
+              onClick={() => {
+                setReminderForm({ start_time: "09:00", end_time: "10:00", notes: "" });
+                setShowReminderDialog(true);
+              }}
+            >
+              <Bell className="h-3.5 w-3.5" /> תזכורת אישית
+            </Button>
           </div>
 
           {/* Legend */}
