@@ -416,7 +416,7 @@ export type Database = {
           security_answer_hash: string | null
           security_question: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -428,7 +428,7 @@ export type Database = {
           security_answer_hash?: string | null
           security_question?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -440,7 +440,7 @@ export type Database = {
           security_answer_hash?: string | null
           security_question?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -699,6 +699,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_manual_client: {
+        Args: { _email?: string; _name: string; _phone: string }
+        Returns: string
+      }
       cancel_my_appointment: {
         Args: { _appointment_id: string }
         Returns: undefined
