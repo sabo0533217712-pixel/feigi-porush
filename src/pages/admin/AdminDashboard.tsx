@@ -19,7 +19,8 @@ import {
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getHebrewDateShort } from '@/lib/hebrew-date';
-import { CalendarDays, Users, Sparkles, TrendingUp, Pencil, Trash2 } from 'lucide-react';
+import { CalendarDays, Users, Sparkles, TrendingUp, Pencil, Trash2, Plus } from 'lucide-react';
+import ManualClientDialog from '@/components/admin/ManualClientDialog';
 import { toast } from 'sonner';
 
 interface ClientProfile {
@@ -37,6 +38,7 @@ export default function AdminDashboard() {
   const [editing, setEditing] = useState<ClientProfile | null>(null);
   const [editForm, setEditForm] = useState({ full_name: '', phone: '', email: '' });
   const [deleteTarget, setDeleteTarget] = useState<ClientProfile | null>(null);
+  const [showAddClient, setShowAddClient] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -146,10 +148,16 @@ export default function AdminDashboard() {
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            כל הלקוחות
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              כל הלקוחות
+            </CardTitle>
+            <Button size="sm" onClick={() => setShowAddClient(true)} className="gradient-primary text-primary-foreground">
+              <Plus className="h-4 w-4 ml-1" />
+              הוספת לקוחה
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {clients.length === 0 ? (
@@ -241,6 +249,15 @@ export default function AdminDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ManualClientDialog
+        open={showAddClient}
+        onOpenChange={setShowAddClient}
+        onCreated={() => {
+          fetchClients();
+          fetchStats();
+        }}
+      />
     </div>
   );
 }

@@ -20,6 +20,7 @@ import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Bell, Edit, Us
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import ManualClientDialog from "@/components/admin/ManualClientDialog";
 
 interface WaitlistEntry {
   id: string;
@@ -153,6 +154,7 @@ export default function AdminCalendar() {
   const [showShiftDialog, setShowShiftDialog] = useState(false);
   const [shiftForm, setShiftForm] = useState({ start_time: "19:00", end_time: "22:00", notes: "" });
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
+  const [showManualClientDialog, setShowManualClientDialog] = useState(false);
   const [editForm, setEditForm] = useState<{
     id: string;
     start_time: string;
@@ -1343,6 +1345,21 @@ export default function AdminCalendar() {
                           </CommandItem>
                         ))}
                       </CommandGroup>
+                      <div className="border-t p-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-primary"
+                          onClick={() => {
+                            setClientSearchOpen(false);
+                            setShowManualClientDialog(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 ml-2" />
+                          הוספת לקוחה חדשה
+                        </Button>
+                      </div>
                     </CommandList>
                   </Command>
                 </PopoverContent>
@@ -2076,6 +2093,22 @@ export default function AdminCalendar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ManualClientDialog
+        open={showManualClientDialog}
+        onOpenChange={setShowManualClientDialog}
+        onCreated={async (userId, info) => {
+          // Refresh profile list and auto-select the new client in the booking form
+          await fetchProfiles();
+          setBookForm((prev) => ({ ...prev, client_id: userId }));
+          // Ensure the new profile is visible even before refetch finishes
+          setProfiles((prev) =>
+            prev.some((p) => p.user_id === userId)
+              ? prev
+              : [...prev, { user_id: userId, full_name: info.full_name, phone: info.phone, email: info.email }]
+          );
+        }}
+      />
     </div>
   );
 }
