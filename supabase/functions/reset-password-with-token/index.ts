@@ -35,6 +35,12 @@ Deno.serve(async (req) => {
     if (tok.used) return json({ error: "token_used" }, 400);
     if (new Date(tok.expires_at).getTime() < Date.now()) return json({ error: "token_expired" }, 400);
 
+    // Verify this is a real auth user (manual clients have no auth.users row → no password to reset)
+    const { data: existing } = await supabase.auth.admin.getUserById(tok.user_id);
+    if (!existing?.user) {
+      return json({ error: "manual_client_no_password" }, 400);
+    }
+
     // Update password
     const { error: upErr } = await supabase.auth.admin.updateUserById(tok.user_id, {
       password: new_password,

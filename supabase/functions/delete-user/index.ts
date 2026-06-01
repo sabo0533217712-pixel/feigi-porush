@@ -49,10 +49,15 @@ Deno.serve(async (req) => {
     await admin.from("user_roles").delete().eq("user_id", user_id);
     await admin.from("profiles").delete().eq("user_id", user_id);
 
-    const { error: delErr } = await admin.auth.admin.deleteUser(user_id);
-    if (delErr) {
-      return new Response(JSON.stringify({ error: delErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Check if this is a real auth user (phantom/manual clients have no auth.users row)
+    const { data: existing } = await admin.auth.admin.getUserById(user_id);
+    if (existing?.user) {
+      const { error: delErr } = await admin.auth.admin.deleteUser(user_id);
+      if (delErr) {
+        return new Response(JSON.stringify({ error: delErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
+    // If no auth user exists, this was a manual client — the profile/appointments cleanup above is sufficient.
 
     return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
