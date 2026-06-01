@@ -1345,6 +1345,21 @@ export default function AdminCalendar() {
                           </CommandItem>
                         ))}
                       </CommandGroup>
+                      <div className="border-t p-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-primary"
+                          onClick={() => {
+                            setClientSearchOpen(false);
+                            setShowManualClientDialog(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 ml-2" />
+                          הוספת לקוחה חדשה
+                        </Button>
+                      </div>
                     </CommandList>
                   </Command>
                 </PopoverContent>
