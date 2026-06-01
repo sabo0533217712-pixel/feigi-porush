@@ -40,7 +40,8 @@ export default function ManualClientDialog({ open, onOpenChange, onCreated }: Ma
       return;
     }
     setBusy(true);
-    const { data, error } = await supabase.rpc("admin_create_manual_client", {
+    // RPC was added manually on the production DB — types aren't aware of it yet.
+    const { data, error } = await (supabase.rpc as any)("admin_create_manual_client", {
       _name: form.full_name.trim(),
       _phone: form.phone.trim(),
       _email: form.email.trim() || "",
