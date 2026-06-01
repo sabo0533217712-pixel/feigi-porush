@@ -20,6 +20,7 @@ import { Phone, Mail, MessageCircle, MessageSquare, Plus, X, Ban, Bell, Edit, Us
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import ManualClientDialog from "@/components/admin/ManualClientDialog";
 
 interface WaitlistEntry {
   id: string;
