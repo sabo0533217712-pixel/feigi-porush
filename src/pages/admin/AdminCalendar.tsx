@@ -2093,6 +2093,22 @@ export default function AdminCalendar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ManualClientDialog
+        open={showManualClientDialog}
+        onOpenChange={setShowManualClientDialog}
+        onCreated={async (userId, info) => {
+          // Refresh profile list and auto-select the new client in the booking form
+          await fetchProfiles();
+          setBookForm((prev) => ({ ...prev, client_id: userId }));
+          // Ensure the new profile is visible even before refetch finishes
+          setProfiles((prev) =>
+            prev.some((p) => p.user_id === userId)
+              ? prev
+              : [...prev, { user_id: userId, full_name: info.full_name, phone: info.phone, email: info.email }]
+          );
+        }}
+      />
     </div>
   );
 }
