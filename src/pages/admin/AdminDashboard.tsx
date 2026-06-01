@@ -146,10 +146,16 @@ export default function AdminDashboard() {
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            כל הלקוחות
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              כל הלקוחות
+            </CardTitle>
+            <Button size="sm" onClick={() => setShowAddClient(true)} className="gradient-primary text-primary-foreground">
+              <Plus className="h-4 w-4 ml-1" />
+              הוספת לקוחה
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {clients.length === 0 ? (
