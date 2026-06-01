@@ -19,7 +19,8 @@ import {
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getHebrewDateShort } from '@/lib/hebrew-date';
-import { CalendarDays, Users, Sparkles, TrendingUp, Pencil, Trash2 } from 'lucide-react';
+import { CalendarDays, Users, Sparkles, TrendingUp, Pencil, Trash2, Plus } from 'lucide-react';
+import ManualClientDialog from '@/components/admin/ManualClientDialog';
 import { toast } from 'sonner';
 
 interface ClientProfile {
