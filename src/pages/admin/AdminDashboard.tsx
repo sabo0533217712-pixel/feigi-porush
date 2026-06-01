@@ -249,6 +249,15 @@ export default function AdminDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ManualClientDialog
+        open={showAddClient}
+        onOpenChange={setShowAddClient}
+        onCreated={() => {
+          fetchClients();
+          fetchStats();
+        }}
+      />
     </div>
   );
 }
