@@ -153,6 +153,7 @@ export default function AdminCalendar() {
   const [showShiftDialog, setShowShiftDialog] = useState(false);
   const [shiftForm, setShiftForm] = useState({ start_time: "19:00", end_time: "22:00", notes: "" });
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
+  const [showManualClientDialog, setShowManualClientDialog] = useState(false);
   const [editForm, setEditForm] = useState<{
     id: string;
     start_time: string;
