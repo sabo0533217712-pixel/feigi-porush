@@ -1168,7 +1168,7 @@ export default function AdminCalendar() {
                           <>
                             <div className="w-1.5 flex-shrink-0" style={{ background: barBackground }} />
                             <div
-                              className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-0.5 flex items-center min-w-0 overflow-hidden cursor-pointer"
+                              className="flex-1 bg-card/95 backdrop-blur-sm border border-border/70 px-2 py-0.5 flex items-center min-w-0 overflow-hidden cursor-pointer relative"
                               style={{ borderLeftColor: accentColor }}
                             >
                               <div className="flex flex-col gap-0 min-w-0 flex-1">
@@ -1189,6 +1189,28 @@ export default function AdminCalendar() {
                                   </span>
                                 )}
                               </div>
+                              {apt.status === "cancelled" && (
+                                <button
+                                  type="button"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!window.confirm("למחוק לצמיתות את התור שבוטל מהיומן?")) return;
+                                    const { error } = await supabase.from("appointments").delete().eq("id", apt.id);
+                                    if (error) {
+                                      toast.error("שגיאה במחיקת התור");
+                                      return;
+                                    }
+                                    toast.success("התור נמחק מהיומן");
+                                    invalidateDay(apt.appointment_date);
+                                    fetchMonthCounts();
+                                  }}
+                                  aria-label="מחק תור מבוטל"
+                                  title="מחק תור מבוטל"
+                                  className="absolute top-0.5 left-0.5 z-10 h-4 w-4 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
+                                >
+                                  <X className="h-2.5 w-2.5" strokeWidth={3} />
+                                </button>
+                              )}
                             </div>
                           </>
                         );
