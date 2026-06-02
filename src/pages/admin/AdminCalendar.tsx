@@ -1183,7 +1183,7 @@ export default function AdminCalendar() {
                                 <span className="text-[10px] font-mono text-foreground/80 font-medium">
                                   {apt.start_time.substring(0, 5)}-{apt.end_time.substring(0, 5)} ({dur} דק׳)
                                 </span>
-                                {apt.notes && (
+                                {apt.notes && dur >= 30 && (
                                   <span className="text-[10px] text-foreground/75 truncate" title={apt.notes}>
                                     📝 {apt.notes}
                                   </span>
