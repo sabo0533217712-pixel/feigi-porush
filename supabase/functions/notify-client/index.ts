@@ -116,10 +116,12 @@ function buildPlainMessage(ctx: MessageContext): string {
       ? `${greeting}\n` +
         `נקבע לך תור ב${slot}.\n` +
         `${treatmentLine}\n` +
-        `שימי לב: ניתן לבטל את התור עד ${ctx.cancellationHours} שעות לפני מועדו.`
+        `שימי לב: ניתן לבטל את התור עד ${ctx.cancellationHours} שעות לפני מועדו.\n` +
+        `(לא תקף לאיפור)`
       : `${greeting}\n` +
         `נקבע לך תור לטיפול ${ctx.treatmentName} ב${slot}.\n` +
-        `שימי לב: ניתן לבטל את התור עד ${ctx.cancellationHours} שעות לפני מועדו.`;
+        `שימי לב: ניתן לבטל את התור עד ${ctx.cancellationHours} שעות לפני מועדו.\n` +
+        `(לא תקף לאיפור)`;
   } else if (ctx.event === "rescheduled") {
     body = isMulti
       ? `${greeting}\n` +
