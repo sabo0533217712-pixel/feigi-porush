@@ -618,11 +618,14 @@ export default function AdminCalendar() {
     if (error) toast.error("שגיאה בעדכון");
     else {
       toast.success("התור עודכן");
-      // Detect time-change reschedule (date stays same in this dialog)
+      // Detect time-change reschedule (date stays same in this dialog).
+      // Normalize to HH:MM since original times come from DB as "HH:MM:SS"
+      // while editForm holds "HH:MM" — otherwise the comparison is always true.
+      const norm = (t: string) => (t ?? "").substring(0, 5);
       const timeChanged =
-        original &&
-        (original.start_time !== editForm.start_time ||
-          original.end_time !== editForm.end_time);
+        !!original &&
+        (norm(original.start_time) !== norm(editForm.start_time) ||
+          norm(original.end_time) !== norm(editForm.end_time));
       if (timeChanged && original) {
         supabase.functions
           .invoke("notify-client", {
