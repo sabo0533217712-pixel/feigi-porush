@@ -283,6 +283,14 @@ export default function AdminCalendar() {
       setCounts(counts);
       setColors(colors);
     }
+    const { data: blockData } = await supabase
+      .from("time_blocks")
+      .select("block_date")
+      .gte("block_date", firstDay)
+      .lte("block_date", lastDay);
+    if (blockData) {
+      setMonthBlocks(new Set(blockData.map((b: any) => b.block_date)));
+    }
   };
 
   const fetchMonthCounts = () => fetchMonthCountsFor(currentMonth, setMonthCounts, setMonthColors);
