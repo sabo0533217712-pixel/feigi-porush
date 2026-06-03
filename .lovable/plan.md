@@ -1,11 +1,20 @@
-## Goal
-In the admin booking dialog, the "הוספת לקוחה חדשה" button currently sits inside the scrollable client list and is only visible after scrolling to the bottom. Make it always visible at the top of the popup, right under the search input — no scroll needed.
+## הוספת סימון של חסימת זמן ביומן
 
-## Change
-File: `src/pages/admin/AdminCalendar.tsx` (client picker `Popover`, ~lines 1345–1396).
+כיום ביומן (תצוגת החודש של האדמין) מוצגות נקודות צבעוניות לכל יום שיש בו תורים, אבל אין שום חיווי שיש ביום מסוים חסימת זמן (time_block). האדמין חייבת להיכנס ליום כדי לדעת.
 
-- Move the "הוספת לקוחה חדשה" button out of `CommandList` so it doesn't scroll with the results.
-- Place it directly between `CommandInput` and `CommandList`, with a bottom border separator, so it's always pinned at the top of the dropdown.
-- Keep behavior identical: closes the popover and opens `ManualClientDialog`.
+### מה ייעשה
 
-No changes to `AdminDashboard` (its "הוספת לקוחה" button is already a standalone top-level button) or to `ManualClientDialog` itself.
+ב-`src/pages/admin/AdminCalendar.tsx`:
+
+1. **טעינת חסימות לחודש המוצג** – להוסיף state חדש `monthBlocks: Set<string>` (תאריכים בפורמט `yyyy-MM-dd` שיש בהם חסימת זמן), ולמלא אותו בתוך `fetchMonthCountsFor` ע"י שאילתה ל-`time_blocks` בטווח החודש.
+
+2. **רינדור סימון ביום** – ברכיב `DayContent` של היומן הראשי (סביב שורות 1264–1302), כשהתאריך נמצא ב-`monthBlocks` להקיף את מספר היום (ה-`<span>` עם `date.getDate()`) בעיגול אפור מקווקו:
+   - `rounded-full border border-dashed border-muted-foreground/60 px-1.5`
+   - לא משפיע על הנקודות הצבעוניות של התורים – שני האינדיקטורים יוכלו להופיע יחד.
+
+3. **רענון** – החסימות ייטענו יחד עם שאר נתוני החודש בכל פעם ש-`fetchMonthCounts` רץ (החלפת חודש, יצירת/מחיקת חסימה ביום הנבחר).
+
+### מה לא משתנה
+
+- היומן המשני בתוך דיאלוג "שינוי תאריך" (move appointment) – לא נוגעים, האדמין רואה את החסימות בעמוד הראשי.
+- אין שינוי בלוגיקת ה-DB, הרשאות, או בהתנהגות לחיצה על יום.

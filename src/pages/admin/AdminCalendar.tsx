@@ -123,6 +123,7 @@ export default function AdminCalendar() {
   const [showTimeline, setShowTimeline] = useState(false);
   const [monthCounts, setMonthCounts] = useState<Record<string, number>>({});
   const [monthColors, setMonthColors] = useState<Record<string, string[]>>({});
+  const [monthBlocks, setMonthBlocks] = useState<Set<string>>(new Set());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showMoveDatePicker, setShowMoveDatePicker] = useState(false);
@@ -281,6 +282,14 @@ export default function AdminCalendar() {
       });
       setCounts(counts);
       setColors(colors);
+    }
+    const { data: blockData } = await supabase
+      .from("time_blocks")
+      .select("block_date")
+      .gte("block_date", firstDay)
+      .lte("block_date", lastDay);
+    if (blockData) {
+      setMonthBlocks(new Set(blockData.map((b: any) => b.block_date)));
     }
   };
 
@@ -1267,9 +1276,17 @@ export default function AdminCalendar() {
                 const colors = monthColors[dateStr] || [];
                 const dots = colors.slice(0, 4);
                 const holiday = getHolidayInfo(date, holidaySettings);
+                const hasBlock = monthBlocks.has(dateStr);
                 return (
                   <div className="flex flex-col items-center leading-tight w-full" title={holiday?.name}>
-                    <span className="text-sm font-medium">{date.getDate()}</span>
+                    <span
+                      className={cn(
+                        "text-sm font-medium inline-flex items-center justify-center w-6 h-6",
+                        hasBlock && "rounded-full border border-dashed border-muted-foreground/70"
+                      )}
+                    >
+                      {date.getDate()}
+                    </span>
                     <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
                     {holiday && (
                       <span
