@@ -1,29 +1,11 @@
-## הבאג
+## Goal
+In the admin booking dialog, the "הוספת לקוחה חדשה" button currently sits inside the scrollable client list and is only visible after scrolling to the bottom. Make it always visible at the top of the popup, right under the search input — no scroll needed.
 
-בעריכת תור דרך הדיאלוג של האדמין, ההשוואה `original.start_time !== editForm.start_time` תמיד יוצאת `true` כי `original.start_time` בפורמט `"09:00:00"` ואילו `editForm.start_time` בפורמט `"09:00"` (חיתוך ל-5 תווים בעת פתיחת הדיאלוג, שורה 805). לכן ההודעה "התור הועבר למועד חדש" נשלחת גם כשהאדמין רק הוסיפה הערה או שינתה סטטוס.
+## Change
+File: `src/pages/admin/AdminCalendar.tsx` (client picker `Popover`, ~lines 1345–1396).
 
-## התיקון
+- Move the "הוספת לקוחה חדשה" button out of `CommandList` so it doesn't scroll with the results.
+- Place it directly between `CommandInput` and `CommandList`, with a bottom border separator, so it's always pinned at the top of the dropdown.
+- Keep behavior identical: closes the popover and opens `ManualClientDialog`.
 
-**קובץ:** `src/pages/admin/AdminCalendar.tsx`, פונקציית `handleEditSave` (שורות 606-647).
-
-לנרמל את שני הצדדים ל-`HH:MM` לפני ההשוואה:
-
-```ts
-const norm = (t: string) => (t ?? "").substring(0, 5);
-const timeChanged =
-  !!original &&
-  (norm(original.start_time) !== norm(editForm.start_time) ||
-   norm(original.end_time)   !== norm(editForm.end_time));
-```
-
-תוצאה:
-- שינוי הערה בלבד → אין הודעה
-- שינוי סטטוס בלבד → אין הודעה (כבר כך גם היום, רק זמן בודק)
-- "משחק" בשעות וחזרה לערכים המקוריים לפני שמירה → אין הודעה (כי ההשוואה היא מול המקור, לא מול ערך ביניים)
-- שינוי אמיתי של שעת התחלה/סיום → נשלחת הודעת `rescheduled` כרגיל
-
-לא משנה שום זרימה אחרת (ביטול דרך `handleAdminCancel`, גרירה ב-`handleMoveToSlot`, יצירת תור) — הן לא קשורות לבאג ולא נוגעים בהן.
-
-## הערה לגבי תאריך
-
-הדיאלוג הזה לא מאפשר שינוי תאריך (רק שעות + סטטוס + הערה), אז אין צורך להוסיף השוואה על `appointment_date`. שינוי תאריך עובר דרך `handleMoveToSlot` שכבר שולח הודעה נכון.
+No changes to `AdminDashboard` (its "הוספת לקוחה" button is already a standalone top-level button) or to `ManualClientDialog` itself.
