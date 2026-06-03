@@ -1276,9 +1276,17 @@ export default function AdminCalendar() {
                 const colors = monthColors[dateStr] || [];
                 const dots = colors.slice(0, 4);
                 const holiday = getHolidayInfo(date, holidaySettings);
+                const hasBlock = monthBlocks.has(dateStr);
                 return (
                   <div className="flex flex-col items-center leading-tight w-full" title={holiday?.name}>
-                    <span className="text-sm font-medium">{date.getDate()}</span>
+                    <span
+                      className={cn(
+                        "text-sm font-medium inline-flex items-center justify-center w-6 h-6",
+                        hasBlock && "rounded-full border border-dashed border-muted-foreground/70"
+                      )}
+                    >
+                      {date.getDate()}
+                    </span>
                     <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
                     {holiday && (
                       <span
