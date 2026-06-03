@@ -123,6 +123,7 @@ export default function AdminCalendar() {
   const [showTimeline, setShowTimeline] = useState(false);
   const [monthCounts, setMonthCounts] = useState<Record<string, number>>({});
   const [monthColors, setMonthColors] = useState<Record<string, string[]>>({});
+  const [monthBlocks, setMonthBlocks] = useState<Set<string>>(new Set());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showMoveDatePicker, setShowMoveDatePicker] = useState(false);
