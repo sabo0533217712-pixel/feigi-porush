@@ -1279,14 +1279,7 @@ export default function AdminCalendar() {
                 const hasBlock = monthBlocks.has(dateStr);
                 return (
                   <div className="flex flex-col items-center leading-tight w-full" title={holiday?.name}>
-                    <span
-                      className={cn(
-                        "text-sm font-medium inline-flex items-center justify-center w-6 h-6",
-                        hasBlock && "rounded-full border border-dashed border-muted-foreground/70"
-                      )}
-                    >
-                      {date.getDate()}
-                    </span>
+                    <span className="text-sm font-medium">{date.getDate()}</span>
                     <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
                     {holiday && (
                       <span
@@ -1298,7 +1291,7 @@ export default function AdminCalendar() {
                         {holiday.name}
                       </span>
                     )}
-                    {dots.length > 0 && (
+                    {(dots.length > 0 || hasBlock) && (
                       <div className="flex gap-0.5 mt-0.5 items-center">
                         {dots.map((c, i) => (
                           <span
@@ -1307,6 +1300,12 @@ export default function AdminCalendar() {
                             style={{ backgroundColor: c }}
                           />
                         ))}
+                        {hasBlock && (
+                          <span
+                            className="w-1.5 h-1.5 rounded-full border border-dashed border-muted-foreground"
+                            title="חסימת זמן"
+                          />
+                        )}
                         {count > dots.length && (
                           <span className="text-[8px] font-semibold text-muted-foreground ml-0.5">
                             +{count - dots.length}
