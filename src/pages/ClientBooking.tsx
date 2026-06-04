@@ -480,6 +480,17 @@ export default function ClientBooking() {
     }));
   }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions, totalDuration, fixedTotalDuration]);
 
+  // Clear selectedTime only if it's no longer valid in any list (available/partial/gap)
+  useEffect(() => {
+    if (!selectedTime) return;
+    if (availableSlots.includes(selectedTime)) return;
+    if (partialSuggestions.some((s) => s.time === selectedTime)) return;
+    if (gapSuggestions.some((s) => s.time === selectedTime)) return;
+    if (availableSlots.length > 0 || partialSuggestions.length > 0 || gapSuggestions.length > 0) {
+      setSelectedTime(null);
+    }
+  }, [availableSlots, selectedTime, partialSuggestions, gapSuggestions]);
+
   const isWorkingDay = (date: Date) => {
     if (!settings) return false;
     if (settings.working_days.includes(date.getDay())) return true;
