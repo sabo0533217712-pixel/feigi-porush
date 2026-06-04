@@ -374,16 +374,6 @@ export default function ClientBooking() {
 
   // If the previously selected time disappears (admin removed a shift / added a break /
   // unmarked the working day) — clear the selection so the client cannot proceed.
-  useEffect(() => {
-    if (!selectedTime) return;
-    if (availableSlots.includes(selectedTime)) return;
-    const inPartial = partialSuggestions.some((s) => s.time === selectedTime);
-    const inGap = gapSuggestions.some((s) => s.time === selectedTime);
-    if (inPartial || inGap) return;
-    if (availableSlots.length > 0 || partialSuggestions.length > 0 || gapSuggestions.length > 0) {
-      setSelectedTime(null);
-    }
-  }, [availableSlots, selectedTime, partialSuggestions, gapSuggestions]);
 
   // Smart suggestions: 3 closest to preferred time + gap fillers
   const smartSuggestions = useMemo((): SlotSuggestion[] => {
