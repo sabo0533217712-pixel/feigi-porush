@@ -438,12 +438,20 @@ export default function ClientBooking() {
     return suggestions;
   }, [availableSlots, preferredTime, bookedSlots, totalDuration]);
 
+  // Sum of fixed (non-variable) treatments — partial windows must fit this in full
+  const fixedTotalDuration = useMemo(
+    () => selectedTreatments.filter((t) => !t.is_variable_duration).reduce((s, t) => s + t.duration_minutes, 0),
+    [selectedTreatments],
+  );
+  // Minimum meaningful duration for the variable portion of a partial booking
+  const MIN_VARIABLE_PORTION = 10;
+
   // Partial time suggestions for variable duration services
   const partialSuggestions = useMemo((): SlotSuggestion[] => {
     if (!hasVariableDuration || availableSlots.length > 0 || !settings || !selectedDate) return [];
     // Find shorter available windows
     const shortSlots: SlotSuggestion[] = [];
-    const minDuration = 5;
+    const minDuration = Math.max(5, fixedTotalDuration + MIN_VARIABLE_PORTION);
     for (let dur = totalDuration - 5; dur >= minDuration; dur -= 5) {
       const slots = getAvailableSlots(selectedDate, bookedSlots, dur);
       if (slots.length > 0) {
@@ -454,7 +462,7 @@ export default function ClientBooking() {
       }
     }
     return shortSlots;
-  }, [hasVariableDuration, availableSlots, settings, selectedDate, bookedSlots, totalDuration]);
+  }, [hasVariableDuration, availableSlots, settings, selectedDate, bookedSlots, totalDuration, fixedTotalDuration]);
 
   // Gap suggestions: for variable-duration treatments, show empty windows in the day
   // that are NOT already in smart suggestions — sorted by largest first, max 3.
@@ -462,10 +470,11 @@ export default function ClientBooking() {
     if (!hasVariableDuration || !settings || !selectedDate) return [];
     const gaps = findShortGaps(selectedDate);
     const taken = new Set(smartSuggestions.map((s) => s.time));
-    // Only show gaps SMALLER than (or equal to) the requested duration —
-    // gaps larger than the request are already covered by regular smart suggestions.
+    // Only show gaps SMALLER than the requested duration but LARGE ENOUGH to fit
+    // all fixed treatments plus a minimum slice for the variable treatment.
+    const minGap = Math.max(5, fixedTotalDuration + MIN_VARIABLE_PORTION);
     const filtered = gaps
-      .filter((g) => !taken.has(g.time) && g.minutes >= 5 && g.minutes < totalDuration)
+      .filter((g) => !taken.has(g.time) && g.minutes >= minGap && g.minutes < totalDuration)
       .sort((a, b) => b.minutes - a.minutes)
       .slice(0, 3);
     return filtered.map((g) => ({
@@ -474,7 +483,7 @@ export default function ClientBooking() {
       isPartial: true,
       availableMinutes: g.minutes,
     }));
-  }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions, totalDuration]);
+  }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions, totalDuration, fixedTotalDuration]);
 
   const isWorkingDay = (date: Date) => {
     if (!settings) return false;
