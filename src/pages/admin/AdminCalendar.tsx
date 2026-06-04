@@ -989,8 +989,7 @@ export default function AdminCalendar() {
                   style={{
                     top: getTopOffset(brk.start),
                     height: getHeight(brk.start, brk.end),
-                    backgroundImage:
-                      "repeating-linear-gradient(45deg, transparent 0, transparent 5px, hsl(var(--muted-foreground) / 0.25) 5px, hsl(var(--muted-foreground) / 0.25) 7px)",
+                    backgroundColor: "hsl(var(--muted-foreground) / 0.18)",
                   }}
                 >
                   <span className="text-[10px] font-medium text-muted-foreground bg-background/80 rounded px-1.5 py-0.5 mr-2 mt-1 inline-block">הפסקה</span>
@@ -1032,9 +1031,8 @@ export default function AdminCalendar() {
                   style={{
                     top: getTopOffset(block.start_time),
                     height: getHeight(block.start_time, block.end_time),
-                    backgroundImage:
-                      "repeating-linear-gradient(45deg, transparent 0, transparent 5px, hsl(var(--muted-foreground) / 0.25) 5px, hsl(var(--muted-foreground) / 0.25) 7px)",
-                    border: "1px dashed hsl(var(--muted-foreground) / 0.4)",
+                    backgroundColor: "hsl(var(--muted-foreground) / 0.18)",
+                    border: "1px solid hsl(var(--muted-foreground) / 0.4)",
                   }}
                 >
                   <span className="text-xs text-muted-foreground truncate">
@@ -1302,7 +1300,7 @@ export default function AdminCalendar() {
                         ))}
                         {hasBlock && (
                           <span
-                            className="w-1.5 h-1.5 rounded-full border border-dashed border-muted-foreground"
+                            className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
                             title="חסימת זמן"
                           />
                         )}
@@ -2604,8 +2602,7 @@ function DayTimeline({
                   style={{
                     top: getTopOffset(brk.start),
                     height: getHeight(brk.start, brk.end),
-                    backgroundImage:
-                      "repeating-linear-gradient(45deg, transparent 0, transparent 5px, hsl(var(--muted-foreground) / 0.25) 5px, hsl(var(--muted-foreground) / 0.25) 7px)",
+                    backgroundColor: "hsl(var(--muted-foreground) / 0.18)",
                   }}
                 >
                   <span className="text-[10px] font-medium text-muted-foreground bg-background/80 rounded px-1.5 py-0.5 mr-2 mt-1 inline-block">
@@ -2621,9 +2618,8 @@ function DayTimeline({
                   style={{
                     top: getTopOffset(block.start_time),
                     height: getHeight(block.start_time, block.end_time),
-                    backgroundImage:
-                      "repeating-linear-gradient(45deg, transparent 0, transparent 5px, hsl(var(--muted-foreground) / 0.25) 5px, hsl(var(--muted-foreground) / 0.25) 7px)",
-                    border: "1px dashed hsl(var(--muted-foreground) / 0.4)",
+                    backgroundColor: "hsl(var(--muted-foreground) / 0.18)",
+                    border: "1px solid hsl(var(--muted-foreground) / 0.4)",
                   }}
                 >
                   <span className="text-xs text-muted-foreground truncate">
