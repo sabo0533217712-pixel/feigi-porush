@@ -508,6 +508,26 @@ export default function ClientBooking() {
     const endMin = h * 60 + m + duration;
     const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
+    // Compute effective per-treatment durations.
+    // When a partial window is chosen, shrink ONLY the variable treatment(s);
+    // fixed treatments always keep their full duration.
+    const variableTreatments = selectedTreatments.filter((t) => t.is_variable_duration);
+    const isPartial = !!customDuration && customDuration < totalDuration && variableTreatments.length > 0;
+    const variableBudget = isPartial ? Math.max(0, duration - fixedTotalDuration) : 0;
+    const perVariable = isPartial && variableTreatments.length > 0
+      ? Math.max(5, Math.floor(variableBudget / variableTreatments.length / 5) * 5)
+      : 0;
+
+    const effectiveDuration = (t: Treatment) => {
+      if (!t.is_variable_duration) return t.duration_minutes;
+      return isPartial ? perVariable : getDuration(t);
+    };
+    const effectivePrice = (t: Treatment) => {
+      if (!t.is_variable_duration) return t.price;
+      const dur = effectiveDuration(t);
+      return calculateTierPrice(t.id, dur);
+    };
+
     try {
       // Insert appointment with first treatment (for backwards compatibility)
       const { data: aptData, error } = await supabase
@@ -548,8 +568,8 @@ export default function ClientBooking() {
           const treatmentRows = selectedTreatments.map((t) => ({
             appointment_id: aptData.id,
             treatment_id: t.id,
-            duration_minutes: t.duration_minutes,
-            price: t.price,
+            duration_minutes: effectiveDuration(t),
+            price: effectivePrice(t),
           }));
           await supabase.from("appointment_treatments").insert(treatmentRows);
         }
