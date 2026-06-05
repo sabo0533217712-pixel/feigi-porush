@@ -19,6 +19,17 @@ export default function Auth() {
   const { signIn, signUp } = useAuth();
   const [loading, setLoading] = useState(false);
 
+  // Basic format validators — no actual verification, just pattern checks
+  const isValidEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+  const isValidIsraeliPhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+    // Israeli mobile/landline: starts with 0, 9–10 digits total
+    return /^0\d{8,9}$/.test(digits);
+  };
+
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
@@ -69,6 +80,9 @@ export default function Auth() {
     e.preventDefault();
     if (!regName.trim()) return toast.error("נא להזין שם מלא");
     if (!regPhone.trim()) return toast.error("נא להזין מספר טלפון");
+    if (!isValidIsraeliPhone(regPhone)) return toast.error("מספר טלפון אינו תקין (יש להזין מספר ישראלי)");
+    if (!regEmail.trim()) return toast.error("נא להזין אימייל");
+    if (!isValidEmail(regEmail)) return toast.error("כתובת האימייל אינה תקינה");
     if (regQuestion.trim().length < 3) return toast.error("שאלת אבטחה קצרה מדי");
     if (regAnswer.trim().length < 2) return toast.error("תשובה לשאלת האבטחה קצרה מדי");
     setLoading(true);
@@ -105,6 +119,7 @@ export default function Auth() {
   const submitPhone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fpPhone.trim()) return toast.error("נא להזין מספר טלפון");
+    if (!isValidIsraeliPhone(fpPhone)) return toast.error("מספר טלפון אינו תקין (יש להזין מספר ישראלי)");
     setFpBusy(true);
     try {
       const { data, error } = await supabase.rpc("request_password_reset", { _phone: fpPhone });
