@@ -1163,7 +1163,7 @@ export default function ClientBooking() {
                   <div key={t.id} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
                     <span>
-                      {t.name} • {getDuration(t)} דק׳ • ₪{getPrice(t)}
+                      {t.name} • {getBookingDuration(t)} דק׳ • ₪{getBookingPrice(t)}
                     </span>
                   </div>
                 ))}
@@ -1172,7 +1172,7 @@ export default function ClientBooking() {
                 </p>
                 <p className="text-sm text-muted-foreground">שעה: {selectedTime}</p>
                 <p className="text-sm font-medium text-primary">
-                  סה״כ: {totalDuration} דק׳ • ₪{totalPrice}
+                  סה״כ: {bookingDuration} דק׳ • ₪{bookingTotalPrice}
                 </p>
                 <div className="space-y-1.5 pt-2">
                   <Label htmlFor="client-note" className="text-sm">
@@ -1191,10 +1191,7 @@ export default function ClientBooking() {
                 <Button
                   className="w-full mt-3 gradient-primary text-primary-foreground"
                   onClick={() => {
-                    const partial =
-                      partialSuggestions.find((s) => s.time === selectedTime) ||
-                      gapSuggestions.find((s) => s.time === selectedTime);
-                    handleBook(partial?.availableMinutes);
+                    handleBook(selectedPartialSuggestion?.availableMinutes);
                   }}
                   disabled={loading}
                 >
