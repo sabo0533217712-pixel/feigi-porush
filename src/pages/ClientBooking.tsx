@@ -53,6 +53,7 @@ interface BusinessSettings {
   break_end: string | null;
   slot_duration_minutes: number;
   slot_step_minutes?: number;
+  appointment_buffer_minutes?: number;
   advance_booking_days: number;
   business_name: string;
   day_schedules?: DaySchedules;
@@ -266,6 +267,7 @@ export default function ClientBooking() {
 
     const allSlots = new Set<string>();
     const step = settings.slot_step_minutes || 15;
+    const buffer = settings.appointment_buffer_minutes ?? 5;
 
     windows.forEach((win) => {
       const [startH, startM] = win.start.split(":").map(Number);
@@ -288,9 +290,11 @@ export default function ClientBooking() {
           return current < beH * 60 + beM && slotEndMin > bsH * 60 + bsM;
         });
         const isBooked = booked.some((b) => {
-          const bStart = b.start_time.substring(0, 5);
-          const bEnd = b.end_time.substring(0, 5);
-          return slotStart < bEnd && slotEnd > bStart;
+          const [bsH, bsM] = b.start_time.substring(0, 5).split(":").map(Number);
+          const [beH, beM] = b.end_time.substring(0, 5).split(":").map(Number);
+          const bStartMin = bsH * 60 + bsM;
+          const bEndMin = beH * 60 + beM;
+          return current < bEndMin && slotEndMin + buffer > bStartMin;
         });
         const isBlocked = blockedSlots.some((b) => {
           const bStart = b.start_time.substring(0, 5);
