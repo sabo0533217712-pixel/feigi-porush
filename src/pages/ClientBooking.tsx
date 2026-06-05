@@ -475,6 +475,15 @@ export default function ClientBooking() {
     const filtered = gaps
       .filter((g) => !taken.has(g.time) && g.minutes >= minGap && g.minutes < totalDuration)
       .sort((a, b) => b.minutes - a.minutes)
+      .map((g) => {
+        for (let dur = Math.floor(g.minutes / 5) * 5; dur >= minGap; dur -= 5) {
+          if (getAvailableSlots(selectedDate, bookedSlots, dur).includes(g.time)) {
+            return { ...g, minutes: dur };
+          }
+        }
+        return null;
+      })
+      .filter((g): g is { time: string; minutes: number } => g !== null)
       .slice(0, 3);
     return filtered.map((g) => ({
       time: g.time,
