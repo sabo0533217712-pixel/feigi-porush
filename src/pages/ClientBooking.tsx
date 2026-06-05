@@ -484,6 +484,32 @@ export default function ClientBooking() {
     }));
   }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions, totalDuration, fixedTotalDuration]);
 
+  const selectedPartialSuggestion = useMemo(
+    () =>
+      selectedTime
+        ? partialSuggestions.find((s) => s.time === selectedTime) || gapSuggestions.find((s) => s.time === selectedTime)
+        : undefined,
+    [selectedTime, partialSuggestions, gapSuggestions],
+  );
+
+  const bookingDuration = selectedPartialSuggestion?.availableMinutes ?? totalDuration;
+  const bookingVariableTreatments = selectedTreatments.filter((t) => t.is_variable_duration);
+  const bookingIsPartial = bookingDuration < totalDuration && bookingVariableTreatments.length > 0;
+  const bookingVariableBudget = bookingIsPartial ? Math.max(0, bookingDuration - fixedTotalDuration) : 0;
+  const bookingPerVariable =
+    bookingIsPartial && bookingVariableTreatments.length > 0
+      ? Math.max(5, Math.floor(bookingVariableBudget / bookingVariableTreatments.length / 5) * 5)
+      : 0;
+  const getBookingDuration = (t: Treatment) => {
+    if (!t.is_variable_duration) return t.duration_minutes;
+    return bookingIsPartial ? bookingPerVariable : getDuration(t);
+  };
+  const getBookingPrice = (t: Treatment) => {
+    if (!t.is_variable_duration) return t.price;
+    return calculateTierPrice(t.id, getBookingDuration(t));
+  };
+  const bookingTotalPrice = selectedTreatments.reduce((sum, t) => sum + getBookingPrice(t), 0);
+
   // Clear selectedTime only if it's no longer valid in any list (available/partial/gap)
   useEffect(() => {
     if (!selectedTime) return;
