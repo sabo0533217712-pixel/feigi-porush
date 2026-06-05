@@ -1099,7 +1099,7 @@ export default function ClientBooking() {
               </div>
             )}
 
-            {availableSlots.length === 0 && partialSuggestions.length === 0 && (
+            {availableSlots.length === 0 && partialSuggestions.length === 0 && gapSuggestions.length === 0 && (
               <div className="text-center space-y-3 py-4">
                 <p className="text-muted-foreground">אין שעות פנויות בתאריך זה</p>
               </div>
