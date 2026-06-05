@@ -119,6 +119,7 @@ export default function Auth() {
   const submitPhone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fpPhone.trim()) return toast.error("נא להזין מספר טלפון");
+    if (!isValidIsraeliPhone(fpPhone)) return toast.error("מספר טלפון אינו תקין (יש להזין מספר ישראלי)");
     setFpBusy(true);
     try {
       const { data, error } = await supabase.rpc("request_password_reset", { _phone: fpPhone });
