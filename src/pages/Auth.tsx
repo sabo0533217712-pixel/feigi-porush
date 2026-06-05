@@ -80,6 +80,9 @@ export default function Auth() {
     e.preventDefault();
     if (!regName.trim()) return toast.error("נא להזין שם מלא");
     if (!regPhone.trim()) return toast.error("נא להזין מספר טלפון");
+    if (!isValidIsraeliPhone(regPhone)) return toast.error("מספר טלפון אינו תקין (יש להזין מספר ישראלי)");
+    if (!regEmail.trim()) return toast.error("נא להזין אימייל");
+    if (!isValidEmail(regEmail)) return toast.error("כתובת האימייל אינה תקינה");
     if (regQuestion.trim().length < 3) return toast.error("שאלת אבטחה קצרה מדי");
     if (regAnswer.trim().length < 2) return toast.error("תשובה לשאלת האבטחה קצרה מדי");
     setLoading(true);
