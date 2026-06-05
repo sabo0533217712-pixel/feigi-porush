@@ -19,6 +19,17 @@ export default function Auth() {
   const { signIn, signUp } = useAuth();
   const [loading, setLoading] = useState(false);
 
+  // Basic format validators — no actual verification, just pattern checks
+  const isValidEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+  const isValidIsraeliPhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+    // Israeli mobile/landline: starts with 0, 9–10 digits total
+    return /^0\d{8,9}$/.test(digits);
+  };
+
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
