@@ -53,6 +53,7 @@ interface BusinessSettings {
   break_end: string | null;
   slot_duration_minutes: number;
   slot_step_minutes?: number;
+  appointment_buffer_minutes?: number;
   advance_booking_days: number;
   business_name: string;
   day_schedules?: DaySchedules;
@@ -266,6 +267,7 @@ export default function ClientBooking() {
 
     const allSlots = new Set<string>();
     const step = settings.slot_step_minutes || 15;
+    const buffer = settings.appointment_buffer_minutes ?? 5;
 
     windows.forEach((win) => {
       const [startH, startM] = win.start.split(":").map(Number);
@@ -288,9 +290,11 @@ export default function ClientBooking() {
           return current < beH * 60 + beM && slotEndMin > bsH * 60 + bsM;
         });
         const isBooked = booked.some((b) => {
-          const bStart = b.start_time.substring(0, 5);
-          const bEnd = b.end_time.substring(0, 5);
-          return slotStart < bEnd && slotEnd > bStart;
+          const [bsH, bsM] = b.start_time.substring(0, 5).split(":").map(Number);
+          const [beH, beM] = b.end_time.substring(0, 5).split(":").map(Number);
+          const bStartMin = bsH * 60 + bsM;
+          const bEndMin = beH * 60 + beM;
+          return current < bEndMin && slotEndMin + buffer > bStartMin;
         });
         const isBlocked = blockedSlots.some((b) => {
           const bStart = b.start_time.substring(0, 5);
@@ -471,6 +475,15 @@ export default function ClientBooking() {
     const filtered = gaps
       .filter((g) => !taken.has(g.time) && g.minutes >= minGap && g.minutes < totalDuration)
       .sort((a, b) => b.minutes - a.minutes)
+      .map((g) => {
+        for (let dur = Math.floor(g.minutes / 5) * 5; dur >= minGap; dur -= 5) {
+          if (getAvailableSlots(selectedDate, bookedSlots, dur).includes(g.time)) {
+            return { ...g, minutes: dur };
+          }
+        }
+        return null;
+      })
+      .filter((g): g is { time: string; minutes: number } => g !== null)
       .slice(0, 3);
     return filtered.map((g) => ({
       time: g.time,
@@ -479,6 +492,32 @@ export default function ClientBooking() {
       availableMinutes: g.minutes,
     }));
   }, [hasVariableDuration, settings, selectedDate, bookedSlots, blockedSlots, smartSuggestions, totalDuration, fixedTotalDuration]);
+
+  const selectedPartialSuggestion = useMemo(
+    () =>
+      selectedTime
+        ? partialSuggestions.find((s) => s.time === selectedTime) || gapSuggestions.find((s) => s.time === selectedTime)
+        : undefined,
+    [selectedTime, partialSuggestions, gapSuggestions],
+  );
+
+  const bookingDuration = selectedPartialSuggestion?.availableMinutes ?? totalDuration;
+  const bookingVariableTreatments = selectedTreatments.filter((t) => t.is_variable_duration);
+  const bookingIsPartial = bookingDuration < totalDuration && bookingVariableTreatments.length > 0;
+  const bookingVariableBudget = bookingIsPartial ? Math.max(0, bookingDuration - fixedTotalDuration) : 0;
+  const bookingPerVariable =
+    bookingIsPartial && bookingVariableTreatments.length > 0
+      ? Math.max(5, Math.floor(bookingVariableBudget / bookingVariableTreatments.length / 5) * 5)
+      : 0;
+  const getBookingDuration = (t: Treatment) => {
+    if (!t.is_variable_duration) return t.duration_minutes;
+    return bookingIsPartial ? bookingPerVariable : getDuration(t);
+  };
+  const getBookingPrice = (t: Treatment) => {
+    if (!t.is_variable_duration) return t.price;
+    return calculateTierPrice(t.id, getBookingDuration(t));
+  };
+  const bookingTotalPrice = selectedTreatments.reduce((sum, t) => sum + getBookingPrice(t), 0);
 
   // Clear selectedTime only if it's no longer valid in any list (available/partial/gap)
   useEffect(() => {
@@ -513,26 +552,6 @@ export default function ClientBooking() {
     const [h, m] = selectedTime.split(":").map(Number);
     const endMin = h * 60 + m + duration;
     const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
-
-    // Compute effective per-treatment durations.
-    // When a partial window is chosen, shrink ONLY the variable treatment(s);
-    // fixed treatments always keep their full duration.
-    const variableTreatments = selectedTreatments.filter((t) => t.is_variable_duration);
-    const isPartial = !!customDuration && customDuration < totalDuration && variableTreatments.length > 0;
-    const variableBudget = isPartial ? Math.max(0, duration - fixedTotalDuration) : 0;
-    const perVariable = isPartial && variableTreatments.length > 0
-      ? Math.max(5, Math.floor(variableBudget / variableTreatments.length / 5) * 5)
-      : 0;
-
-    const effectiveDuration = (t: Treatment) => {
-      if (!t.is_variable_duration) return t.duration_minutes;
-      return isPartial ? perVariable : getDuration(t);
-    };
-    const effectivePrice = (t: Treatment) => {
-      if (!t.is_variable_duration) return t.price;
-      const dur = effectiveDuration(t);
-      return calculateTierPrice(t.id, dur);
-    };
 
     try {
       // Insert appointment with first treatment (for backwards compatibility)
@@ -574,8 +593,8 @@ export default function ClientBooking() {
           const treatmentRows = selectedTreatments.map((t) => ({
             appointment_id: aptData.id,
             treatment_id: t.id,
-            duration_minutes: effectiveDuration(t),
-            price: effectivePrice(t),
+            duration_minutes: getBookingDuration(t),
+            price: getBookingPrice(t),
           }));
           await supabase.from("appointment_treatments").insert(treatmentRows);
         }
@@ -1080,7 +1099,7 @@ export default function ClientBooking() {
               </div>
             )}
 
-            {availableSlots.length === 0 && partialSuggestions.length === 0 && (
+            {availableSlots.length === 0 && partialSuggestions.length === 0 && gapSuggestions.length === 0 && (
               <div className="text-center space-y-3 py-4">
                 <p className="text-muted-foreground">אין שעות פנויות בתאריך זה</p>
               </div>
@@ -1153,7 +1172,7 @@ export default function ClientBooking() {
                   <div key={t.id} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
                     <span>
-                      {t.name} • {getDuration(t)} דק׳ • ₪{getPrice(t)}
+                      {t.name} • {getBookingDuration(t)} דק׳ • ₪{getBookingPrice(t)}
                     </span>
                   </div>
                 ))}
@@ -1162,7 +1181,7 @@ export default function ClientBooking() {
                 </p>
                 <p className="text-sm text-muted-foreground">שעה: {selectedTime}</p>
                 <p className="text-sm font-medium text-primary">
-                  סה״כ: {totalDuration} דק׳ • ₪{totalPrice}
+                  סה״כ: {bookingDuration} דק׳ • ₪{bookingTotalPrice}
                 </p>
                 <div className="space-y-1.5 pt-2">
                   <Label htmlFor="client-note" className="text-sm">
@@ -1181,10 +1200,7 @@ export default function ClientBooking() {
                 <Button
                   className="w-full mt-3 gradient-primary text-primary-foreground"
                   onClick={() => {
-                    const partial =
-                      partialSuggestions.find((s) => s.time === selectedTime) ||
-                      gapSuggestions.find((s) => s.time === selectedTime);
-                    handleBook(partial?.availableMinutes);
+                    handleBook(selectedPartialSuggestion?.availableMinutes);
                   }}
                   disabled={loading}
                 >
