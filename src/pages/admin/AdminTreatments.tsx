@@ -138,6 +138,7 @@ export default function AdminTreatments() {
       name: t.name, description: t.description, duration_minutes: t.duration_minutes,
       price: t.price, category: t.category, color: t.color || '#6366f1',
       is_variable_duration: t.is_variable_duration || false,
+      client_bookable: t.client_bookable !== false,
     });
     if (t.is_variable_duration) {
       await fetchPriceTiers(t.id);
