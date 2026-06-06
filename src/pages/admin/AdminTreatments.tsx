@@ -387,7 +387,12 @@ function SortableTreatmentCard({ treatment: t, onToggle, onEdit, onDelete }: Sor
             </button>
             <div className="w-3 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: t.color || '#6366f1' }} />
             <div>
-              <h3 className="font-medium text-foreground">{t.name}</h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-medium text-foreground">{t.name}</h3>
+                {t.client_bookable === false && (
+                  <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded">טלפוני בלבד</span>
+                )}
+              </div>
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                 {t.is_variable_duration
                   ? <span className="text-xs bg-accent px-2 py-0.5 rounded flex items-center gap-1"><Clock className="h-3 w-3" />משך גמיש • תמחור לפי טווח</span>
