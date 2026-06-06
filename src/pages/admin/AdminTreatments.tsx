@@ -262,6 +262,18 @@ export default function AdminTreatments() {
                 />
               </div>
 
+              {/* Client Bookable Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>מאופשר להזמנה ע״י לקוחות</Label>
+                  <p className="text-xs text-muted-foreground">כשמכובה — הטיפול יוצג ללקוחות אך לא יהיה ניתן להזמנה (טלפונית בלבד)</p>
+                </div>
+                <Switch
+                  checked={form.client_bookable}
+                  onCheckedChange={v => setForm({ ...form, client_bookable: v })}
+                />
+              </div>
+
               {/* Price Tiers for variable duration */}
               {form.is_variable_duration && (
                 <div className="space-y-3 border border-border rounded-lg p-3">
