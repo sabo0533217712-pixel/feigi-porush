@@ -54,7 +54,7 @@ export default function AdminTreatments() {
   const [editing, setEditing] = useState<Treatment | null>(null);
   const [form, setForm] = useState({
     name: '', description: '', duration_minutes: 30, price: 0, category: '',
-    color: '#6366f1', is_variable_duration: false,
+    color: '#6366f1', is_variable_duration: false, client_bookable: true,
   });
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
 
