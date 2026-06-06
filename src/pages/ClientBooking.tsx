@@ -26,6 +26,7 @@ interface Treatment {
   category: string;
   color: string;
   is_variable_duration: boolean;
+  client_bookable?: boolean;
 }
 
 interface PriceTier {
@@ -772,23 +773,29 @@ export default function ClientBooking() {
           <div className="grid gap-3">
             {treatments.map((t) => {
               const isSelected = selectedTreatments.find((s) => s.id === t.id);
+              const isBookable = t.client_bookable !== false;
               return (
                 <Card
                   key={t.id}
                   className={cn(
-                    "cursor-pointer transition-all hover:shadow-elegant",
+                    "transition-all",
+                    isBookable && "cursor-pointer hover:shadow-elegant",
+                    !isBookable && "opacity-70 cursor-not-allowed bg-muted/30",
                     isSelected && "ring-2 ring-primary",
                   )}
-                  onClick={() => toggleTreatment(t)}
+                  onClick={() => isBookable && toggleTreatment(t)}
                 >
                   <CardContent className="p-4 space-y-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Checkbox checked={!!isSelected} className="pointer-events-none" />
+                        <Checkbox checked={!!isSelected} disabled={!isBookable} className="pointer-events-none" />
                         <div>
                           <h3 className="font-medium text-foreground">{t.name}</h3>
                           {t.description && (
                             <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
+                          )}
+                          {!isBookable && (
+                            <p className="text-xs font-semibold text-primary mt-1">תור בהזמנה טלפונית בלבד</p>
                           )}
                           <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                             {t.is_variable_duration ? (

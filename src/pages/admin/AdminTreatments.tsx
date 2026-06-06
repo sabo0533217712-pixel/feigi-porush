@@ -36,6 +36,7 @@ interface Treatment {
   is_active: boolean;
   color: string;
   is_variable_duration: boolean;
+  client_bookable?: boolean;
 }
 
 interface PriceTier {
@@ -53,7 +54,7 @@ export default function AdminTreatments() {
   const [editing, setEditing] = useState<Treatment | null>(null);
   const [form, setForm] = useState({
     name: '', description: '', duration_minutes: 30, price: 0, category: '',
-    color: '#6366f1', is_variable_duration: false,
+    color: '#6366f1', is_variable_duration: false, client_bookable: true,
   });
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
 
@@ -115,7 +116,7 @@ export default function AdminTreatments() {
 
     setOpen(false);
     setEditing(null);
-    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false });
+    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false, client_bookable: true });
     setPriceTiers([]);
     fetchTreatments();
   };
@@ -137,6 +138,7 @@ export default function AdminTreatments() {
       name: t.name, description: t.description, duration_minutes: t.duration_minutes,
       price: t.price, category: t.category, color: t.color || '#6366f1',
       is_variable_duration: t.is_variable_duration || false,
+      client_bookable: t.client_bookable !== false,
     });
     if (t.is_variable_duration) {
       await fetchPriceTiers(t.id);
@@ -148,7 +150,7 @@ export default function AdminTreatments() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false });
+    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false, client_bookable: true });
     setPriceTiers([]);
     setOpen(true);
   };
@@ -257,6 +259,18 @@ export default function AdminTreatments() {
                 <Switch
                   checked={form.is_variable_duration}
                   onCheckedChange={v => setForm({ ...form, is_variable_duration: v })}
+                />
+              </div>
+
+              {/* Client Bookable Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>מאופשר להזמנה ע״י לקוחות</Label>
+                  <p className="text-xs text-muted-foreground">כשמכובה — הטיפול יוצג ללקוחות אך לא יהיה ניתן להזמנה (טלפונית בלבד)</p>
+                </div>
+                <Switch
+                  checked={form.client_bookable}
+                  onCheckedChange={v => setForm({ ...form, client_bookable: v })}
                 />
               </div>
 
@@ -373,7 +387,12 @@ function SortableTreatmentCard({ treatment: t, onToggle, onEdit, onDelete }: Sor
             </button>
             <div className="w-3 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: t.color || '#6366f1' }} />
             <div>
-              <h3 className="font-medium text-foreground">{t.name}</h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-medium text-foreground">{t.name}</h3>
+                {t.client_bookable === false && (
+                  <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded">טלפוני בלבד</span>
+                )}
+              </div>
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                 {t.is_variable_duration
                   ? <span className="text-xs bg-accent px-2 py-0.5 rounded flex items-center gap-1"><Clock className="h-3 w-3" />משך גמיש • תמחור לפי טווח</span>
