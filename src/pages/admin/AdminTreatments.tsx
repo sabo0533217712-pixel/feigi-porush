@@ -150,7 +150,7 @@ export default function AdminTreatments() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false });
+    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false, client_bookable: true });
     setPriceTiers([]);
     setOpen(true);
   };
