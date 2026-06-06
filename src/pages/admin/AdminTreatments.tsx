@@ -36,6 +36,7 @@ interface Treatment {
   is_active: boolean;
   color: string;
   is_variable_duration: boolean;
+  client_bookable?: boolean;
 }
 
 interface PriceTier {
