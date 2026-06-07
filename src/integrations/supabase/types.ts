@@ -563,6 +563,7 @@ export type Database = {
       treatments: {
         Row: {
           category: string | null
+          client_bookable: boolean
           color: string | null
           created_at: string
           description: string | null
@@ -577,6 +578,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          client_bookable?: boolean
           color?: string | null
           created_at?: string
           description?: string | null
@@ -591,6 +593,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          client_bookable?: boolean
           color?: string | null
           created_at?: string
           description?: string | null
