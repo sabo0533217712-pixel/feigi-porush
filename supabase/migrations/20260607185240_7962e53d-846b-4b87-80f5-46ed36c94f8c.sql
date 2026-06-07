@@ -1,0 +1,1 @@
+ALTER TABLE public.treatments ADD COLUMN IF NOT EXISTS client_bookable boolean NOT NULL DEFAULT true;
