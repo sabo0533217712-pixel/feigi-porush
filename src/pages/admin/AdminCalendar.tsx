@@ -149,6 +149,7 @@ export default function AdminCalendar() {
     notes: "",
   });
   const [blockForm, setBlockForm] = useState({ start_time: "09:00", end_time: "10:00", notes: "" });
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [reminderForm, setReminderForm] = useState({ start_time: "09:00", end_time: "09:10", notes: "" });
   // extraShifts comes from the day query below
