@@ -223,7 +223,8 @@ export default function AdminDashboard() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
