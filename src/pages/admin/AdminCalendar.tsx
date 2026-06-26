@@ -149,6 +149,7 @@ export default function AdminCalendar() {
     notes: "",
   });
   const [blockForm, setBlockForm] = useState({ start_time: "09:00", end_time: "10:00", notes: "" });
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [reminderForm, setReminderForm] = useState({ start_time: "09:00", end_time: "09:10", notes: "" });
   // extraShifts comes from the day query below
@@ -527,16 +528,29 @@ export default function AdminCalendar() {
 
   // Add time block
   const handleAddBlock = async () => {
-    const { error } = await supabase.from("time_blocks").insert({
-      block_date: format(selectedDate, "yyyy-MM-dd"),
-      start_time: blockForm.start_time,
-      end_time: blockForm.end_time,
-      notes: blockForm.notes,
-    });
-    if (error) toast.error("שגיאה בחסימת זמן");
+    let error;
+    if (editingBlockId) {
+      ({ error } = await supabase
+        .from("time_blocks")
+        .update({
+          start_time: blockForm.start_time,
+          end_time: blockForm.end_time,
+          notes: blockForm.notes,
+        })
+        .eq("id", editingBlockId));
+    } else {
+      ({ error } = await supabase.from("time_blocks").insert({
+        block_date: format(selectedDate, "yyyy-MM-dd"),
+        start_time: blockForm.start_time,
+        end_time: blockForm.end_time,
+        notes: blockForm.notes,
+      }));
+    }
+    if (error) toast.error(editingBlockId ? "שגיאה בעדכון" : "שגיאה בחסימת זמן");
     else {
-      toast.success("הזמן נחסם");
+      toast.success(editingBlockId ? "החסימה עודכנה" : "הזמן נחסם");
       setShowBlockDialog(false);
+      setEditingBlockId(null);
       setBlockForm({ start_time: "09:00", end_time: "10:00", notes: "" });
       invalidateDay();
     }
@@ -885,6 +899,7 @@ export default function AdminCalendar() {
               size="sm"
               className="gap-1.5"
               onClick={() => {
+                setEditingBlockId(null);
                 setBlockForm({ start_time: "09:00", end_time: "10:00", notes: "" });
                 setShowBlockDialog(true);
               }}
@@ -1039,14 +1054,32 @@ export default function AdminCalendar() {
                     🚫 {block.start_time.substring(0, 5)}-{block.end_time.substring(0, 5)}{" "}
                     {block.notes && `• ${block.notes}`}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleDeleteBlock(block.id)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        setEditingBlockId(block.id);
+                        setBlockForm({
+                          start_time: block.start_time.substring(0, 5),
+                          end_time: block.end_time.substring(0, 5),
+                          notes: block.notes || "",
+                        });
+                        setShowBlockDialog(true);
+                      }}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleDeleteBlock(block.id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               ))}
 
@@ -1498,10 +1531,16 @@ export default function AdminCalendar() {
       </Dialog>
 
       {/* Block Dialog */}
-      <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+      <Dialog
+        open={showBlockDialog}
+        onOpenChange={(open) => {
+          setShowBlockDialog(open);
+          if (!open) setEditingBlockId(null);
+        }}
+      >
         <DialogContent dir="rtl" className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>חסימת זמן</DialogTitle>
+            <DialogTitle>{editingBlockId ? "עריכת חסימת זמן" : "חסימת זמן"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -1533,7 +1572,7 @@ export default function AdminCalendar() {
               />
             </div>
             <Button className="w-full" variant="outline" onClick={handleAddBlock}>
-              חסימת זמן
+              {editingBlockId ? "שמירה" : "חסימת זמן"}
             </Button>
           </div>
         </DialogContent>
