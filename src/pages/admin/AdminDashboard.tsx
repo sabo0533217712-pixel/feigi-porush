@@ -39,6 +39,7 @@ export default function AdminDashboard() {
   const [editForm, setEditForm] = useState({ full_name: '', phone: '', email: '' });
   const [deleteTarget, setDeleteTarget] = useState<ClientProfile | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
