@@ -1572,7 +1572,7 @@ export default function AdminCalendar() {
               />
             </div>
             <Button className="w-full" variant="outline" onClick={handleAddBlock}>
-              חסימת זמן
+              {editingBlockId ? "שמירה" : "חסימת זמן"}
             </Button>
           </div>
         </DialogContent>
