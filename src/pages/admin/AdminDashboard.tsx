@@ -164,19 +164,40 @@ export default function AdminDashboard() {
           {clients.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">אין לקוחות עדיין</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">שם</TableHead>
-                    <TableHead className="text-right">טלפון</TableHead>
-                    <TableHead className="text-right">אימייל</TableHead>
-                    <TableHead className="text-right">תאריך הצטרפות</TableHead>
-                    <TableHead className="text-right">פעולות</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clients.map(client => (
+            <>
+              <div className="relative mb-3">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="חיפוש לפי שם, טלפון או אימייל..."
+                  className="pr-9"
+                  dir="rtl"
+                />
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right">שם</TableHead>
+                      <TableHead className="text-right">טלפון</TableHead>
+                      <TableHead className="text-right">אימייל</TableHead>
+                      <TableHead className="text-right">תאריך הצטרפות</TableHead>
+                      <TableHead className="text-right">פעולות</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clients
+                      .filter((c) => {
+                        const q = searchQuery.trim().toLowerCase();
+                        if (!q) return true;
+                        return (
+                          (c.full_name || '').toLowerCase().includes(q) ||
+                          (c.phone || '').toLowerCase().includes(q) ||
+                          (c.email || '').toLowerCase().includes(q)
+                        );
+                      })
+                      .map(client => (
                     <TableRow key={client.id}>
                       <TableCell className="font-medium">{client.full_name || '—'}</TableCell>
                       <TableCell dir="ltr" className="text-right">{client.phone || '—'}</TableCell>
