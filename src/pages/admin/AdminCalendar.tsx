@@ -899,6 +899,7 @@ export default function AdminCalendar() {
               size="sm"
               className="gap-1.5"
               onClick={() => {
+                setEditingBlockId(null);
                 setBlockForm({ start_time: "09:00", end_time: "10:00", notes: "" });
                 setShowBlockDialog(true);
               }}
