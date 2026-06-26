@@ -1054,14 +1054,32 @@ export default function AdminCalendar() {
                     🚫 {block.start_time.substring(0, 5)}-{block.end_time.substring(0, 5)}{" "}
                     {block.notes && `• ${block.notes}`}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleDeleteBlock(block.id)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        setEditingBlockId(block.id);
+                        setBlockForm({
+                          start_time: block.start_time.substring(0, 5),
+                          end_time: block.end_time.substring(0, 5),
+                          notes: block.notes || "",
+                        });
+                        setShowBlockDialog(true);
+                      }}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleDeleteBlock(block.id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               ))}
 
