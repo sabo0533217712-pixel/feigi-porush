@@ -528,16 +528,29 @@ export default function AdminCalendar() {
 
   // Add time block
   const handleAddBlock = async () => {
-    const { error } = await supabase.from("time_blocks").insert({
-      block_date: format(selectedDate, "yyyy-MM-dd"),
-      start_time: blockForm.start_time,
-      end_time: blockForm.end_time,
-      notes: blockForm.notes,
-    });
-    if (error) toast.error("שגיאה בחסימת זמן");
+    let error;
+    if (editingBlockId) {
+      ({ error } = await supabase
+        .from("time_blocks")
+        .update({
+          start_time: blockForm.start_time,
+          end_time: blockForm.end_time,
+          notes: blockForm.notes,
+        })
+        .eq("id", editingBlockId));
+    } else {
+      ({ error } = await supabase.from("time_blocks").insert({
+        block_date: format(selectedDate, "yyyy-MM-dd"),
+        start_time: blockForm.start_time,
+        end_time: blockForm.end_time,
+        notes: blockForm.notes,
+      }));
+    }
+    if (error) toast.error(editingBlockId ? "שגיאה בעדכון" : "שגיאה בחסימת זמן");
     else {
-      toast.success("הזמן נחסם");
+      toast.success(editingBlockId ? "החסימה עודכנה" : "הזמן נחסם");
       setShowBlockDialog(false);
+      setEditingBlockId(null);
       setBlockForm({ start_time: "09:00", end_time: "10:00", notes: "" });
       invalidateDay();
     }
