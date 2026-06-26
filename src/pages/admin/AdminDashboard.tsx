@@ -19,7 +19,7 @@ import {
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getHebrewDateShort } from '@/lib/hebrew-date';
-import { CalendarDays, Users, Sparkles, TrendingUp, Pencil, Trash2, Plus, Search } from 'lucide-react';
+import { CalendarDays, Users, Sparkles, TrendingUp, Pencil, Trash2, Plus, Search, Mail, Phone, MessageCircle } from 'lucide-react';
 import ManualClientDialog from '@/components/admin/ManualClientDialog';
 import { toast } from 'sonner';
 
@@ -247,6 +247,26 @@ export default function AdminDashboard() {
             <div className="space-y-2">
               <Label>אימייל</Label>
               <Input dir="ltr" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            </div>
+            <div className="flex items-center gap-2 justify-center">
+              {editForm.email && (
+                <a href={`mailto:${editForm.email}`} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-muted text-sm hover:bg-muted/80 transition-colors">
+                  <Mail className="h-4 w-4" />
+                  מייל
+                </a>
+              )}
+              {editForm.phone && (
+                <a href={`https://wa.me/${editForm.phone.replace(/[^0-9]/g, '').replace(/^0/, '972')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-muted text-sm hover:bg-muted/80 transition-colors">
+                  <MessageCircle className="h-4 w-4" />
+                  ווצאפ
+                </a>
+              )}
+              {editForm.phone && (
+                <a href={`tel:${editForm.phone}`} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-muted text-sm hover:bg-muted/80 transition-colors">
+                  <Phone className="h-4 w-4" />
+                  טלפון
+                </a>
+              )}
             </div>
             <Button className="w-full gradient-primary text-primary-foreground" disabled={busy} onClick={saveEdit}>
               שמירה
