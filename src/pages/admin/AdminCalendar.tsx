@@ -1531,10 +1531,16 @@ export default function AdminCalendar() {
       </Dialog>
 
       {/* Block Dialog */}
-      <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+      <Dialog
+        open={showBlockDialog}
+        onOpenChange={(open) => {
+          setShowBlockDialog(open);
+          if (!open) setEditingBlockId(null);
+        }}
+      >
         <DialogContent dir="rtl" className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>חסימת זמן</DialogTitle>
+            <DialogTitle>{editingBlockId ? "עריכת חסימת זמן" : "חסימת זמן"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
