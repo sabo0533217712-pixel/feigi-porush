@@ -1309,13 +1309,13 @@ export default function AdminCalendar() {
                 const holiday = getHolidayInfo(date, holidaySettings);
                 const hasBlock = monthBlocks.has(dateStr);
                 return (
-                  <div className="flex flex-col items-center leading-tight w-full" title={holiday?.name}>
+                  <div className="flex flex-col items-center leading-tight w-full min-w-0 overflow-hidden px-0.5" title={holiday?.name}>
                     <span className="text-sm font-medium">{date.getDate()}</span>
-                    <span className="text-[10px] text-muted-foreground">{getHebrewDateShort(date)}</span>
+                    <span className="text-[10px] text-muted-foreground block w-full truncate text-center">{getHebrewDateShort(date)}</span>
                     {holiday && (
                       <span
                         className={cn(
-                          "text-[9px] font-medium truncate max-w-full px-1 leading-tight",
+                          "text-[9px] font-medium block w-full truncate text-center leading-tight",
                           holiday.isMajor ? "text-amber-600 dark:text-amber-400" : "text-amber-700/70 dark:text-amber-500/70"
                         )}
                       >
