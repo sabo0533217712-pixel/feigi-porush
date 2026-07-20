@@ -1286,13 +1286,13 @@ export default function AdminCalendar() {
               ),
               nav_button_previous: "absolute left-2",
               nav_button_next: "absolute right-2",
-              table: "w-full border-collapse",
+              table: "w-full border-collapse table-fixed",
               head_row: "flex w-full",
               head_cell:
-                "text-muted-foreground rounded-md flex-1 h-10 font-medium text-sm flex items-center justify-center",
+                "text-muted-foreground rounded-md flex-1 min-w-0 h-10 font-medium text-sm flex items-center justify-center",
               row: "flex w-full mt-1",
-              cell: "flex-1 h-14 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-              day: "h-14 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center rounded-md text-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              cell: "flex-1 min-w-0 overflow-hidden h-14 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+              day: "h-14 w-full min-w-0 overflow-hidden p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center rounded-md text-sm ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               day_selected:
                 "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
               day_today: "bg-accent text-accent-foreground",
