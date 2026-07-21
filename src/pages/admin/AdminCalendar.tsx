@@ -1874,8 +1874,12 @@ export default function AdminCalendar() {
         originalDate={selectedDate}
         onCancel={() => setPendingMove(null)}
         onConfirm={async (date, start, end) => {
-          await handleMoveToSlot(date, start, end);
-          setPendingMove(null);
+          try {
+            await handleMoveToSlot(date, start, end);
+            setPendingMove(null);
+          } catch {
+            // Keep dialog open so the admin can retry; toast already shown.
+          }
         }}
       />
 
