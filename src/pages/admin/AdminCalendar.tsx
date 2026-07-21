@@ -703,18 +703,20 @@ export default function AdminCalendar() {
     if (!editingAppointment) return;
     const original = editingAppointment;
     const newDateStr = format(newDate, "yyyy-MM-dd");
-    const { error } = await supabase
-      .from("appointments")
-      .update({
-        appointment_date: newDateStr,
-        start_time: newStart,
-        end_time: newEnd,
-        booked_by_admin: true,
-      })
-      .eq("id", original.id);
-    if (error) {
-      toast.error("שגיאה בהעברת התור");
-    } else {
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          appointment_date: newDateStr,
+          start_time: newStart,
+          end_time: newEnd,
+          booked_by_admin: true,
+        })
+        .eq("id", original.id);
+      if (error) {
+        toast.error("שגיאה בהעברת התור");
+        throw error;
+      }
       toast.success(
         `התור הועבר ל-${format(newDate, "d בMMMM yyyy", { locale: he })} בשעה ${newStart}`,
       );
@@ -741,6 +743,10 @@ export default function AdminCalendar() {
       invalidateDay(newDateStr);
       setSelectedDate(newDate);
       fetchMonthCounts();
+    } catch (e) {
+      console.error("handleMoveToSlot failed:", e);
+      toast.error("שגיאה בהעברת התור — נסי שוב");
+      throw e;
     }
   };
 
