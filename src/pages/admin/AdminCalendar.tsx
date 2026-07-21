@@ -703,18 +703,20 @@ export default function AdminCalendar() {
     if (!editingAppointment) return;
     const original = editingAppointment;
     const newDateStr = format(newDate, "yyyy-MM-dd");
-    const { error } = await supabase
-      .from("appointments")
-      .update({
-        appointment_date: newDateStr,
-        start_time: newStart,
-        end_time: newEnd,
-        booked_by_admin: true,
-      })
-      .eq("id", original.id);
-    if (error) {
-      toast.error("שגיאה בהעברת התור");
-    } else {
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          appointment_date: newDateStr,
+          start_time: newStart,
+          end_time: newEnd,
+          booked_by_admin: true,
+        })
+        .eq("id", original.id);
+      if (error) {
+        toast.error("שגיאה בהעברת התור");
+        throw error;
+      }
       toast.success(
         `התור הועבר ל-${format(newDate, "d בMMMM yyyy", { locale: he })} בשעה ${newStart}`,
       );
@@ -741,6 +743,10 @@ export default function AdminCalendar() {
       invalidateDay(newDateStr);
       setSelectedDate(newDate);
       fetchMonthCounts();
+    } catch (e) {
+      console.error("handleMoveToSlot failed:", e);
+      toast.error("שגיאה בהעברת התור — נסי שוב");
+      throw e;
     }
   };
 
@@ -1868,8 +1874,12 @@ export default function AdminCalendar() {
         originalDate={selectedDate}
         onCancel={() => setPendingMove(null)}
         onConfirm={async (date, start, end) => {
-          await handleMoveToSlot(date, start, end);
-          setPendingMove(null);
+          try {
+            await handleMoveToSlot(date, start, end);
+            setPendingMove(null);
+          } catch {
+            // Keep dialog open so the admin can retry; toast already shown.
+          }
         }}
       />
 
@@ -2898,29 +2908,63 @@ function ConfirmMoveDialog({
     );
   }
 
+  // Normalize any HH:MM / H:MM / HH:MM:SS input into strict HH:MM.
+  const normalizeTime = (t: string): string | null => {
+    if (!t) return null;
+    const m = t.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (!m) return null;
+    const h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    if (isNaN(h) || isNaN(min) || h < 0 || h > 23 || min < 0 || min > 59) return null;
+    return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+  };
+
   const toMin = (t: string) => {
     const [h, m] = t.split(":").map(Number);
     return (h || 0) * 60 + (m || 0);
   };
-  const duration = toMin(end) - toMin(start);
-  const valid = /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end) && duration > 0;
+  const normStart = normalizeTime(start);
+  const normEnd = normalizeTime(end);
+  const duration = normStart && normEnd ? toMin(normEnd) - toMin(normStart) : 0;
+  const valid = !!normStart && !!normEnd && duration > 0;
 
   const fromTxt = `${format(originalDate, "EEEE d/M", { locale: he })} · ${editingAppointment.start_time.substring(0, 5)}–${editingAppointment.end_time.substring(0, 5)}`;
-  const toTxt = `${format(pendingMove.date, "EEEE d/M", { locale: he })} · ${start}–${end}`;
+  const toTxt = `${format(pendingMove.date, "EEEE d/M", { locale: he })} · ${normStart || start}–${normEnd || end}`;
 
   const handleSubmit = async () => {
-    if (!valid) return;
+    if (!valid || submitting || !normStart || !normEnd) return;
     setSubmitting(true);
     try {
-      await onConfirm(pendingMove.date, start, end);
+      await onConfirm(pendingMove.date, normStart, normEnd);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      (e.target as HTMLInputElement).blur();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
-      <DialogContent dir="rtl" className="sm:max-w-md">
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (submitting) return;
+        if (!o) onCancel();
+      }}
+    >
+      <DialogContent
+        dir="rtl"
+        className="sm:max-w-md"
+        onPointerDownOutside={(e) => {
+          if (submitting) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if (submitting) e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>אישור העברת תור</DialogTitle>
         </DialogHeader>
@@ -2949,6 +2993,11 @@ function ConfirmMoveDialog({
                 type="time"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
+                onBlur={(e) => {
+                  const n = normalizeTime(e.target.value);
+                  if (n) setStart(n);
+                }}
+                onKeyDown={handleTimeKeyDown}
                 dir="ltr"
                 className="font-mono"
               />
@@ -2960,6 +3009,11 @@ function ConfirmMoveDialog({
                 type="time"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
+                onBlur={(e) => {
+                  const n = normalizeTime(e.target.value);
+                  if (n) setEnd(n);
+                }}
+                onKeyDown={handleTimeKeyDown}
                 dir="ltr"
                 className="font-mono"
               />
@@ -2973,10 +3027,28 @@ function ConfirmMoveDialog({
           )}
 
           <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" onClick={onCancel} disabled={submitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={submitting}
+              className="touch-manipulation"
+            >
               ביטול
             </Button>
-            <Button onClick={handleSubmit} disabled={!valid || submitting}>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              onPointerUp={(e) => {
+                // On iOS Safari the first tap after a time-picker is sometimes
+                // swallowed by the picker's dismiss handler. Firing on pointerup
+                // as well makes the action responsive on the very first tap.
+                if (e.pointerType === "touch") handleSubmit();
+              }}
+              disabled={!valid || submitting}
+              aria-busy={submitting}
+              className="touch-manipulation active:opacity-70"
+            >
               {submitting ? "מעבירה…" : "אישור והעברה"}
             </Button>
           </div>
@@ -2985,4 +3057,5 @@ function ConfirmMoveDialog({
     </Dialog>
   );
 }
+
 
