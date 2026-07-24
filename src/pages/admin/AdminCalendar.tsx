@@ -627,8 +627,12 @@ export default function AdminCalendar() {
 
   // Edit appointment
   const handleEditSave = async () => {
-    if (!editForm) return;
+    if (!editForm || !editingAppointment) return;
     const original = editingAppointment;
+    const norm = (t: string) => (t ?? "").substring(0, 5);
+    const timeChanged =
+      norm(original.start_time) !== norm(editForm.start_time) ||
+      norm(original.end_time) !== norm(editForm.end_time);
     const { error } = await supabase
       .from("appointments")
       .update({
@@ -636,20 +640,16 @@ export default function AdminCalendar() {
         end_time: editForm.end_time,
         status: editForm.status,
         notes: editForm.notes || null,
+        // Admin time edits must use the same override path as moving an appointment.
+        // Otherwise client-created appointments remain booked_by_admin=false and
+        // the availability trigger can reject a valid admin adjustment.
+        ...(timeChanged ? { booked_by_admin: true } : {}),
       })
       .eq("id", editForm.id);
     if (error) toast.error("שגיאה בעדכון");
     else {
       toast.success("התור עודכן");
-      // Detect time-change reschedule (date stays same in this dialog).
-      // Normalize to HH:MM since original times come from DB as "HH:MM:SS"
-      // while editForm holds "HH:MM" — otherwise the comparison is always true.
-      const norm = (t: string) => (t ?? "").substring(0, 5);
-      const timeChanged =
-        !!original &&
-        (norm(original.start_time) !== norm(editForm.start_time) ||
-          norm(original.end_time) !== norm(editForm.end_time));
-      if (timeChanged && original) {
+      if (timeChanged) {
         supabase.functions
           .invoke("notify-client", {
             body: {
