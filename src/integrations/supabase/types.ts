@@ -253,6 +253,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ivr_calls: {
+        Row: {
+          call_id: string
+          context: Json
+          created_at: string
+          expected_input_param: string | null
+          phone: string | null
+          step: string
+          updated_at: string
+        }
+        Insert: {
+          call_id: string
+          context?: Json
+          created_at?: string
+          expected_input_param?: string | null
+          phone?: string | null
+          step?: string
+          updated_at?: string
+        }
+        Update: {
+          call_id?: string
+          context?: Json
+          created_at?: string
+          expected_input_param?: string | null
+          phone?: string | null
+          step?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ivr_prompts: {
+        Row: {
+          category: string
+          key: string
+          label: string
+          path: string | null
+          script_text: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          key: string
+          label: string
+          path?: string | null
+          script_text: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          key?: string
+          label?: string
+          path?: string | null
+          script_text?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_log: {
         Row: {
           appointment_id: string | null
@@ -572,6 +632,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_variable_duration: boolean
+          ivr_recording_path: string | null
           name: string
           price: number
           updated_at: string
@@ -587,6 +648,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_variable_duration?: boolean
+          ivr_recording_path?: string | null
           name: string
           price?: number
           updated_at?: string
@@ -602,6 +664,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_variable_duration?: boolean
+          ivr_recording_path?: string | null
           name?: string
           price?: number
           updated_at?: string

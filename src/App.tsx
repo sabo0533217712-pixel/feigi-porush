@@ -15,6 +15,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminTreatments from "@/pages/admin/AdminTreatments";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminCalendar from "@/pages/admin/AdminCalendar";
+import AdminIvrPrompts from "@/pages/admin/AdminIvrPrompts";
 import Gallery from "@/pages/Gallery";
 import About from "@/pages/About";
 import NotFound from "./pages/NotFound";
@@ -48,6 +49,7 @@ function AppRoutes() {
       <Route path="/admin/treatments" element={<ProtectedRoute adminOnly><AdminTreatments /></ProtectedRoute>} />
       <Route path="/admin/settings" element={<ProtectedRoute adminOnly><AdminSettings /></ProtectedRoute>} />
       <Route path="/admin/calendar" element={<ProtectedRoute adminOnly><AdminCalendar /></ProtectedRoute>} />
+      <Route path="/admin/ivr" element={<ProtectedRoute adminOnly><AdminIvrPrompts /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

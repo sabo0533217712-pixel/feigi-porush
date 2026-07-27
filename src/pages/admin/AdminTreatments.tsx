@@ -37,6 +37,7 @@ interface Treatment {
   color: string;
   is_variable_duration: boolean;
   client_bookable?: boolean;
+  ivr_recording_path?: string | null;
 }
 
 interface PriceTier {
@@ -55,6 +56,7 @@ export default function AdminTreatments() {
   const [form, setForm] = useState({
     name: '', description: '', duration_minutes: 30, price: 0, category: '',
     color: '#6366f1', is_variable_duration: false, client_bookable: true,
+    ivr_recording_path: '' as string,
   });
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
 
@@ -85,14 +87,15 @@ export default function AdminTreatments() {
     }
 
     let treatmentId: string | null = null;
+    const payload = { ...form, ivr_recording_path: form.ivr_recording_path.trim() || null };
 
     if (editing) {
-      const { error } = await supabase.from('treatments').update(form).eq('id', editing.id);
+      const { error } = await supabase.from('treatments').update(payload).eq('id', editing.id);
       if (error) { toast.error('שגיאה בעדכון'); return; }
       treatmentId = editing.id;
       toast.success('הטיפול עודכן');
     } else {
-      const { data, error } = await supabase.from('treatments').insert(form).select('id').single();
+      const { data, error } = await supabase.from('treatments').insert(payload).select('id').single();
       if (error) { toast.error('שגיאה ביצירת טיפול'); return; }
       treatmentId = data.id;
       toast.success('הטיפול נוצר');
@@ -116,7 +119,7 @@ export default function AdminTreatments() {
 
     setOpen(false);
     setEditing(null);
-    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false, client_bookable: true });
+    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false, client_bookable: true, ivr_recording_path: '' });
     setPriceTiers([]);
     fetchTreatments();
   };
@@ -139,6 +142,7 @@ export default function AdminTreatments() {
       price: t.price, category: t.category, color: t.color || '#6366f1',
       is_variable_duration: t.is_variable_duration || false,
       client_bookable: t.client_bookable !== false,
+      ivr_recording_path: t.ivr_recording_path || '',
     });
     if (t.is_variable_duration) {
       await fetchPriceTiers(t.id);
@@ -150,7 +154,7 @@ export default function AdminTreatments() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false, client_bookable: true });
+    setForm({ name: '', description: '', duration_minutes: 30, price: 0, category: '', color: '#6366f1', is_variable_duration: false, client_bookable: true, ivr_recording_path: '' });
     setPriceTiers([]);
     setOpen(true);
   };
@@ -329,6 +333,22 @@ export default function AdminTreatments() {
                 </div>
               )}
 
+              {/* IVR Recording Path */}
+              <div className="space-y-2">
+                <Label>נתיב הקלטה ל-IVR (מענה טלפוני)</Label>
+                <Input
+                  value={form.ivr_recording_path}
+                  onChange={e => setForm({ ...form, ivr_recording_path: e.target.value })}
+                  placeholder="לדוגמה: 1/2/ivr/treatment_5"
+                  dir="ltr"
+                  className="text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  יש להקליט את שם הטיפול (בקול שלך), להעלות לימות המשיח ולהדביק כאן את הנתיב.
+                  {!form.ivr_recording_path.trim() && ' כל עוד לא הוגדר נתיב, הטיפול לא יוצע בתפריט הטלפוני.'}
+                </p>
+              </div>
+
               <Button className="w-full gradient-primary text-primary-foreground" onClick={handleSave}>שמירה</Button>
             </div>
           </DialogContent>
@@ -391,6 +411,11 @@ function SortableTreatmentCard({ treatment: t, onToggle, onEdit, onDelete }: Sor
                 <h3 className="font-medium text-foreground">{t.name}</h3>
                 {t.client_bookable === false && (
                   <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded">טלפוני בלבד</span>
+                )}
+                {t.is_active && !t.ivr_recording_path && (
+                  <span className="text-[10px] font-semibold bg-destructive/10 text-destructive px-2 py-0.5 rounded" title="חסרה הקלטה ל-IVR, הטיפול לא יוצע בתפריט הטלפוני">
+                    חסרה הקלטת IVR
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">

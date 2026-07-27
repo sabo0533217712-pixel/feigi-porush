@@ -418,17 +418,15 @@ Deno.serve(async (req) => {
     }
 
     // 7. GET /appointments/by-phone?phone=...
+    // Matches appointments booked either by phone (customer_phone) or via the website
+    // (client_id -> profiles.phone), so a caller finds appointments booked either way.
     if (req.method === "GET" && path === "/appointments/by-phone") {
       const phone = url.searchParams.get("phone");
       if (!phone) return err("phone required");
-      const { data: appts } = await supabase
-        .from("appointments")
-        .select("id,appointment_date,start_time,status,customer_phone,client_id")
-        .eq("customer_phone", phone)
-        .eq("status", "confirmed")
-        .gte("appointment_date", new Date().toISOString().slice(0,10))
-        .order("appointment_date");
-      const ids = (appts || []).map(a => a.id);
+      const { data: appts, error: apptsErr } = await supabase
+        .rpc("ivr_appointments_by_phone", { _phone: phone });
+      if (apptsErr) return err(apptsErr.message, 500);
+      const ids = (appts || []).map((a: any) => a.id);
       const { data: ats } = ids.length ? await supabase
         .from("appointment_treatments")
         .select("appointment_id,duration_minutes,treatments(name)")
@@ -453,9 +451,12 @@ Deno.serve(async (req) => {
       const body = await req.json();
       if (!body.appointmentId || !body.phone) return err("appointmentId and phone required");
       const { data: appt } = await supabase.from("appointments")
-        .select("id,customer_phone,status").eq("id", body.appointmentId).maybeSingle();
+        .select("id,status").eq("id", body.appointmentId).maybeSingle();
       if (!appt) return err("Appointment not found", 404);
-      if (appt.customer_phone !== body.phone) return err("Phone mismatch", 403);
+      const { data: owns, error: ownsErr } = await supabase
+        .rpc("ivr_phone_owns_appointment", { _phone: body.phone, _appointment_id: body.appointmentId });
+      if (ownsErr) return err(ownsErr.message, 500);
+      if (!owns) return err("Phone mismatch", 403);
       if (appt.status !== "confirmed") return err("Already cancelled");
       const { error } = await supabase.from("appointments")
         .update({ status: "cancelled" }).eq("id", body.appointmentId);
