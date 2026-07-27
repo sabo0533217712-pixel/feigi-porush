@@ -241,7 +241,13 @@ export default function ClientBooking() {
     if (blocksRes.data) setBlockedSlots(blocksRes.data);
   };
 
-  const DEFAULT_SCHEDULE = { start: "09:00", end: "18:00", breaks: [{ start: "13:00", end: "14:00" }] };
+  // Fallback used only when a day has no entry in day_schedules.
+  // Mirrors the server-side trigger exactly: legacy start/end from settings, and NO default breaks.
+  const DEFAULT_SCHEDULE = {
+    start: settings?.start_time?.substring(0, 5) || "09:00",
+    end: settings?.end_time?.substring(0, 5) || "18:00",
+    breaks: [] as { start: string; end: string }[],
+  };
 
   const getAvailableSlots = (date: Date, booked: { start_time: string; end_time: string }[], duration: number) => {
     if (!settings) return [];

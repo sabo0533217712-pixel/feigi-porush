@@ -128,11 +128,12 @@ export default function AdminSettings() {
         appointment_buffer_minutes: settings.appointment_buffer_minutes,
         calendar_view_start: settings.calendar_view_start,
         calendar_view_end: settings.calendar_view_end,
-        // Keep legacy fields synced from first working day as fallback
+        // Legacy fallback fields. day_schedules is the single source of truth for breaks —
+        // never copy one day's break here, it would be enforced on ALL days by the DB trigger.
         start_time: Object.values(settings.day_schedules)[0]?.start || "09:00",
         end_time: Object.values(settings.day_schedules)[0]?.end || "18:00",
-        break_start: Object.values(settings.day_schedules)[0]?.breaks?.[0]?.start || null,
-        break_end: Object.values(settings.day_schedules)[0]?.breaks?.[0]?.end || null,
+        break_start: null,
+        break_end: null,
       } as any)
       .eq("id", settings.id);
 
